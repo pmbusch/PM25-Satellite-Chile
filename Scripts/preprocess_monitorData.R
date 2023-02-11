@@ -44,7 +44,7 @@ df_year <- df_year %>% filter(completeness>=75)
 df_year$site %>% unique() %>% length() # monitors
 df_year$year %>% table()
 
-write.table(df_year,"Data/pm25_year.csv",sep=";")
+write.table(df_year,"Data/pm25_year.csv",sep=";",row.names = F)
 
 # Monthly data
 df_month <- df %>% group_by(region,province,commune,site,longitude,latitude,year,month,pollutant) %>% 
@@ -54,6 +54,6 @@ df_month <- df %>% group_by(region,province,commune,site,longitude,latitude,year
 ggplot(df_month,aes(completeness))+stat_ecdf()
 df_month <- df_month %>% filter(completeness>=75)
 
-write.table(df_month,"Data/pm25_month.csv",sep=";")
+write.table(df_month,"Data/pm25_month.csv",sep=";",row.names = F)
 
 # EoF
