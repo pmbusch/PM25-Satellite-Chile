@@ -43,6 +43,11 @@ ggplot(df,aes(value,pm25_satellite,col=factor(year)))+
        color="")
 
 
+dassda
+
+dsad
+
+
 p <- estaciones %>% 
   mutate(rm=if_else(region=="M","RM","Resto Chile") %>% factor()) %>% 
   mutate(texto=paste("Estacion: ",site,"\nComuna: ",nombre_comuna,sep="")) %>% 
