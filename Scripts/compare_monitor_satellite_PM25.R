@@ -31,6 +31,8 @@ cor(x= df$value, y= df$pm25_satellite,
 df$value %>% range()
 df$pm25_satellite %>% range()
 
+library(chilemapas)
+
 
 
 ## Regresion Monitor vs Satelite -------------
