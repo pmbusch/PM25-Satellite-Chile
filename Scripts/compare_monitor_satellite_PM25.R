@@ -17,7 +17,8 @@ skim(satellite);skim(monitor);
 ## join ----
 df <- monitor %>% left_join(satellite) %>% na.omit() # by site, year, month
 
-
+# save
+write.table(df,"Data/satellite_monitor.csv",sep = ";",row.names = F)
 
 ## Correlations ------
 cor(x= df$value, y= df$pm25_satellite,
@@ -32,8 +33,6 @@ df$value %>% range()
 df$pm25_satellite %>% range()
 
 library(chilemapas)
-
-
 
 ## Regresion Monitor vs Satelite -------------
 ggplot(df,aes(value,pm25_satellite,col=factor(year)))+

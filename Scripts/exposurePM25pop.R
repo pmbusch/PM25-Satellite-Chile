@@ -112,12 +112,12 @@ ggplot(data_storage,aes(pm25_Exposure,fill=year))+
   theme_bw()
 
 # how to aggregate at region level?
-
 pm25_exp_region <- data_storage %>% 
   group_by(codigo_region,year,month) %>% 
   summarise(pm25_exposure=stats::weighted.mean(pm25_Exposure,poblacion,na.rm=T,)) %>% 
   ungroup()
 
+# figure
 ggplot(pm25_exp_region,aes(month,pm25_exposure,
                            col=codigo_region,group=codigo_region))+
   geom_line()+
