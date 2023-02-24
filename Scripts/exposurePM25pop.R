@@ -104,28 +104,6 @@ data_storage <- data_storage %>%
 write.table(data_storage,"Data/pm25exposure.csv",sep=";",row.names = F)
 
 
-# figures ---
-ggplot(data_storage,aes(pm25_Exposure,fill=year))+
-  geom_density(alpha=.5)+
-  facet_wrap(~month)+
-  labs(x="PM2.5 Exposure",y="")+
-  theme_bw()
-
-# how to aggregate at region level?
-pm25_exp_region <- data_storage %>% 
-  group_by(codigo_region,year,month) %>% 
-  summarise(pm25_exposure=stats::weighted.mean(pm25_Exposure,poblacion,na.rm=T,)) %>% 
-  ungroup()
-
-# figure
-ggplot(pm25_exp_region,aes(month,pm25_exposure,
-                           col=codigo_region,group=codigo_region))+
-  geom_line()+
-  facet_wrap(~year)+
-  labs(x="Month",y="PM2.5 Exposure",col="Region")+
-  theme_bw()
-
-
 # Playground Example -----
 # valdivia
 codigos_territoriales %>% 
