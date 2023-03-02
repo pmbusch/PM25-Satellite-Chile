@@ -105,13 +105,20 @@ df %>% group_by(region,year) %>%
 library(chilemapas)
 
 ## Regresion Monitor vs Satelite -------------
-ggplot(df,aes(value,pm25_satellite,col=factor(year)))+
+
+# Add correlation to year legend
+cor_year$region <- NULL
+df <- df %>% 
+  left_join(cor_year, by="year") %>%
+  mutate(year_cor=paste0(year, " (r=",cor,")"))
+
+ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
   geom_point(alpha=.5)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
   labs(x="Monitor [ug/m3]", 
        y="Satelite [ug/m3]",
-       color="")+
+       color="Year (correlation)")+
   theme(legend.position = c(0.9,0.7),
         legend.box.background = element_rect(colour = "black"))
 
@@ -188,19 +195,31 @@ ggsave("Figures/Correlations_timeSeries.png", p_timeSeries, dpi=900,
 
 
 ## Time series by region -----
+# Add correlation to region legend
+cor_region$year <- NULL
+df$cor <- NULL
+df <- df %>% 
+  left_join(cor_region, by="region") %>%
+  mutate(region_cor=paste0(region, " (r=",cor,")"))
+
+region_order <- df %>% group_by(region_cor) %>% 
+  summarise(latitude=mean(latitude)) %>% 
+  arrange(desc(latitude)) %>% pull(region_cor)
+
 p_timeSeries_region <- df %>% 
   mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
   rename(Monitor=value, Satellite=pm25_satellite) %>% 
   pivot_longer(cols=c("Monitor","Satellite")) %>%
   mutate(monitor_dummy=paste0(site,name)) %>% # dummy to unique monitor for ground and sat est.
-  mutate(region=factor(region,levels=region_order)) %>% 
+  mutate(region_cor=factor(region_cor,levels=region_order)) %>% 
   ggplot(aes(date, value,col=factor(name)))+
   geom_line(aes(group=factor(monitor_dummy)))+
   geom_point(size=0.5)+
-  facet_wrap(~region, scales="free")+
+  facet_wrap(~region_cor, scales="free")+
   coord_cartesian(ylim=c(0,70), expand = T)+
   labs(x="", y="MP2.5 [ug/m3]",color="",shape="")
 p_timeSeries_region
+
 
 ## Boxplot -----
 df %>% 
