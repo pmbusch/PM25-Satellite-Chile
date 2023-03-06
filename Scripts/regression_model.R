@@ -11,8 +11,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 # Load required data -----
 # rate is per 1000 birhts
-mortality <- read.delim("Data/mortality_data.csv")
-mortality <- mortality %>% rename(year=Year,quarter=Quarter)
+# mortality <- read.delim("Data/mortality_data.csv")
+# mortality <- mortality %>% rename(year=Year,quarter=Quarter)
 
 # 75+ years death data----
 # death_75 <- read.delim("Data/chile_elderly_mortality_count_comuna_level_year_quarter.csv",sep=",")
@@ -21,6 +21,7 @@ death_75 <- death_75 %>% rename(year=Year,
                                 # quarter=Quarter,
                                 month=Month,
                                 codigo_comuna=CODIGO_COMUNA_RESIDENCIA)
+death_75$Mortality_Count %>% sum()
 death_75 <- death_75 %>% group_by(codigo_comuna,year,month) %>%
   summarise(Mortality_Count=sum(Mortality_Count,na.rm=T))
 
@@ -31,13 +32,14 @@ pop_75 <- chilemapas::censo_2017_comunas %>%
   group_by(codigo_comuna) %>% summarise(pop75=sum(poblacion,na.rm=T)) %>% 
   ungroup() %>% mutate(codigo_comuna=as.integer(codigo_comuna))
 
+# use only counties with at least 50 people in the age group
 pop_75 <- pop_75 %>% filter(pop75>50)
 
 # library(ggforce)
 # ggplot(pop_75,aes(pop75))+geom_histogram(bins=100)+
 #   facet_zoom(xlim(0,500))
 
-
+# join death and pop
 death_75 <- death_75 %>% left_join(pop_75)
 
 # death_75$codigo_comuna <- as.character(death_75$codigo_comuna)
@@ -70,10 +72,11 @@ pm25_exp <- pm25 %>%
   mutate(pm25_exposure=pop_pm25/total_pop) %>% 
   mutate(pm25Exp_10ug=pm25_exposure/10)
 
+# remove below 1 exposure
 pm25_exp <- pm25_exp %>% filter(pm25_exposure>1)
 
 # Join ----
-names(mortality)
+# names(mortality)
 names(pm25_exp)
 names(death_75)
 # df <- mortality %>% left_join(pm25_exp)
@@ -122,7 +125,10 @@ ggplot(df,aes(pm25_exposure,mortality,col=quarter))+
 
 ## Negative Binomial Model ----- 
 # for offset, see https://stats.stackexchange.com/questions/66791/where-does-the-offset-go-in-poisson-negative-binomial-regression
-model_nb <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+region+
+
+df <- df %>% mutate(quarter=ceiling(as.numeric(month)/3) %>% factor())
+
+model_nb <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+region*quarter+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
@@ -131,12 +137,13 @@ summary(model_nb)
 nobs(model_nb)
 BIC(model_nb)
 coef(model_nb) %>% exp()
-confint(model_nb) %>% exp()
+confint(model_nb,method="Wald") %>% exp()
 autoplot(model_nb)
 plot(df$mortality,predict(model_nb,type="response"))
 
 # LM
-model_lm <- glm(mortality ~ pm25Exp_10ug+year+region, 
+model_lm <- glm(mortality ~ pm25Exp_10ug+year+region*quarter, 
+                weights = pop75,
                 data = df,
                 family =  gaussian(link = "log"),
                 na.action=na.omit)
@@ -149,7 +156,8 @@ confint(model_lm) %>% exp()
 autoplot(model_lm)
 
 ## Gamma regression -----
-model_gamma <- glm(mortality ~ pm25Exp_10ug+year+region, 
+model_gamma <- glm(mortality ~ pm25Exp_10ug+year+region*quarter, 
+                weights = pop75,
                 data = df,
                 family =  Gamma(link = "log"),
                 na.action=na.omit)
