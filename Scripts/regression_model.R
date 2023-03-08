@@ -107,20 +107,20 @@ df %>% group_by(month) %>%
 
 
 # Some figures -----
-df %>% 
-  mutate(a=paste0(year,month)) %>%
-  ggplot(aes(a,mortality,group=commune))+
-  geom_line(alpha=.5)
-
-ggplot(df,aes(month,mortality))+
-  geom_boxplot()
-
-ggplot(df,aes(pm25_exposure,mortality,col=quarter))+
-  geom_point(alpha=.5, data=dplyr::select(df,-quarter),col="grey")+
-  geom_point(alpha=.5)+
-  geom_smooth(method="lm")+
-  geom_smooth(method="lm", data=dplyr::select(df,-quarter),col="grey")+
-  facet_wrap(~quarter)
+# df %>% 
+#   mutate(a=paste0(year,month)) %>%
+#   ggplot(aes(a,mortality,group=commune))+
+#   geom_line(alpha=.5)
+# 
+# ggplot(df,aes(month,mortality))+
+#   geom_boxplot()
+# 
+# ggplot(df,aes(pm25_exposure,mortality,col=quarter))+
+#   geom_point(alpha=.5, data=dplyr::select(df,-quarter),col="grey")+
+#   geom_point(alpha=.5)+
+#   geom_smooth(method="lm")+
+#   geom_smooth(method="lm", data=dplyr::select(df,-quarter),col="grey")+
+#   facet_wrap(~quarter)
 
 
 ## Negative Binomial Model ----- 
@@ -128,7 +128,7 @@ ggplot(df,aes(pm25_exposure,mortality,col=quarter))+
 
 df <- df %>% mutate(quarter=ceiling(as.numeric(month)/3) %>% factor())
 
-model_nb <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+region*quarter+
+model_nb <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+quarter+commune+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
@@ -140,6 +140,21 @@ coef(model_nb) %>% exp()
 confint(model_nb,method="Wald") %>% exp()
 autoplot(model_nb)
 plot(df$mortality,predict(model_nb,type="response"))
+
+# NB with interaction
+model_nb_inter <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+region*quarter+
+                     offset(log(pop75)), 
+                   data = df,
+                   na.action=na.omit)
+
+summary(model_nb_inter)
+nobs(model_nb_inter)
+BIC(model_nb_inter)
+coef(model_nb_inter) %>% exp()
+confint(model_nb_inter,method="Wald") %>% exp()
+autoplot(model_nb_inter)
+plot(df$mortality,predict(model_nb_inter,type="response"))
+
 
 # LM
 model_lm <- glm(mortality ~ pm25Exp_10ug+year+region*quarter, 
