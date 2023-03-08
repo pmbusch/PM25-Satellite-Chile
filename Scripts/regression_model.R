@@ -105,6 +105,8 @@ cor(df$mortality,df$pm25_exposure,method = "spearman")
 df %>% group_by(month) %>% 
   summarise(cor(mortality,pm25_exposure))
 
+df %>% group_by(quarter) %>% 
+  summarise(cor(mortality,pm25_exposure))
 
 # Some figures -----
 # df %>% 
@@ -137,7 +139,7 @@ summary(model_nb)
 nobs(model_nb)
 BIC(model_nb)
 coef(model_nb) %>% exp()
-confint(model_nb,method="Wald") %>% exp()
+confint(model_nb,method="Wald",parm="pm25Exp_10ug") %>% exp()
 autoplot(model_nb)
 plot(df$mortality,predict(model_nb,type="response"))
 
