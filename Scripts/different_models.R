@@ -145,6 +145,8 @@ results[[14]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter:
 # merge results
 res <- do.call("rbind",results)
 write.csv(res,"Data/modelResults.csv",row.names = F)
+res <- read.csv("Data/modelResults.csv")
+
 
 # Summary Figure -----
 
@@ -153,21 +155,51 @@ x <- res %>%
   mutate(rr=exp(est)*100-100,
          rr_low=exp(est-1.96*se)*100-100,
          rr_high=exp(est+1.96*se)*100-100) %>% 
+  mutate(N=formatC(N,0, big.mark=",")) %>% 
+  mutate(mean=formatC(mean,3)) %>% 
+  mutate(ci=paste0(round(rr,1)," (",round(rr_low,1),", ",round(rr_high,1),")")) %>% 
   rownames_to_column() %>% mutate(rowname=as.numeric(rowname)) %>% 
   mutate(label=paste0(var," (n=",N,")"))
 
-ggplot(x,aes(reorder(label,rowname,decreasing=T),rr))+
+# Draw figure with Table Incorporated
+# Key Idea: Expand limits of graph and put text in each row, then do some formattin
+ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_point(size=3)+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   geom_vline(xintercept = c(4.5,7.5,8.5,10.5,12.5),
-             col="grey",linewidth=0.1)+
-  coord_flip()+
-  labs(x="",y="Percentage increase in Mortality rate by 10 ug/m3 PM2.5")
+             col="grey",linewidth=0.2)+
+  labs(x="",y="Percentage increase in Mortality rate by 10 ug/m3 PM2.5")+
+  # add bottom bar
+  geom_segment(x = 0.01, y = 0,xend = 0.01, yend = 15,
+               col="black",linewidth=0.5)+
+  # adjust range of axis
+  coord_flip(xlim=c(0,16),expand = F)+
+  scale_y_continuous(breaks = c(seq(0,15,5)), 
+                     expand = c(0,0),
+                     limits = c(-10,18.5)) +
+  # add text data
+  geom_text(y=-10,x=15,label="Sample",hjust = 0)+
+  geom_text(y=-10,aes(label=var),hjust = 0)+
+  geom_text(y=-4,x=15,label="n")+
+  geom_text(y=-4,aes(label=N))+
+  geom_text(y=-2,x=15,label="Base rate")+
+  geom_text(y=-2,aes(label=mean))+
+  geom_text(y=17,x=15,label="Effect C.I. 95%")+
+  geom_text(y=17,aes(label=ci))+
+  # Modify theme to look good
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border=element_blank(),
+        axis.line.y=element_blank(),
+        # axis.line.x = element_line(colour = "black"),
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank())
 
 ggsave("Figures/AllModels.png", ggplot2::last_plot(),units="mm",dpi=300,
-       width = 1586/3.7795275591, # pixel to mm under dpi=300
-       height = 950/3.7795275591)
+       width = 1068/3.7795275591, # pixel to mm under dpi=300
+       height = 664/3.7795275591)
 
 
 # EoF
