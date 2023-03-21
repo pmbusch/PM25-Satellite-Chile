@@ -81,7 +81,6 @@ cor_table[18,10] <- cor_total
 cor_table[18,2] <- sum(n_region$cor)
 cor_table[1,10] <- sum(n_year$cor)
 cor_table
-rm(cor_region,cor_year,n_region,n_year)
 
 # table presentation
 library(flextable)
@@ -112,15 +111,24 @@ df <- df %>%
   left_join(cor_year, by="year") %>%
   mutate(year_cor=paste0(year, " (r=",cor,")"))
 
-ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
+p_year <- ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
   geom_point(alpha=.5)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
-  labs(x="Monitor [ug/m3]", 
-       y="Satelite [ug/m3]",
+  labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
+       y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
        color="Year (correlation)")+
-  theme(legend.position = c(0.9,0.7),
+  theme_bw(9)+
+  theme(legend.position = c(0.8,0.17),
+        panel.grid.major = element_blank(),
+        legend.key.height = unit(0.1, "cm"),
         legend.box.background = element_rect(colour = "black"))
+p_year
+
+ggsave("Figures/SatelliteAcc_Year.png",p_year,
+       units="cm",dpi=500,
+       width = 8.7, #  1 column width
+       height = 8.7)
 
 p <- last_plot()+facet_wrap(~year)+theme(legend.position = "none")
 
@@ -158,6 +166,49 @@ p_eq
 ggsave("Figures/Correlations_year.png", p_eq, dpi=900,
        width = 29.74, height = 18.6, units = "in")
 rm(eq,p_eq,p)
+
+# Same scatter plot but for regions
+
+# Add correlation to year legend
+cor_region$year <- NULL
+df <- df %>% rename(cor_year=cor) %>% 
+  left_join(cor_region, by="region") %>%
+  mutate(region_cor=paste0(region, " (r=",cor,")"))
+
+p_region <- ggplot(df,aes(value,pm25_satellite,col=factor(region_cor)))+
+  geom_point(alpha=.5)+
+  # geom_smooth()+
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
+  labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
+       y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
+       color="Region (correlation)")+
+  theme_bw(9)+
+  # scale_color_viridis_d()+
+  guides(col=guide_legend(ncol=2))+
+  theme(legend.position = c(0.77,0.17),
+        panel.grid.major = element_blank(),
+        legend.key.height = unit(0.1, "cm"),
+        legend.spacing.x = unit(0.001,"cm"),
+        legend.text = element_text(size=6),
+        legend.box.background = element_rect(colour = "black"))
+p_region
+
+ggsave("Figures/SatelliteAcc_Region.png",p_region,
+       units="cm",dpi=500,
+       width = 8.7, #  1 column width
+       height = 8.7)
+
+library(gridExtra)
+
+p <- grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.2,0.9)),
+             p_region+labs(tag="B")+theme(plot.tag.position = c(0.2,0.9)),
+             ncol=2)
+
+ggsave("Figures/SatelliteAcc.png",p,
+       units="cm",dpi=500,
+       width = 8.7*2, # full width
+       height = 8.7)
+
 
 ## Temporal correlation --------
 
@@ -217,8 +268,16 @@ p_timeSeries_region <- df %>%
   geom_point(size=0.5)+
   facet_wrap(~region_cor, scales="free")+
   coord_cartesian(ylim=c(0,70), expand = T)+
-  labs(x="", y="MP2.5 [ug/m3]",color="",shape="")
+  labs(x="", y=expression(paste("MP2.5 [",mu,"g/",m^3,"]"),""),color="",shape="")+
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank())
 p_timeSeries_region
+
+ggsave("Figures/SatelliteAcc_Region.png",p_timeSeries_region,
+       units="cm",dpi=500,
+       width = 17.8, # full width
+       height = 17.8/2)
+
 
 
 ## Boxplot -----

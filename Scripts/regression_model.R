@@ -139,9 +139,27 @@ summary(model_nb)
 nobs(model_nb)
 BIC(model_nb)
 coef(model_nb) %>% exp()
-confint(model_nb,method="Wald",parm="pm25Exp_10ug") %>% exp()
+exp(coef(model_nb))[2]
+ci_pm25 <- confint(model_nb,method="Wald",parm="pm25Exp_10ug") %>% exp()
 autoplot(model_nb)
 plot(df$mortality,predict(model_nb,type="response"))
+
+# estimate avoided deaths in the whole period
+limit <- 12
+names(df)
+df %>% ungroup() %>% 
+  dplyr::select(-codigo_comuna,-codigo_region,-codigo_provincia,
+                -region,-quarter,-commune,-year,-month,-total_pop) %>% 
+  mutate(reduction=if_else(pm25_exposure>limit,pm25Exp_10ug-limit/10,0)) %>% # get reduction in terms of 10 ug/m2
+  mutate(red_perc_mortality=exp(coef(model_nb))[2]^(-reduction)) %>% # get relative decrease in mortality rate
+  # mutate(red_perc_mortality=ci_pm25[1]^(-reduction)) %>% # low
+  # mutate(red_perc_mortality=ci_pm25[2]^(-reduction)) %>% # high
+  mutate(new_MR=mortality*red_perc_mortality,
+         new_death_counts=pop75*new_MR/1000,
+         avoided_deaths=Mortality_Count-new_death_counts) %>% 
+  # head() %>% 
+  pull(avoided_deaths) %>% sum()/60
+
 
 # NB with interaction
 model_nb_inter <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+region*quarter+

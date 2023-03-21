@@ -16,6 +16,12 @@ death_75 <- death_75 %>% rename(year=Year,
                                 month=Month,
                                 codigo_comuna=CODIGO_COMUNA_RESIDENCIA)
 death_75$Mortality_Count %>% sum()
+
+death_75_sex <- death_75 %>% group_by(codigo_comuna,year,month,Gender) %>%
+  summarise(Mortality_Count=sum(Mortality_Count,na.rm=T)) %>% 
+  mutate(sexo=Gender %>% tolower())
+death_75_sex$Gender <- NULL
+
 death_75 <- death_75 %>% group_by(codigo_comuna,year,month) %>%
   summarise(Mortality_Count=sum(Mortality_Count,na.rm=T))
 
@@ -26,12 +32,22 @@ pop_75 <- chilemapas::censo_2017_comunas %>%
   group_by(codigo_comuna) %>% summarise(pop75=sum(poblacion,na.rm=T)) %>% 
   ungroup() %>% mutate(codigo_comuna=as.integer(codigo_comuna))
 
+pop_75_sex <- chilemapas::censo_2017_comunas %>% 
+  filter(edad %in% c("75 a 79","80 a 84","85 a 89","90 a 94","95 a 99")) %>% 
+  group_by(codigo_comuna,sexo) %>% summarise(pop75=sum(poblacion,na.rm=T)) %>% 
+  ungroup() %>% mutate(codigo_comuna=as.integer(codigo_comuna))
+
 # use only counties with at least 50 people in the age group
 pop_75 <- pop_75 %>% filter(pop75>50)
+pop_75_sex <- pop_75_sex %>% filter(pop75>50)
 
 # join death and pop
 death_75 <- death_75 %>% left_join(pop_75)
 death_75 <- death_75 %>% mutate(mortality=Mortality_Count/pop75*1000)
+
+death_75_sex <- death_75_sex %>% left_join(pop_75_sex)
+death_75_sex <- death_75_sex %>% mutate(mortality=Mortality_Count/pop75*1000)
+
 
 # pm25 pollution data exposure
 pm25 <- read.delim("Data/pm25exposure.csv",sep = ";")
@@ -74,6 +90,18 @@ df <- df %>%
 # write.table(df,"Data/panelData.csv",sep = ";",row.names = F)
 
 
+# sex data
+df_sex <- death_75_sex %>% left_join(pm25_exp)
+df_sex <- df_sex %>% na.omit()
+df_sex <- df_sex %>% 
+  mutate(quarter=ceiling(as.numeric(month)/3) %>% factor()) %>% 
+  mutate(year=as.factor(year),
+         region=as.factor(codigo_region),
+         commune=as.factor(codigo_comuna),
+         month=as.factor(month),
+         quarter=as.factor(quarter))
+
+
 # ggplot(df,aes(pm25_exposure,mortality,col=quarter_text))+
 #   # geom_point(alpha=.5, data=dplyr::select(df,-quarter),col="grey")+
 #   geom_point(alpha=.5)+
@@ -105,6 +133,15 @@ df <- df %>% mutate(zone=case_when(
   T ~ "South"))
 df %>% group_by(zone,region) %>% tally()
 
+# pm.25 by zone
+df %>%
+  mutate(pop_pm25=total_pop*pm25_exposure) %>% 
+  group_by(zone) %>% 
+  summarise(pop_pm25=sum(pop_pm25,na.rm=T),
+            total_pop=sum(total_pop,na.rm = T)) %>% 
+  ungroup() %>% 
+  mutate(pm25_exposure=pop_pm25/total_pop) 
+
 ## Function to run Negative Binomial Model ----- 
 # for offset, see https://stats.stackexchange.com/questions/66791/where-does-the-offset-go-in-poisson-negative-binomial-regression
 # seE: https://github.com/echolab-stanford/NCC2018/blob/master/scripts/functions.R
@@ -129,18 +166,27 @@ results <- list()  #lists to save results
 results[[1]] <- runModel(data=df,name="Full Sample")  # full sample
 results[[2]] <- runModel(data=df,name="Region-Quarter Interaction",
                          formula="Mortality_Count ~ pm25Exp_10ug+year+quarter*region+offset(log(pop75))")  # full sample
-results[[3]] <- runModel(data=filter(df,pm25_case=="Above Median"),name="PM2.5: Above Median") 
-results[[4]] <- runModel(data=filter(df,pm25_case=="Below Median"),name="PM2.5: Below Median") 
-results[[5]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+: Above Median") 
-results[[6]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+: Below Median") 
-results[[7]] <- runModel(data=filter(df,bad_region==0),name="No bad regions (satellite)")
-results[[8]] <- runModel(data=filter(df,zone=="North"),name="Zone: North")
-results[[9]] <- runModel(data=filter(df,zone=="Center"),name="Zone: Center")
-results[[10]] <- runModel(data=filter(df,zone=="South"),name="Zone: South")
-results[[11]] <- runModel(data=filter(df,quarter_text =="Summer"),name="Quarter: Summer",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
-results[[12]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: Fall",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
-results[[13]] <- runModel(data=filter(df,quarter_text =="Winter"),name="Quarter: Winter",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
-results[[14]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter: Spring",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[3]] <- runModel(data=filter(df_sex,sexo=="hombre"),name="Sex: Male") 
+results[[4]] <- runModel(data=filter(df_sex,sexo=="mujer"),name="Sex: Female") 
+results[[5]] <- runModel(data=filter(df,pm25_case=="Above Median"),name="PM2.5: Above Median") 
+results[[6]] <- runModel(data=filter(df,pm25_case=="Below Median"),name="PM2.5: Below Median") 
+results[[7]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+: Above Median") 
+results[[8]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+: Below Median") 
+results[[9]] <- runModel(data=filter(df,bad_region==0),name="No bad regions (satellite)")
+results[[10]] <- runModel(data=filter(df,zone=="North"),name="Zone: North")
+results[[11]] <- runModel(data=filter(df,zone=="Center"),name="Zone: Center")
+results[[12]] <- runModel(data=filter(df,zone=="South"),name="Zone: South")
+results[[13]] <- runModel(data=filter(df,quarter_text =="Summer"),name="Quarter: Summer",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[14]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: Fall",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[15]] <- runModel(data=filter(df,quarter_text =="Winter"),name="Quarter: Winter",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[16]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter: Spring",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+# lags
+results[[17]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,4)),name="Lag: -4 Month")
+results[[18]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,3)),name="Lag: -3 Month")
+results[[19]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,2)),name="Lag: -2 Month")
+results[[20]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,1)),name="Lag: -1 Month")
+results[[21]] <- runModel(data=mutate(df,pm25Exp_10ug=lead(pm25Exp_10ug,1)),name="Lead: +1 Month")
+
 
 # merge results
 res <- do.call("rbind",results)
@@ -156,38 +202,44 @@ x <- res %>%
          rr_low=exp(est-1.96*se)*100-100,
          rr_high=exp(est+1.96*se)*100-100) %>% 
   mutate(N=formatC(N,0, big.mark=",")) %>% 
-  mutate(mean=formatC(mean,3)) %>% 
-  mutate(ci=paste0(round(rr,1)," (",round(rr_low,1),", ",round(rr_high,1),")")) %>% 
+  # mutate(mean=formatC(mean,3)) %>% 
+  mutate(mean=format(round(mean,2),nsmall=2)) %>% 
+  mutate(ci=paste0(format(round(rr,1),nsmall=1)," (",
+                   format(round(rr_low,1),nsmall=1),", ",
+                   format(round(rr_high,1),nsmall=1),")")) %>% 
   rownames_to_column() %>% mutate(rowname=as.numeric(rowname)) %>% 
   mutate(label=paste0(var," (n=",N,")"))
 
 # Draw figure with Table Incorporated
 # Key Idea: Expand limits of graph and put text in each row, then do some formattin
+font_size <- 7.5
+rows <- nrow(res)
 ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
-  geom_point(size=3)+
+  geom_point(size=1)+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
-  geom_vline(xintercept = c(4.5,7.5,8.5,10.5,12.5),
+  geom_vline(xintercept = c(5.5,9.5,12.5,13.5,15.5,17.5,19.5),
              col="grey",linewidth=0.2)+
-  labs(x="",y="Percentage increase in Mortality rate by 10 ug/m3 PM2.5")+
+  labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
   # add bottom bar
-  geom_segment(x = 0.01, y = 0,xend = 0.01, yend = 15,
+  geom_segment(x = 0.01, y = -2.5,xend = 0.01, yend = 15,
                col="black",linewidth=0.5)+
   # adjust range of axis
-  coord_flip(xlim=c(0,16),expand = F)+
+  coord_flip(xlim=c(0,rows+2),expand = F)+
   scale_y_continuous(breaks = c(seq(0,15,5)), 
                      expand = c(0,0),
-                     limits = c(-10,18.5)) +
+                     limits = c(-13,18.5)) +
+  theme_bw(font_size)+
   # add text data
-  geom_text(y=-10,x=15,label="Sample",hjust = 0)+
-  geom_text(y=-10,aes(label=var),hjust = 0)+
-  geom_text(y=-4,x=15,label="n")+
-  geom_text(y=-4,aes(label=N))+
-  geom_text(y=-2,x=15,label="Base rate")+
-  geom_text(y=-2,aes(label=mean))+
-  geom_text(y=17,x=15,label="Effect C.I. 95%")+
-  geom_text(y=17,aes(label=ci))+
+  geom_text(y=-13,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8)+
+  geom_text(y=-13,aes(label=var),hjust = 0,size=font_size*5/14 * 0.8)+
+  geom_text(y=-7,x=rows+1,label="n",size=font_size*5/14 * 0.8)+
+  geom_text(y=-7,aes(label=N),size=font_size*5/14 * 0.8)+
+  geom_text(y=-5,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
+  geom_text(y=-5,aes(label=mean),size=font_size*5/14 * 0.8)+
+  geom_text(y=17,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
+  geom_text(y=17,aes(label=ci),size=font_size*5/14 * 0.8)+
   # Modify theme to look good
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -197,9 +249,11 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
         axis.text.y=element_blank(),
         axis.ticks.y = element_blank())
 
-ggsave("Figures/AllModels.png", ggplot2::last_plot(),units="mm",dpi=300,
-       width = 1068/3.7795275591, # pixel to mm under dpi=300
-       height = 664/3.7795275591)
+ggsave("Figures/AllModels.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       # width = 1068/3.7795275591, # pixel to mm under dpi=300
+       # height = 664/3.7795275591)
+       width=8.7*2,height=8.7)
 
 
 # EoF

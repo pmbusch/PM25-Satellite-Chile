@@ -111,11 +111,17 @@ pm25_exp_region %>%
 pm25_exp_commune %>% 
   mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
   ggplot(aes(date,pm25_exposure,group=codigo_comuna))+
-  geom_line(alpha=.5,size=.5)+
+  geom_line(alpha=.2,linewidth=.5)+
   coord_cartesian(expand = F)+
-  labs(x="",y="PM2.5 Exposure [ug/m3]")+
+  labs(x="",y=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]","")))+
   scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
-  theme(axis.title.y=element_text(angle=0,margin=margin(r=-145)))
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank())
+
+ggsave("Figures/PM25Exp_timeseries.png",last_plot(),
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height = 7.4)
 
 pm25_exp_commune$codigo_comuna %>% unique() %>% length()
 
