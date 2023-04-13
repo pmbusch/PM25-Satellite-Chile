@@ -3,43 +3,35 @@
 ## February 2023
 
 library(tidyverse)
+library(flextable)
 theme_set(theme_bw(16)+ 
             theme(panel.grid.major = element_blank(),
                   axis.title.y=element_text(angle=0,margin=margin(r=-70))))
 
 
 # load data 
-pm25_exp <- read.delim("Data/pm25exposure.csv",sep=";")
+pm25_exp_commune <- read.delim("Data/pm25exposure_commune.csv",sep=";")
 
-pm25_exp_region <- pm25_exp %>% 
-  mutate(codigo_region=as.factor(codigo_region)) %>% 
-  mutate(pop_pm25=poblacion*pm25_Exposure) %>% 
-  group_by(codigo_region,year,month) %>% 
+
+# Region level
+pm25_exp_region <- pm25_exp_commune %>% 
+  mutate(pop_pm25=total_pop*pm25_exposure) %>% 
+  group_by(REGION,year,month) %>% 
   summarise(pop_pm25=sum(pop_pm25,na.rm=T),
-            total_pop=sum(poblacion,na.rm = T)) %>% 
-  # summarise(pm25_exposure=stats::weighted.mean(pm25_Exposure,poblacion,na.rm=T,)) %>% 
+            total_pop=sum(total_pop,na.rm = T)) %>% 
   ungroup() %>% 
   mutate(pm25_exposure=pop_pm25/total_pop)
 
-pm25_exp_commune <- pm25_exp %>% 
-  mutate(codigo_comuna=as.factor(codigo_comuna)) %>% 
-  mutate(pop_pm25=poblacion*pm25_Exposure) %>% 
-  group_by(codigo_comuna,year,month) %>% 
-  summarise(pop_pm25=sum(pop_pm25,na.rm=T),
-            total_pop=sum(poblacion,na.rm = T)) %>% 
-  # summarise(pm25_exposure=stats::weighted.mean(pm25_Exposure,poblacion,na.rm=T,)) %>% 
-  ungroup() %>% 
-  mutate(pm25_exposure=pop_pm25/total_pop)
 
 ## table ------
 
-table <- pm25_exp_region %>% group_by(codigo_region) %>% 
+table <- pm25_exp_region %>% group_by(REGION) %>% 
   summarise(Mean=mean(pm25_exposure),
             `S.D.`=sd(pm25_exposure),
             Min=min(pm25_exposure),
             Median=median(pm25_exposure),
             Max=max(pm25_exposure)) %>% 
-  rename(Region=codigo_region)
+  rename(Region=REGION)
 
 total_table <- pm25_exp_region %>% 
   summarise(Mean=mean(pm25_exposure),
@@ -110,11 +102,11 @@ pm25_exp_region %>%
 
 pm25_exp_commune %>% 
   mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
-  ggplot(aes(date,pm25_exposure,group=codigo_comuna))+
+  ggplot(aes(date,pm25_exposure,group=COMUNA))+
   geom_line(alpha=.2,linewidth=.5)+
   coord_cartesian(expand = F)+
   labs(x="",y=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]","")))+
-  scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
+  scale_x_date(date_breaks = "1 year",date_labels = "%Y-%b")+
   theme_bw(10)+
   theme(panel.grid.major = element_blank())
 
@@ -123,6 +115,6 @@ ggsave("Figures/PM25Exp_timeseries.png",last_plot(),
        width = 14.8, # full width
        height = 7.4)
 
-pm25_exp_commune$codigo_comuna %>% unique() %>% length()
+pm25_exp_commune$codigo_comuna %>% unique() %>% length() # 345
 
 # EoF
