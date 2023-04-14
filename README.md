@@ -29,7 +29,7 @@ Project developed for the course "STA250 - Data Science for International Develo
 
 # Xiao Hui Tai review
 
-**Satellite PM2.5 validation
+**Satellite PM2.5 validation**
 - Explain your choice of the satellite imagery data set, and the data set itself, as well as the ground monitor data in a bit more detail in the main text.
 - Illustrate why it is important that you independently assessed these satellite data and how others might be able to use these data now that you have validated them. - Clarify the conclusion from this part of the analysis, which has implications on the generalizability of your results to other countries and uses of this satellite data set. E.g., should others be cautious with values below and above some cutoff? This appears to be the conclusion.
 
@@ -51,7 +51,7 @@ Project developed for the course "STA250 - Data Science for International Develo
 
 - Why is below 12 considered low and > 50 high? Some explanation of the distribution (e.g., X% of observations below 12%, or an explanation of WHO guidelines) would help the audience make sense of these values. If we exclude the extreme values that are not measured well, what is the correlation? 
 
-**The second part of the analysis
+**The second part of the analysis**
 - Emphasize that estimating these causal effects would not be possible without the use of this satellite imagery data set. 
 - Highlight how what you learned in the first part of the analysis can be applied in the second. E.g., you removed some regions with bad data as a robustness check. If the conclusion is more about the extreme ranges than the specific regions, how about removing the months or locations without these observations? This would make the link between the first and second research questions more explicit and demonstrate how others can use this information in the same way. 
 
@@ -70,7 +70,7 @@ Project developed for the course "STA250 - Data Science for International Develo
 
 - Highlight at least one heterogeneity result that is interesting (in your abstract etc., as a contribution). If you have a good explanation for the North, Center and South result, this could be a good one. A bit more of an explanation on why these breakdowns are interesting to you and what you might expect to see, whether your results support these, and the public health implications, would also be interesting. 
 
-**Discussion: 
+**Discussion**
 - Some more discussion about the 5% increase in mortality risk would be helpful. How does this compare to wealthy countries in particular? Should this number be comparable with those that you cited in the literature? If so, this is higher than for all ages (?) at 4% in the US (Yitshak-Sade, 2019) and lower than 14% (25+). Why?  - Include more public health implications. What can be done now that we have these estimates?
 - Number of avoided deaths: 
 	- If you do a careful analysis, I think this can go into the abstract as a main takeaway as well. You mention that it is overestimated because it should be measured as an annual average.
