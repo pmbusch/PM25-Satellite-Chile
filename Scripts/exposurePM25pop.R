@@ -15,6 +15,8 @@ library(rgdal)
 
 # load population data for all regions -----
 
+fig_name <- "Figures/PM25_Exposure/%s"
+
 regions <- 1:16
 regions <- paste0("R",ifelse(str_length(regions)==1,"0",""),regions)
 
@@ -79,7 +81,7 @@ pop_com %>% arrange(perc) %>% head(10) # lowest is 76%% in 01403
 # cdf
 ggplot(pop_com,aes(perc))+geom_histogram(bins=50)+theme_bw(20)+labs(y="Count of Coomunes",
                                                         x="Percentage of total population captured")
-ggsave("Figures/pop_capture_commune.png")
+ggsave(sprintf(fig_name,"pop_capture_commune.png"))
 
 
 
@@ -102,7 +104,7 @@ ggplot(pop_rural,aes(region,perc,fill=type))+
   guides(fill = guide_legend(reverse=TRUE))+
   theme_bw(20)+
     theme(legend.position = "bottom")
-ggsave("Figures/pop_share.png")
+ggsave(sprintf(fig_name,"pop_share.png"))
 
 rm(df,pop_reg,pop_map,pop_rural,pop_com)
 

@@ -8,6 +8,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank(),
                               axis.title.y=element_text(angle=0,
                                                         margin=margin(r=-10))))
 
+fig_name <- "Figures/Satellite_Monitor/%s"
+
 
 # load data ----
 
@@ -125,7 +127,7 @@ p_year <- ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
         legend.box.background = element_rect(colour = "black"))
 p_year
 
-ggsave("Figures/SatelliteAcc_Year.png",p_year,
+ggsave(sprintf(fig_name,"SatelliteAcc_Year.png"),p_year,
        units="cm",dpi=500,
        width = 8.7, #  1 column width
        height = 8.7)
@@ -163,7 +165,7 @@ p_eq <- p+geom_label(data=eq,  parse = F,
    geom_point(alpha=.5)
 
 p_eq
-ggsave("Figures/Correlations_year.png", p_eq, dpi=900,
+ggsave(sprintf(fig_name,"Correlations_year.png"), p_eq, dpi=900,
        width = 29.74, height = 18.6, units = "in")
 rm(eq,p_eq,p)
 
@@ -193,7 +195,7 @@ p_region <- ggplot(df,aes(value,pm25_satellite,col=factor(region_cor)))+
         legend.box.background = element_rect(colour = "black"))
 p_region
 
-ggsave("Figures/SatelliteAcc_Region.png",p_region,
+ggsave(sprintf(fig_name,"SatelliteAcc_Region.png"),p_region,
        units="cm",dpi=500,
        width = 8.7, #  1 column width
        height = 8.7)
@@ -204,7 +206,7 @@ p <- grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.2,0.9)),
              p_region+labs(tag="B")+theme(plot.tag.position = c(0.2,0.9)),
              ncol=2)
 
-ggsave("Figures/SatelliteAcc.png",p,
+ggsave(sprintf(fig_name,"SatelliteAcc.png"),p,
        units="cm",dpi=500,
        width = 8.7*2, # full width
        height = 8.7)
@@ -224,7 +226,7 @@ p_time <- ggplot(df,aes(value, pm25_satellite))+
        y="Satelite [ug/m3]",
        color="")
 p_time
-ggsave("Figures/Correlations_site.png", p_time, dpi=900,
+ggsave(sprintf(fig_name,"Correlations_site.png"), p_time, dpi=900,
        width = 29.74, height = 18.6, units = "in")
 
 
@@ -241,7 +243,7 @@ p_timeSeries <- df %>%
   labs(x="", y="MP2.5 [ug/m3]",color="")
 p_timeSeries
 
-ggsave("Figures/Correlations_timeSeries.png", p_timeSeries, dpi=900,
+ggsave(sprintf(fig_name,"Correlations_timeSeries.png"), p_timeSeries, dpi=900,
        width = 29.74, height = 18.6, units = "in")
 
 
@@ -273,7 +275,7 @@ p_timeSeries_region <- df %>%
   theme(panel.grid.major = element_blank())
 p_timeSeries_region
 
-ggsave("Figures/SatelliteAcc_Region.png",p_timeSeries_region,
+ggsave(sprintf(fig_name,"SatelliteAcc_Region.png"),p_timeSeries_region,
        units="cm",dpi=500,
        width = 17.8, # full width
        height = 17.8/2)
@@ -291,7 +293,7 @@ df %>%
   coord_flip()+
   labs(x="", y="MP2.5 [ug/m3]",color="",shape="")
 
-ggsave("Figures/Correlations_boxplots.png", last_plot(), dpi=900,
+ggsave(sprintf(fig_name,"Correlations_boxplots.png"), last_plot(), dpi=900,
        width = 29.74, height = 18.6, units = "in")
 
 
