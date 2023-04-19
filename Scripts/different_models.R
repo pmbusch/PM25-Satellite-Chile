@@ -5,77 +5,21 @@
 library(tidyverse)
 library(MASS)
 library(lme4)
+library(sandwich)
 
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 
 # Load required data -----
-# 75+ years death data
-death_75 <- read.delim("Data/chile_elderly_mortality_count_comuna_level_year_month.csv",sep=",")
-death_75 <- death_75 %>% rename(year=Year,
-                                month=Month,
-                                codigo_comuna=CODIGO_COMUNA_RESIDENCIA)
-death_75$Mortality_Count %>% sum()
+df <- read.delim("Data/panelData.csv",sep=";")
 
-death_75_sex <- death_75 %>% group_by(codigo_comuna,year,month,Gender) %>%
-  summarise(Mortality_Count=sum(Mortality_Count,na.rm=T)) %>% 
-  mutate(sexo=Gender %>% tolower())
-death_75_sex$Gender <- NULL
+df <- df %>% filter(!is.na(pm25Exp_10ug))
 
-death_75 <- death_75 %>% group_by(codigo_comuna,year,month) %>%
-  summarise(Mortality_Count=sum(Mortality_Count,na.rm=T))
-
-# get population
-chilemapas::censo_2017_comunas$edad %>% unique()
-pop_75 <- chilemapas::censo_2017_comunas %>% 
-  filter(edad %in% c("75 a 79","80 a 84","85 a 89","90 a 94","95 a 99")) %>% 
-  group_by(codigo_comuna) %>% summarise(pop75=sum(poblacion,na.rm=T)) %>% 
-  ungroup() %>% mutate(codigo_comuna=as.integer(codigo_comuna))
-
-pop_75_sex <- chilemapas::censo_2017_comunas %>% 
-  filter(edad %in% c("75 a 79","80 a 84","85 a 89","90 a 94","95 a 99")) %>% 
-  group_by(codigo_comuna,sexo) %>% summarise(pop75=sum(poblacion,na.rm=T)) %>% 
-  ungroup() %>% mutate(codigo_comuna=as.integer(codigo_comuna))
-
-# use only counties with at least 50 people in the age group
-pop_75 <- pop_75 %>% filter(pop75>50)
-pop_75_sex <- pop_75_sex %>% filter(pop75>50)
-
-# join death and pop
-death_75 <- death_75 %>% left_join(pop_75)
-death_75 <- death_75 %>% mutate(mortality=Mortality_Count/pop75*1000)
-
-death_75_sex <- death_75_sex %>% left_join(pop_75_sex)
-death_75_sex <- death_75_sex %>% mutate(mortality=Mortality_Count/pop75*1000)
-
-
-# pm25 pollution data exposure
-pm25 <- read.delim("Data/pm25exposure.csv",sep = ";")
-
-# group to region and quarters
-pm25_exp <- pm25 %>% 
-  mutate(quarter=ceiling(month/3) %>% as.integer()) %>% # quarters by months
-  mutate(pop_pm25=poblacion*pm25_Exposure) %>% 
-  group_by(codigo_region,codigo_provincia,codigo_comuna,year,month) %>% 
-  summarise(pop_pm25=sum(pop_pm25,na.rm=T),
-            total_pop=sum(poblacion,na.rm = T)) %>% 
-  ungroup() %>% 
-  mutate(pm25_exposure=pop_pm25/total_pop) %>% 
-  mutate(pm25Exp_10ug=pm25_exposure/10)
-
-# remove below 1 exposure
-pm25_exp <- pm25_exp %>% filter(pm25_exposure>1)
-
-# Join ----
-names(pm25_exp)
-names(death_75)
-df <- death_75 %>% left_join(pm25_exp)
-df <- df %>% na.omit()
-
+# Change some paramters
 df <- df %>% 
   mutate(quarter=ceiling(as.numeric(month)/3) %>% factor()) %>% 
   mutate(year=as.factor(year),
-         region=as.factor(codigo_region),
+         region=as.factor(REGION),
          commune=as.factor(codigo_comuna),
          month=as.factor(month),
          quarter=as.factor(quarter))
@@ -87,16 +31,17 @@ df <- df %>%
     quarter==3 ~ "Winter",
     T ~ "Spring") %>% factor(levels=c("Fall","Spring","Winter","Summer")))
 
-# write.table(df,"Data/panelData.csv",sep = ";",row.names = F)
-
-
 # sex data
-df_sex <- death_75_sex %>% left_join(pm25_exp)
-df_sex <- df_sex %>% na.omit()
+df_sex <- read.delim("Data/panelData_sex.csv",sep=";")
+
+df_sex <- df_sex %>% filter(!is.na(pm25Exp_10ug))
+
+# Change some paramters
+
 df_sex <- df_sex %>% 
   mutate(quarter=ceiling(as.numeric(month)/3) %>% factor()) %>% 
   mutate(year=as.factor(year),
-         region=as.factor(codigo_region),
+         region=as.factor(REGION),
          commune=as.factor(codigo_comuna),
          month=as.factor(month),
          quarter=as.factor(quarter))
@@ -142,20 +87,31 @@ df %>%
   ungroup() %>% 
   mutate(pm25_exposure=pop_pm25/total_pop) 
 
+# order appropiately to ensure lags are well calculated
+df <- df %>% 
+  mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% 
+  arrange(count_month) %>% arrange(codigo_comuna)
+
 ## Function to run Negative Binomial Model ----- 
 # for offset, see https://stats.stackexchange.com/questions/66791/where-does-the-offset-go-in-poisson-negative-binomial-regression
 # seE: https://github.com/echolab-stanford/NCC2018/blob/master/scripts/functions.R
 runModel <- function(data_,
                      name,
                      formula="Mortality_Count ~ pm25Exp_10ug+year+quarter+commune+offset(log(pop75))"){
+  
   mod <- glm.nb(as.formula(formula), 
                      data = data_,
                      na.action=na.omit)
   
   coef <- summary(mod)$coefficients
   mean <- weighted.mean(data_$mortality,data_$pop75,na.rm=T)
+  
+  # clustered standard errors by commune
+  cluster_se <- vcovCL(mod, cluster = data_$commune)
+  cluster_se <- sqrt(diag(cluster_se))
+  
   # only PM2.5
-  out <- data.frame(est=coef[2,1],se=coef[2,2],mean=mean,
+  out <- data.frame(est=coef[2,1],se=cluster_se[2],mean=mean,
                     var=name,N=nobs(mod),bic=BIC(mod))
   return(out)
 }
@@ -166,8 +122,8 @@ results <- list()  #lists to save results
 results[[1]] <- runModel(data=df,name="Full Sample")  # full sample
 results[[2]] <- runModel(data=df,name="Region-Quarter Interaction",
                          formula="Mortality_Count ~ pm25Exp_10ug+year+quarter*region+offset(log(pop75))")  # full sample
-results[[3]] <- runModel(data=filter(df_sex,sexo=="hombre"),name="Sex: Male") 
-results[[4]] <- runModel(data=filter(df_sex,sexo=="mujer"),name="Sex: Female") 
+results[[3]] <- runModel(data=filter(df_sex,sex=="Hombre"),name="Sex: Male") 
+results[[4]] <- runModel(data=filter(df_sex,sex=="Mujer"),name="Sex: Female") 
 results[[5]] <- runModel(data=filter(df,pm25_case=="Above Median"),name="PM2.5: Above Median") 
 results[[6]] <- runModel(data=filter(df,pm25_case=="Below Median"),name="PM2.5: Below Median") 
 results[[7]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+: Above Median") 
@@ -181,11 +137,28 @@ results[[14]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: F
 results[[15]] <- runModel(data=filter(df,quarter_text =="Winter"),name="Quarter: Winter",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
 results[[16]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter: Spring",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
 # lags
-results[[17]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,4)),name="Lag: -4 Month")
-results[[18]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,3)),name="Lag: -3 Month")
-results[[19]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,2)),name="Lag: -2 Month")
-results[[20]] <- runModel(data=mutate(df,pm25Exp_10ug=lag(pm25Exp_10ug,1)),name="Lag: -1 Month")
-results[[21]] <- runModel(data=mutate(df,pm25Exp_10ug=lead(pm25Exp_10ug,1)),name="Lead: +1 Month")
+results[[17]] <- runModel(data=mutate(group_by(df,codigo_comuna), # need to group by by commune to ensure lag does not cross among communes
+                                      pm25Exp_10ug=lag(pm25Exp_10ug,12,order_by=count_month)),name="Lag: -1 Year")
+results[[18]] <- runModel(data=mutate(group_by(df,codigo_comuna),
+                                      pm25Exp_10ug=lag(pm25Exp_10ug,6,order_by=count_month)),name="Lag: -6 Month")
+results[[19]] <- runModel(data=mutate(group_by(df,codigo_comuna),
+                                      pm25Exp_10ug=lag(pm25Exp_10ug,3,order_by=count_month)),name="Lag: -3 Month")
+results[[20]] <- runModel(data=mutate(group_by(df,codigo_comuna),
+                                      pm25Exp_10ug=lag(pm25Exp_10ug,1,order_by=count_month)),name="Lag: -1 Month")
+results[[21]] <- runModel(data=mutate(group_by(df,codigo_comuna),
+                                      pm25Exp_10ug=lead(pm25Exp_10ug,1,order_by=count_month)),name="Lead: +1 Month")
+results[[22]] <- runModel(data=mutate(group_by(df,codigo_comuna),
+                                      pm25Exp_10ug=lead(pm25Exp_10ug,6,order_by=count_month)),name="Lead: +6 Month")
+results[[23]] <- runModel(data=mutate(group_by(df,codigo_comuna),
+                                      pm25Exp_10ug=lead(pm25Exp_10ug,12,order_by=count_month)),name="Lead: +1 Year")
+# by periods of year
+results[[24]] <- runModel(data=filter(df,year %in% c("2002","2003","2004","2005")),name="Period: 2002-2005")
+results[[25]] <- runModel(data=filter(df,year %in% c("2006","2007","2008","2009","2010")),name="Period: 2006-2010")
+results[[26]] <- runModel(data=filter(df,year %in% c("2011","2012","2013","2014","2015")),name="Period: 2011-2015")
+results[[27]] <- runModel(data=filter(df,year %in% c("2016","2017","20018","2019")),name="Period: 2016-2019")
+# other Endpoints Full Model
+results[[28]] <- runModel(data=df,name="Cardiopulmonary cause",
+                          formula="Mortality_Count_CDP ~ pm25Exp_10ug+year+quarter+commune+offset(log(pop75))")
 
 
 # merge results
@@ -199,7 +172,7 @@ res <- read.csv("Data/modelResults.csv")
 # Calculate RR and C.I.
 x <- res %>% 
   mutate(rr=exp(est)*100-100,
-         rr_low=exp(est-1.96*se)*100-100,
+         rr_low=exp(est-1.96*se)*100-100, # by the huge number of n, the t-stat converges to 1.96 for 5%
          rr_high=exp(est+1.96*se)*100-100) %>% 
   mutate(N=formatC(N,0, big.mark=",")) %>% 
   # mutate(mean=formatC(mean,3)) %>% 
@@ -207,7 +180,7 @@ x <- res %>%
   mutate(ci=paste0(format(round(rr,1),nsmall=1)," (",
                    format(round(rr_low,1),nsmall=1),", ",
                    format(round(rr_high,1),nsmall=1),")")) %>% 
-  rownames_to_column() %>% mutate(rowname=as.numeric(rowname)) %>% 
+  mutate(rowname=1:nrow(res)) %>% 
   mutate(label=paste0(var," (n=",N,")"))
 
 # Draw figure with Table Incorporated
@@ -219,7 +192,7 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
-  geom_vline(xintercept = c(5.5,9.5,12.5,13.5,15.5,17.5,19.5),
+  geom_vline(xintercept = c(1.5,5.5,12.5,16.5,19.5,20.5,22.5,24.5,26.5),
              col="grey",linewidth=0.2)+
   labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
   # add bottom bar
@@ -249,7 +222,7 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
         axis.text.y=element_blank(),
         axis.ticks.y = element_blank())
 
-ggsave("Figures/AllModels.png", ggplot2::last_plot(),
+ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
        # height = 664/3.7795275591)
