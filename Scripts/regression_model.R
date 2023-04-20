@@ -51,7 +51,9 @@ df %>% group_by(quarter) %>%
 # for offset, see https://stats.stackexchange.com/questions/66791/where-does-the-offset-go-in-poisson-negative-binomial-regression
 
 df <- df %>% mutate(quarter=factor(quarter),
-                    commune=as.factor(codigo_comuna))
+                    year=as.factor(year),
+                    commune=as.factor(codigo_comuna),
+                    commune=relevel(commune,ref="13101")) # Santiago
 
 # year month interaction
 
@@ -100,6 +102,81 @@ ci_lower <- coef_est - t_crit * coef_se
 ci_upper <- coef_est + t_crit * coef_se
 coef_est[1:8] %>% exp()
 cbind(ci_lower, ci_upper)[1:8,] %>% exp()
+
+# new p-value
+# calculate the z-statistics and p-values for the coefficients
+# assume asymptotic normality
+z <- coef_est/coef_se
+p_val <- 2 * (1 - pnorm(abs(z)))
+
+# estimates
+mod_est <- tibble(
+  param=names(coef_est),
+  coef=(exp(coef_est)-1)*100, # percentage increase
+  ci_low=(exp(ci_lower)-1)*100,
+  ci_high=(exp(ci_upper)-1)*100,
+  t_value=z,
+  p_value=p_val
+)
+
+
+# Figure - Year Effects ----
+mod_est %>% 
+  filter(param %>% str_detect("year")) %>% 
+  mutate(param=str_remove(param,"year")) %>% 
+  ggplot(aes(param,coef))+
+  geom_point(size=1)+
+  geom_linerange(aes(ymin=ci_low,ymax=ci_high))+
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
+  labs(x="",y="Percentage increase in Mortality relative to 2002")+
+  coord_flip()+
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+  
+ggsave("Figures//Model/YearEffects.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7)
+
+
+# Figure - Map Commune Effects ----
+# Relative to STGO
+library(chilemapas)
+
+est_commune <- mod_est %>% 
+  filter(param %>% str_detect("commune")) %>% 
+  mutate(param=str_remove(param,"commune")) %>% 
+  rename(codigo_comuna=param)
+
+# join to Chile mapas
+est_commune <- est_commune %>% 
+  mutate(codigo_comuna=if_else(str_length(codigo_comuna)==4,
+                               paste0("0",codigo_comuna),
+                               codigo_comuna)) %>%  # add extra 0
+  left_join(mapa_comunas)
+
+# sign
+est_commune <- est_commune %>% 
+  # filter(coef<50) %>% 
+  mutate(signif=p_value<0.05) 
+table(est_commune$signif) # only 3 not significant
+
+# map - need to make colors more visible
+ggplot(est_commune) + 
+  geom_sf(aes(fill = coef, geometry = geometry,color = signif),
+          size=0.1) +
+  scale_color_manual(values=c("transparent","black"),
+                     name="Sign. at 5% level")+
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                       midpoint = 0,
+                       trans="log",
+                       name = "Percentage increase in Mortality \n relative to Santiago commune") +
+  labs(title = "") +
+  theme_void(10)
+
+ggsave("Figures/Model/CommuneEffects.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7*2)
 
 
 # estimate avoided deaths in the whole period -----
