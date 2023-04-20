@@ -17,7 +17,6 @@ Project developed for the course "STA250 - Data Science for International Develo
 	- Papers with same approach
 - Organize paper based on professor's email
 - Exploratory analysis 
-	- 75+ all cause
 	- 75+ cardiovascular/respiratory
 	- PM2.5 exposureUrban vs Rural
 - Run models with updated data
