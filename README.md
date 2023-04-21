@@ -75,7 +75,16 @@ Project developed for the course "STA250 - Data Science for International Develo
 	- If you do a careful analysis, I think this can go into the abstract as a main takeaway as well. You mention that it is overestimated because it should be measured as an annual average.
 	- Can you construct different scenarios for the monthly numbers that would make sense, such that the yearly average is 12 or 20? E.g., use the seasonal pattern and introduce one with minimal fluctuations and one with large fluctuations. I'm not quite sure I understood the part about "the dynamic effect of avoiding deaths over the whole period." You highlight in the conclusion that this work is particularly important for the central/south part of the country, and so in these hypothetical scenarios, if you calculate numbers of avoidable deaths for these regions that would be particularly convincing. 
 
-
+4/21 meeting
+mortality EDA 
+another heft-neal paper (earlier one) individual level infant mort, dhs survey, panel with fixed effect 
+wealth effect 
+include temperature and square of it
+try to put it as many fixed effects as possible 
+model with lags and leads
+still effect if cardiopulmonary and respiratory 
+pm2.5 measurement issue: one paper saying satellite inaccurate for biomass burning area
+review PNAS sustainability science paper 
 
 
 
