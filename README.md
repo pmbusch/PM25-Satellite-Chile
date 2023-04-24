@@ -15,15 +15,23 @@ Project developed for the course "STA250 - Data Science for International Develo
 
 - Literature review:
 	- Papers with same approach
+	- See new papers by professor
 - Organize paper based on professor's email
 - Exploratory analysis 
 	- 75+ cardiovascular/respiratory
 	- PM2.5 exposureUrban vs Rural
-- Run models with updated data
+- Satellite data
+	- See accuracy in regions with wood burning
+- Get more dependent variables
+	- Separate CVD from RSP 
+	- Get count data for all external causes
+- Run different model specifications
 	- Region*quarter interaction
-	- Huber-White standard errors (VC robust)
+	- Quarter*Year
+	- All lags at the same time
 - Add Income overtime (for long period analysis)
-- Add temperature
+	- Add income as sub-sample
+- Add temperature as T and T^2
 
 
 # Xiao Hui Tai review
