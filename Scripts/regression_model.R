@@ -9,7 +9,7 @@ library(sandwich) # for robust and clustered standard errors
 
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
-# LOAD pANEL DATA ----
+# Load Panel Data ----
 df <- read.delim("Data/panelData.csv",sep=";")
 
 df$year %>% range()
@@ -18,7 +18,7 @@ df$pm25_exposure %>% range(na.rm=T)
 df$mortality %>% range(na.rm=T)
 
 
-## Correlation ---
+# Correlation ---
 cor(df$mortality,df$pm25_exposure,use = "complete.obs")
 cor(df$mortality,df$pm25_exposure,method = "spearman",use = "complete.obs")
 
@@ -47,6 +47,8 @@ df %>% group_by(quarter) %>%
 #   facet_wrap(~quarter)
 
 
+# MAIN MODEL ---------
+
 ## Negative Binomial Model ----- 
 # for offset, see https://stats.stackexchange.com/questions/66791/where-does-the-offset-go-in-poisson-negative-binomial-regression
 
@@ -55,14 +57,6 @@ df <- df %>% mutate(quarter=factor(quarter),
                     commune=as.factor(codigo_comuna),
                     commune=relevel(commune,ref="13101")) # Santiago
 
-# year month interaction
-
-# year*month: 1.006 (0.999-1.013)
-# year*quarter + month: 1.008 (1.001-1.015)
-# year*quarter (no month): 1.056 (1.045-1.067)
-# year+quarter (no month): 1.054 (1.044-1.065)
-# year+quarter+month: 1.006 (1.000-1.013)
-# year+month: 1.006 (1.000-1.013)
 
 model_nb <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+quarter+commune+
                      offset(log(pop75)), 
@@ -120,7 +114,7 @@ mod_est <- tibble(
 )
 
 
-# Figure - Year Effects ----
+## Figure - Year Effects ----
 mod_est %>% 
   filter(param %>% str_detect("year")) %>% 
   mutate(param=str_remove(param,"year")) %>% 
@@ -139,7 +133,7 @@ ggsave("Figures//Model/YearEffects.png", ggplot2::last_plot(),
        width=8.7,height=8.7)
 
 
-# Figure - Map Commune Effects ----
+## Figure - Map Commune Effects ----
 # Relative to STGO
 library(chilemapas)
 
@@ -179,7 +173,7 @@ ggsave("Figures/Model/CommuneEffects.png", ggplot2::last_plot(),
        width=8.7,height=8.7*2)
 
 
-# estimate avoided deaths in the whole period -----
+## Estimate avoided deaths in the whole period -----
 limit <- 12
 names(df)
 df %>% ungroup() %>% 
@@ -211,81 +205,8 @@ autoplot(model_nb_inter)
 plot(df$mortality,predict(model_nb_inter,type="response"))
 
 
-# LM
-model_lm <- glm(mortality ~ pm25Exp_10ug+year+region*quarter, 
-                weights = pop75,
-                data = df,
-                family =  gaussian(link = "log"),
-                na.action=na.omit)
 
-summary(model_lm)
-nobs(model_lm)
-BIC(model_lm)
-coef(model_lm) %>% exp()
-confint(model_lm) %>% exp()
-autoplot(model_lm)
-
-## Gamma regression -----
-model_gamma <- glm(mortality ~ pm25Exp_10ug+year+region*quarter, 
-                weights = pop75,
-                data = df,
-                family =  Gamma(link = "log"),
-                na.action=na.omit)
-
-summary(model_gamma)
-nobs(model_gamma)
-BIC(model_gamma)
-coef(model_gamma) %>% exp()
-confint(model_gamma) %>% exp()
-autoplot(model_gamma)
-
-
-## Random Effects Region-----
-model_random <- glmer.nb(Mortality_Count ~ pm25Exp_10ug+year+(1 | region)+
-                     offset(log(pop75)), 
-                   data = df,
-                   na.action=na.omit)
-
-summary(model_random)
-nobs(model_random)
-BIC(model_random)
-fixef(model_random) %>% exp()
-confint(model_random, method="Wald") %>% exp()
-
-## Random Effects Comune-----
-model_random_com <- glmer.nb(Mortality_Count ~ pm25Exp_10ug+year+(1 | commune)+
-                           offset(log(pop75)), 
-                         data = df,
-                         na.action=na.omit)
-
-summary(model_random_com)
-nobs(model_random_com)
-BIC(model_random_com)
-fixef(model_random_com) %>% exp()
-confint(model_random_com, method="Wald") %>% exp()
-
-
-# Model with lags -----
-df <- df %>% 
-  mutate(pm25Exp_lag1=lag(pm25Exp_10ug,1),
-         pm25Exp_lag2=lag(pm25Exp_10ug,2),
-         pm25Exp_lag3=lag(pm25Exp_10ug,3),
-         pm25Exp_lag4=lag(pm25Exp_10ug,4))
-
-
-model_nb_lags <- glm.nb(Mortality_Count ~ pm25Exp_10ug+pm25Exp_lag1+
-                          pm25Exp_lag2+pm25Exp_lag3+pm25Exp_lag4+
-                          year+region+
-                     offset(log(pop75)), 
-                   data = df,
-                   na.action=na.omit)
-
-summary(model_nb_lags)
-nobs(model_nb_lags)
-BIC(model_nb_lags)
-coef(model_nb_lags) %>% exp()
-confint(model_nb_lags) %>% exp()
-autoplot(model_nb_lags)
+# PLAYGROUND --------------
 
 
 
