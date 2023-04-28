@@ -23,12 +23,15 @@ income_percentil <- quantile(income$income_mean_usd,
                                probs = c(0.3,0.65,0.95),na.rm=T)
 
 ggplot(income,aes(income_mean_usd))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="grey",col="black")+
   geom_vline(xintercept = income_percentil,col="red")+
+  annotate("text",x=income_percentil+30,y=50,label=paste0("P",names(income_percentil)),
+           angle = 90,col="red")+
   coord_cartesian(expand = F)+
+  labs(x="Mean Income [USD]",y="Number of Communes")+
   theme_bw(20)+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-
+ggsave("Figures/Other/Income_Distribution.png")
 
 df <- df %>% left_join(income)
 rm(income)
@@ -92,7 +95,8 @@ df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12"),1,0))
 # Regions by zone
 df <- df %>% mutate(zone=case_when(
   region %in% c("15","1","2","3","4") ~ "North",
-  region %in% c("5","13","6","7","16") ~ "Center",
+  region %in% c("5","13","6","7","8","16") ~ "Center",
+  region %in% c("11","12") ~ "Patagonia",
   T ~ "South"))
 df %>% group_by(zone,region) %>% tally()
 
@@ -104,6 +108,7 @@ df %>%
             total_pop=sum(total_pop,na.rm = T)) %>% 
   ungroup() %>% 
   mutate(pm25_exposure=pop_pm25/total_pop) 
+
 
 # order appropiately to ensure lags are well calculated
 df <- df %>% 
@@ -117,6 +122,16 @@ df <- df %>% mutate(income_group=case_when(
   income_mean_usd<income_percentil[3] ~ "Between P65-P95 ($522 to $898)",
   T ~ "Above P95 (more than $898)"))
 df %>% group_by(income_group) %>% tally()
+
+# pm.25 level
+df <- df %>% mutate(pm25_level=case_when(
+  pm25_exposure<10 ~ "PM2.5 below 10",
+  pm25_exposure<20 ~ "PM2.5 10-20",
+  pm25_exposure<30 ~ "PM2.5 20-30",
+  pm25_exposure<40 ~ "PM2.5 30-40",
+  pm25_exposure<50 ~ "PM2.5 40-50",
+  T ~ "PM2.5>50"))
+df %>% group_by(pm25_level) %>% tally()
 
 
 
@@ -149,6 +164,16 @@ runModel <- function(data_,
 results <- list()  #lists to save results
 
 results[[1]] <- runModel(data=df,name="Full Sample")  # full sample
+
+
+results[[2]] <- runModel(data=filter(df,pm25_exposure<10),name="PM2.5 below 10") 
+results[[3]] <- runModel(data=filter(df,pm25_exposure>10,pm25_exposure<20),name="PM2.5 10-20") 
+results[[4]] <- runModel(data=filter(df,pm25_exposure>20,pm25_exposure<30),name="PM2.5 20-30") 
+results[[5]] <- runModel(data=filter(df,pm25_exposure>30,pm25_exposure<40),name="PM2.5 30-40") 
+results[[6]] <- runModel(data=filter(df,pm25_exposure>40,pm25_exposure<50),name="PM2.5 40-50") 
+results[[7]] <- runModel(data=filter(df,pm25_exposure>50),name="PM2.5 above 50") 
+
+
 results[[2]] <- runModel(data=filter(df_sex,sex=="Hombre"),name="Sex: Male") 
 results[[3]] <- runModel(data=filter(df_sex,sex=="Mujer"),name="Sex: Female") 
 results[[4]] <- runModel(data=filter(df,pm25_case=="Above Median"),name="PM2.5: Above Median") 
@@ -159,29 +184,30 @@ results[[8]] <- runModel(data=filter(df,bad_region==0),name="No bad regions (sat
 results[[9]] <- runModel(data=filter(df,zone=="North"),name="Zone: North")
 results[[10]] <- runModel(data=filter(df,zone=="Center"),name="Zone: Center")
 results[[11]] <- runModel(data=filter(df,zone=="South"),name="Zone: South")
-results[[12]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
-results[[13]] <- runModel(data=filter(df,REGION !=13),name="No Metropolitan region")
+results[[12]] <- runModel(data=filter(df,zone=="Patagonia"),name="Zone: Patagonia")
+results[[13]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
+results[[14]] <- runModel(data=filter(df,REGION !=13),name="No Metropolitan region")
 # by Income
-results[[14]] <- runModel(data=filter(df,income_group =="Below P30 (less than $386)"),
-                         name="Income below P30 (less than $386)")
-results[[15]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($386 to $522)"),
-                         name="Income between P30-P65 ($386 to $522)")
-results[[16]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($522 to $898)"),
-                         name="Income between P65-P95 ($522 to $898)")
-results[[17]] <- runModel(data=filter(df,income_group =="Above P95 (more than $898)"),
-                         name="Above P95 (more than $898)")
+results[[15]] <- runModel(data=filter(df,income_group =="Below P30 (less than $386)"),
+                         name="Income less $386 (P30)")
+results[[16]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($386 to $522)"),
+                         name="Income $386-$522 (P30-P65)")
+results[[17]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($522 to $898)"),
+                         name="Income $522-$898 (P65-P95)")
+results[[18]] <- runModel(data=filter(df,income_group =="Above P95 (more than $898)"),
+                         name="Above $898 (P95)")
 # by season
-results[[18]] <- runModel(data=filter(df,quarter_text =="Summer"),name="Quarter: Summer",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
-results[[19]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: Fall",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
-results[[20]] <- runModel(data=filter(df,quarter_text =="Winter"),name="Quarter: Winter",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
-results[[21]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter: Spring",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[19]] <- runModel(data=filter(df,quarter_text =="Summer"),name="Quarter: Summer",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[20]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: Fall",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[21]] <- runModel(data=filter(df,quarter_text =="Winter"),name="Quarter: Winter",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
+results[[22]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter: Spring",formula="Mortality_Count ~ pm25Exp_10ug+year+commune+offset(log(pop75))")
 # by periods of year
-results[[22]] <- runModel(data=filter(df,year %in% c("2002","2003","2004","2005")),name="Period: 2002-2005")
-results[[23]] <- runModel(data=filter(df,year %in% c("2006","2007","2008","2009","2010")),name="Period: 2006-2010")
-results[[24]] <- runModel(data=filter(df,year %in% c("2011","2012","2013","2014","2015")),name="Period: 2011-2015")
-results[[25]] <- runModel(data=filter(df,year %in% c("2016","2017","20018","2019")),name="Period: 2016-2019")
+results[[23]] <- runModel(data=filter(df,year %in% c("2002","2003","2004","2005")),name="Period: 2002-2005")
+results[[24]] <- runModel(data=filter(df,year %in% c("2006","2007","2008","2009","2010")),name="Period: 2006-2010")
+results[[25]] <- runModel(data=filter(df,year %in% c("2011","2012","2013","2014","2015")),name="Period: 2011-2015")
+results[[26]] <- runModel(data=filter(df,year %in% c("2016","2017","20018","2019")),name="Period: 2016-2019")
 # other Endpoints Full Model
-results[[26]] <- runModel(data=df,name="Cardiopulmonary cause",
+results[[27]] <- runModel(data=df,name="Cardiopulmonary cause",
                           formula="Mortality_Count_CDP ~ pm25Exp_10ug+year+quarter+commune+offset(log(pop75))")
 
 
@@ -217,7 +243,7 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
-  geom_vline(xintercept = c(1.5,5.5,12.5,16.5,19.5,20.5,22.5,24.5,26.5),
+  geom_vline(xintercept = c(1.5,5.5,9.5,13.5,15.5,19.5,20.5,22.5,24.5,26.5),
              col="grey",linewidth=0.2)+
   labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
   # add bottom bar
@@ -227,17 +253,17 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   coord_flip(xlim=c(0,rows+2),expand = F)+
   scale_y_continuous(breaks = c(seq(0,15,5)), 
                      expand = c(0,0),
-                     limits = c(-15,18.5)) +
+                     limits = c(-16,18.5)) +
   theme_bw(font_size)+
   # add text data
-  geom_text(y=-15,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8)+
-  geom_text(y=-15,aes(label=var),hjust = 0,size=font_size*5/14 * 0.8)+
+  geom_text(y=-16,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8)+
+  geom_text(y=-16,aes(label=var),hjust = 0,size=font_size*5/14 * 0.8)+
   geom_text(y=-9,x=rows+1,label="n",size=font_size*5/14 * 0.8)+
   geom_text(y=-9,aes(label=N),size=font_size*5/14 * 0.8)+
   geom_text(y=-7,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
   geom_text(y=-7,aes(label=mean),size=font_size*5/14 * 0.8)+
-  geom_text(y=-5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
-  geom_text(y=-5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  geom_text(y=-4.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
+  geom_text(y=-4.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
   geom_text(y=17,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
   geom_text(y=17,aes(label=ci),size=font_size*5/14 * 0.8)+
   # Modify theme to look good
