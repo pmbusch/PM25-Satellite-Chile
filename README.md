@@ -10,7 +10,7 @@ Project developed for the course "STA250 - Data Science for International Develo
 	* Hourly and daily monitor data of PM2.5 concentrations. Multiple monitor stations with data available across Chile used to validate the satellite data.
 	* Data is obtained through scripts developed from another [`project`](https://github.com/pmbusch/Reportes-SINCA)
 
-* *Land Temperature**: [MOD11A1.061 Terra Land Surface Temperature and Emissivity Daily Global 1km](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A1#bands). Daily land surface temperature data aggregated at monthly level.
+* **Land Temperature**: [MOD11A1.061 Terra Land Surface Temperature and Emissivity Daily Global 1km](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A1#bands). Daily land surface temperature data aggregated at monthly level.
 
 
 # TO DO
