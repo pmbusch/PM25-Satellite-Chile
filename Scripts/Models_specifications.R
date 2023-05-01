@@ -43,7 +43,7 @@ getModelInfo <- function(mod,name){
 
 ## Negative Binomial forms ----
 # year+quarter
-model_nb<- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+quarter+commune+
+model_nb<- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
@@ -51,42 +51,42 @@ models_nb_res <- getModelInfo(model_nb,"Year+Quarter")
 
 
 # year*month: 1.006 (0.999-1.013)
-mod_nb1 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year*month+commune+
+mod_nb1 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year*month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb1,"Year*Month"))
 
 # year+month: 1.006 (1.000-1.013)
-mod_nb2 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+month+commune+
+mod_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb2,"Year+Month"))
 
 # year+quarter (no month): 1.054 (1.044-1.065)
-mod_nb3 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+quarter+commune+
+mod_nb3 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb3,"Year+Quarter"))
 
 # year*quarter (no month): 1.056 (1.045-1.067)
-mod_nb4 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year*quarter+commune+
+mod_nb4 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year*quarter+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb4,"Year*Quarter"))
 
 # year*quarter + month: 1.008 (1.001-1.015)
-mod_nb5 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year*quarter+month+commune+
+mod_nb5 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year*quarter+month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb5,"Year*Quarter+Month"))
 
 # year+quarter+month: 1.006 (1.000-1.013)
-mod_nb6 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+quarter+month+commune+
+mod_nb6 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb6,"Year+Quarter+Month"))
 
 # region*quarter
-mod_nb7 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+region*quarter+commune+
+mod_nb7 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+region*quarter+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb7,"Region*Quarter"))
 
 # region*year
-mod_nb8 <- glm.nb(Mortality_Count ~ pm25Exp_10ug+region*year+commune+
+mod_nb8 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+region*year+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb8,"Region*Year"))
 

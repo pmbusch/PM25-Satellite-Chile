@@ -12,10 +12,16 @@ fig_name <- "Figures/PM25_Exposure/%s"
 
 # load data 
 pm25_exp_commune <- read.delim("Data/pm25exposure_commune.csv",sep=";")
+landTemp <-  read.delim("Data/landTemp_commune.csv",sep = ";")
+names(landTemp) <- names(landTemp) %>% str_replace_all("total_pop","total_pop_T")
 
+pm25_exp_commune <- pm25_exp_commune %>% left_join(landTemp)
 
-# Region level
+ # Region level
+region_levels <- c("15","1","2","3","4","5","13","6","7","8","16","9","14","10","11","12")
 pm25_exp_region <- pm25_exp_commune %>% 
+  # mutate(pm25_exposure=landTemp,
+  #        total_pop=total_pop_T) %>% # to see T results
   mutate(pop_pm25=total_pop*pm25_exposure) %>% 
   group_by(REGION,year,month) %>% 
   summarise(pop_pm25=sum(pop_pm25,na.rm=T),
@@ -28,21 +34,20 @@ pm25_exp_region <- pm25_exp_commune %>%
 
 
 ## table ------
-region_levels <- c("15","1","2","3","4","5","13","6","7","8","16","9","14","10","11","12")
 table <- pm25_exp_region %>% group_by(Region) %>% 
-  summarise(Mean=mean(pm25_exposure),
-            `S.D.`=sd(pm25_exposure),
-            Min=min(pm25_exposure),
-            Median=median(pm25_exposure),
-            Max=max(pm25_exposure)) 
+  summarise(Mean=mean(pm25_exposure,na.rm=T),
+            `S.D.`=sd(pm25_exposure,na.rm=T),
+            Min=min(pm25_exposure,na.rm=T),
+            Median=median(pm25_exposure,na.rm=T),
+            Max=max(pm25_exposure,na.rm=T)) 
   
 
 total_table <- pm25_exp_region %>% 
-  summarise(Mean=mean(pm25_exposure),
-            `S.D.`=sd(pm25_exposure),
-            Min=min(pm25_exposure),
-            Median=median(pm25_exposure),
-            Max=max(pm25_exposure))
+  summarise(Mean=mean(pm25_exposure,na.rm=T),
+            `S.D.`=sd(pm25_exposure,na.rm=T),
+            Min=min(pm25_exposure,na.rm=T),
+            Median=median(pm25_exposure,na.rm=T),
+            Max=max(pm25_exposure,na.rm=T))
 total_table$Region <- "Total"
 table <- rbind(table,total_table)
 
@@ -124,9 +129,11 @@ ggsave(sprintf(fig_name,"PM25Exp_timeseries_reg.png"),last_plot(),
        height = 7.4)
 
 pm25_exp_commune %>% 
+  # filter(year>2010) %>% 
   mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
   ggplot(aes(date,pm25_exposure,group=COMUNA))+
   geom_line(alpha=.2,linewidth=.5)+
+  # geom_line(alpha=.2,linewidth=.5,col="red",aes(y=landTemp))+ # Temperature
   coord_cartesian(expand = F)+
   labs(x="",y=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]","")))+
   scale_x_date(date_breaks = "2 year",date_labels = "%Y")+

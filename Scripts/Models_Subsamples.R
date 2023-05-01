@@ -140,7 +140,7 @@ df %>% group_by(pm25_level) %>% tally()
 # see: https://github.com/echolab-stanford/NCC2018/blob/master/scripts/functions.R
 runModel <- function(data_,
                      name,
-                     formula="Mortality_Count ~ pm25Exp_10ug+year+quarter+commune+offset(log(pop75))"){
+                     formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))"){
   
   mod <- glm.nb(as.formula(formula), 
                      data = data_,
@@ -207,8 +207,17 @@ results[[24]] <- runModel(data=filter(df,year %in% c("2006","2007","2008","2009"
 results[[25]] <- runModel(data=filter(df,year %in% c("2011","2012","2013","2014","2015")),name="Period: 2011-2015")
 results[[26]] <- runModel(data=filter(df,year %in% c("2016","2017","20018","2019")),name="Period: 2016-2019")
 # other Endpoints Full Model
-results[[27]] <- runModel(data=df,name="Cardiopulmonary cause",
-                          formula="Mortality_Count_CDP ~ pm25Exp_10ug+year+quarter+commune+offset(log(pop75))")
+results[[27]] <- runModel(data=df,name="Cardiorespiratory cause",
+                          formula="death_count_cardioRespiratory ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))")
+results[[27]] <- runModel(data=df,name="Cardiovascular cause",
+                          formula="death_count_cardio ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))")
+results[[27]] <- runModel(data=df,name="Respiratory cause",
+                          formula="death_count_respiratory ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))")
+results[[27]] <- runModel(data=df,name="All cause no Cardiorespiratory",
+                          formula="death_count_all_cause_noCDP ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))")
+results[[27]] <- runModel(data=df,name="External cause",
+                          formula="death_count_external ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))")
+
 
 
 # merge results

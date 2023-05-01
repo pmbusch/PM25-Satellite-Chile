@@ -15,20 +15,22 @@ df <- read.delim("Data/panelData.csv",sep=";")
 df$year %>% range()
 df$codigo_comuna %>% unique() %>% length() # 331
 df$pm25_exposure %>% range(na.rm=T)
-df$mortality %>% range(na.rm=T)
-
+df$MR_all_cause %>% range(na.rm=T)
+df$landTemp %>% range(na.rm=T)
 
 # Correlation ---
-cor(df$mortality,df$pm25_exposure,use = "complete.obs")
-cor(df$mortality,df$pm25_exposure,method = "spearman",use = "complete.obs")
+cor(df$MR_all_cause,df$pm25_exposure,use = "complete.obs")
+cor(df$MR_all_cause,df$pm25_exposure,method = "spearman",use = "complete.obs")
 
 df %>% group_by(month) %>% 
-  summarise(cor(mortality,pm25_exposure,use = "complete.obs"))
+  summarise(cor(MR_all_cause,pm25_exposure,use = "complete.obs"))
 
 df %>% group_by(quarter) %>% 
-  summarise(cor(mortality,pm25_exposure,use = "complete.obs"))
+  summarise(cor(MR_all_cause,pm25_exposure,use = "complete.obs"))
 
-
+# temp
+cor(df$MR_all_cause,df$landTemp,use = "complete.obs")
+cor(df$landTemp,df$pm25_exposure,use = "complete.obs")
 
 # Some figures -----
 # df %>% 
@@ -54,11 +56,16 @@ df %>% group_by(quarter) %>%
 
 df <- df %>% mutate(quarter=factor(quarter),
                     year=as.factor(year),
+                    month=as.factor(month),
                     commune=as.factor(codigo_comuna),
                     commune=relevel(commune,ref="13101")) # Santiago
 
 
-model_nb <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+quarter+commune+
+model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+
+                     landTemp+
+                     # I(landTemp^2)+
+                     # month+
+                     year+quarter+commune+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
@@ -70,7 +77,7 @@ coef(model_nb) %>% exp()
 exp(coef(model_nb))[2]
 # ci_pm25 <- confint(model_nb,method="Wald",parm="pm25Exp_10ug") %>% exp()
 autoplot(model_nb)
-plot(df$mortality,predict(model_nb,type="response"))
+plot(df$MR_all_cause,predict(model_nb,type="response"))
 
 
 # cluster standard errors to commune

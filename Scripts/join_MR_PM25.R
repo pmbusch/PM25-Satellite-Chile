@@ -12,27 +12,27 @@ library(readxl)
 # mortality <- mortality %>% rename(year=Year,quarter=Quarter)
 
 # 75+ years death data----
-# death_75 <- read.delim("Data/chile_elderly_mortality_count_comuna_level_year_quarter.csv",sep=",")
-death_75 <- read.delim("Data/chile_elderly_75+_all_cause_mortality_count_comuna_level_year_1990_2019_month.csv",
+# all causes
+death_75 <- read.delim("Data/chile_elderly_75+_all_cause_external_cardio_respiratory_mortality_count_commune_level_year_1990_2019_quarter_month.csv",
                        sep=",")
-# cardio and respiratory causes
-death_75_cdp <- read.delim("Data/chile_elderly_75+_circulatory_respiratory_mortality_count_comuna_level_year_1997_2019_month.csv",
-                       sep=",") %>% rename(Mortality_Count_CDP=Mortality_Count)
 
-# join causes of death
-death_75 <- death_75 %>% full_join(death_75_cdp)
-rm(death_75_cdp)
-# a lot of NA due to the age range.
-# death_75 %>% group_by(Year) %>% summarise(sum(is.na(Mortality_Count_CDP))/n()) %>% view() 
+names(death_75)
+# all causes no CDP
+death_75 <- death_75 %>% 
+  mutate(Death_count_all_cause_NoCDP=Death_count_all_cause-
+           ifelse(is.na(Death_count_cardioRespiratory), 0, Death_count_cardioRespiratory))
+
 
 death_75 <- death_75 %>% rename(year=Year,
-                                # quarter=Quarter,
+                                quarter=Quarter,
                                 month=Month,
                                 sex=Gender,
                                 codigo_comuna=CODIGO_COMUNA_RESIDENCIA)
 
-death_75$Mortality_Count %>% sum()
-death_75$Mortality_Count_CDP %>% sum(na.rm=T)
+death_75 %>% 
+  pivot_longer(c(6:11), names_to = "cause", values_to = "value") %>% 
+  group_by(cause) %>% summarise(death_count=sum(value,na.rm = T))
+
 
 # Add sex inmediately - IDEA: duplicate DF with new "TOTAL" value to show in the group by
 
@@ -43,9 +43,10 @@ rm(death_75_aux)
 
 table(death_75$sex)
 
-death_75 <- death_75 %>% group_by(codigo_comuna,sex,year,month) %>%
-  summarise(Mortality_Count=sum(Mortality_Count,na.rm=T),
-            Mortality_Count_CDP=sum(Mortality_Count_CDP,na.rm=T),)
+death_75 <- death_75 %>%
+  pivot_longer(c(6:11), names_to = "cause", values_to = "death_count") %>% 
+  group_by(codigo_comuna,sex,year,month,cause) %>%
+  summarise(death_count=sum(death_count,na.rm=T))
 
 # get population 75+ by year and commune
 pop <- read_excel("Data/estimaciones-y-proyecciones-2002-2035-comunas.xlsx",
@@ -88,36 +89,34 @@ death_75 <- death_75 %>% filter(year>2001)
 death_75 <- death_75 %>% filter(pop75>50)
 
 
-death_75 <- death_75 %>% mutate(mortality=Mortality_Count/pop75*1000,
-                                mortality_CDP=Mortality_Count_CDP/pop75*1000)
+death_75 <- death_75 %>% mutate(mortality=death_count/pop75*1000)
 
-# pm25 pollution data exposure
+# Spread
+death_75 <- death_75 %>% 
+  pivot_wider(names_from = cause, values_from = c(death_count,mortality))
+names(death_75) <- names(death_75) %>% 
+  str_replace_all("death_count_Death_count","death_count") %>% 
+  str_replace_all("mortality_Death_count","MR")
+
+# pm25 pollution data exposure ------
 pm25_exp <- read.delim("Data/pm25exposure_commune.csv",sep = ";")
-
-# ALREADY AT COMMUNE LEVEL!
-# group to region and quarters
-# pm25_exp <- pm25_exp %>% 
-#   mutate(quarter=ceiling(month/3) %>% as.integer()) %>% # quarters by months
-#   # mutate(codigo_region=as.factor(codigo_region)) %>% 
-#   mutate(pop_pm25=total_pop*pm25_exposure) %>% 
-#   group_by(REGION,PROVINCIA,codigo_comuna,year,month) %>% 
-#   summarise(pop_pm25=sum(pop_pm25,na.rm=T),
-#             total_pop=sum(total_pop,na.rm = T)) %>% 
-#   ungroup() %>% 
-#   mutate(pm25_exposure=pop_pm25/total_pop) %>% 
-#   mutate(pm25Exp_10ug=pm25_exposure/10)
 
 # remove below 1 exposure
 pm25_exp <- pm25_exp %>% filter(pm25_exposure>1)
+
+landTemp <-  read.delim("Data/landTemp_commune.csv",sep = ";")
+names(landTemp) <- names(landTemp) %>% str_replace_all("total_pop","total_pop_T")
+
 
 # Join ----
 # names(mortality)
 names(pm25_exp)
 names(death_75)
+names(landTemp)
 
-df <- death_75 %>% left_join(pm25_exp)
+
+df <- death_75 %>% left_join(pm25_exp) %>% left_join(landTemp)
 sum(is.na(df$pm25_exposure))
-
 # df <- df %>% na.omit() # lost 20K, why? Commune with no rural or urban pop
 
 

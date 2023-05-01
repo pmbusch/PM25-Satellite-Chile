@@ -1,4 +1,5 @@
 ## Estimate PM25 Population exposure
+## Note: Same code use to calculate Land Surface Temperature from https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A1#bands
 ## PBH
 ## February 2023
 ## New Census data: April 2023
@@ -10,13 +11,30 @@ library(chilemapas)
 library(raster)
 library(rasterVis)
 library(mapview)
+library(leaflet)
 library(sf)
 library(rgdal)
 
-# load population data for all regions -----
-
+# PM2.5 Parameters
 fig_name <- "Figures/PM25_Exposure/%s"
+file_url <- "D:/PM25 Satellite Data/%s/%s"
+file_nc_monthly <- "V5GL03.HybridPM25.Global.%s-%s.nc"
+colName <- "pm25_Exposure"
+file_exp <- "pm25exposure"
+file_exp_commune <- "pm25exposure_commune"
+folder <- "Exposure"
 
+# Land Temp Parameters
+# Comment them for TEMPERATURE 
+fig_name <- "Figures/LandTemp/%s"
+file_url <- "D:/Terra_LandTemp/%s/%s"
+file_nc_monthly <- "LandTemp_%s%s.tif"
+colName <- "landTemp"
+file_exp <- "landTemp"
+file_exp_commune <- "landTemp_commune"
+folder <- "TempExposure"
+
+# load population data for all regions -----
 regions <- 1:16
 regions <- paste0("R",ifelse(str_length(regions)==1,"0",""),regions)
 
@@ -113,23 +131,23 @@ zones$NOM_COMUNA %>% unique()
 zones <- zones %>% 
   filter(!(NOM_COMUNA %in% c("ISLA DE PASCUA","JUAN FERNÁNDEZ")))
 
-
-
-
 ## Load  PM2.5  monthly files ---------
-file_url <- "D:/PM25 Satellite Data/%s/%s"
-file_nc_monthly <- "V5GL03.HybridPM25.Global.%s-%s.nc"
 
 # extent of Chile
 extent_pop <- extent(zones)
 
 months <- 1:12
-months <- paste0(ifelse(str_length(months)==1,"0",""),months)
+# months <- paste0(ifelse(str_length(months)==1,"0",""),months) # not use for landTemp
 
 # Files to read all at once
-x <- expand.grid(months,1998:2019)
-x <- paste0(x$Var2,x$Var1)
-raster_files <- sprintf(file_url,"Monthly",sprintf(file_nc_monthly,x,x))
+# x <- expand.grid(months,1998:2019)
+x <- expand.grid(months,2000:2021) # TEMPERATURE
+x <- paste0(x$Var2,"_",x$Var1)
+# remove ends for land_temp
+x <- x[-1:-2] # TEMPERATURE
+x <- x[-254:-262] # TEMPERATURE
+
+raster_files <- sprintf(file_url,"Monthly",sprintf(file_nc_monthly,x,"")) # change "" for X in PM2.5 
 
 # create raster brick with all PM25 monthly data
 raster_list <- lapply(raster_files, raster) # read raster
@@ -137,6 +155,22 @@ raster_list<- lapply(raster_list,function(x) crop(x,extent_pop)) # crop to map e
 # sat <- crop(sat, extent(-76,-65, -56, -17.5)) # chile area
 raster_brick <- brick(raster_list) # brick
 rm(raster_list)
+
+# check
+# my_palette <- c(
+#   '#040274', '#040281', '#0502a3', '#0502b8', '#0502ce', '#0502e6',
+#   '#0602ff', '#235cb1', '#307ef3', '#269db1', '#30c8e2', '#32d3ef',
+#   '#3be285', '#3ff38f', '#86e26f', '#3ae237', '#b5e22e', '#d6e21f',
+#   '#fff705', '#ffd611', '#ffb613', '#ff8b13', '#ff6e08', '#ff500d',
+#   '#ff0000', '#de0101', '#c21301', '#a71001', '#911003'
+# )
+# 
+# # read in the raster data
+# # set the color palette for the raster
+# color_fun <- colorRampPalette(my_palette)
+# my_raster_colors <- color_fun(100)
+# mapview(raster_list[[1]],col.regions= my_raster_colors)+mapview(zones)
+
 
 ### extract PM25 for each population polygon based on area cross  -----
 
@@ -146,7 +180,7 @@ rm(raster_list)
 rm(zones)
 for (r in regions){
   cat("Region: ",r,"\n")
-  
+
   # load geospatial population data one region at the time
   manzana <- st_read(sprintf(url_file_reg,r,"MANZANA_IND_C17.shp"))  # urban
   entidad <- st_read(sprintf(url_file_reg,r,"ENTIDAD_IND_C17.shp"))  # rural
@@ -154,53 +188,71 @@ for (r in regions){
   manzana$type <- "urban"
   entidad$type <- "rural"
   zones <- rbind(manzana,entidad); rm(manzana,entidad)
-  
+
   # crop PM2.5 data to make it more smoothly
   extent_zone <- extent(zones)
   raster_brick_zones <- crop(raster_brick,extent_zone)
-  
+
   # for each polygon it gets the weighted average by the area
   # with this method I can calculate PM2.5 for each polygon of population
   pm25 <- extract(raster_brick_zones,zones,weights=T,fun=mean,na.rm=T) # na for parts of map without PM2.5
-  
+
   # clean
   rm(raster_brick_zones)
-  
+
   # dataframe
   df_pm25 <- data.frame(pm25)
   names(df_pm25) <- x
-  
+
   zones$geometry <- NULL
-  
+
   # add to data frame
-  zones <- cbind(zones,df_pm25) 
-  
-  
+  zones <- cbind(zones,df_pm25)
+
+
   # save intermediate results
-  write.table(zones,paste0("Data/Exposure/rawExposure",r,".csv"),
-              sep=";",row.names = F)
-  
+  # write.table(zones,paste0("Data/Exposure/rawExposure",r,".csv"),
+  #             sep=";",row.names = F)
+
   # flat table
-  zones <- zones %>% 
-    pivot_longer(c(-1:-17), 
-                 names_to = "period", values_to = "pm25_Exposure")
-  
-  zones <- zones %>% 
+  zones <- zones %>%
+    pivot_longer(c(-1:-17),
+                 names_to = "period", values_to = "value")
+
+  # only for Temp data, correct for scale and Kelvin
+  zones <- zones %>% mutate(value=value*0.02-273.15) %>%
+    filter(value>-100) # some NAs pass as zero
+
+
+  zones <- zones %>%
     mutate(year=substr(period,1,4),
-           month=substr(period,5,6))
-  
-  
+           month=substr(period,5,6), # pm2.5
+           month=if_else(str_length(period)==6, # TEMPERATURE
+                         substr(period,6,6),
+                         substr(period,6,7))
+           )
+
+
   # check total pop
   # zones %>% group_by(year,month) %>% summarise(pop=sum(TOTAL_PERS))
   # zones %>% group_by(year,month) %>% summarise(pm25=mean(pm25_Exposure))
-  
-  write.table(zones,paste0("Data/Exposure/pm25exposure",r,".csv"),sep=";",row.names = F)
+
+  write.table(zones,paste0("Data/",folder,"/",file_exp,r,".csv"),sep=";",row.names = F)
+
+  zones <- zones %>% 
+    mutate(year=substr(period,1,4),
+           # month=substr(period,5,6)
+           month=if_else(str_length(period)==6,
+                         substr(period,6,6),
+                         substr(period,6,7)),
+           value=as.numeric(value)
+    )
   
   
   # estimate by commune
   # zones$year %>% table()
   pm25_exp_commune <- zones %>% 
-    mutate(pop_pm25=TOTAL_PERS*pm25_Exposure) %>% 
+    mutate(pop_pm25=TOTAL_PERS*value) %>% 
     group_by(REGION,NOM_REGION,PROVINCIA,NOM_PROVIN,COMUNA,NOM_COMUNA,
              year,month) %>% 
     summarise(pop_pm25=sum(pop_pm25,na.rm=T),
@@ -213,7 +265,7 @@ for (r in regions){
   
   # same but with urban_rural
   pm25_exp_commune_type <- zones %>% 
-    mutate(pop_pm25=TOTAL_PERS*pm25_Exposure) %>% 
+    mutate(pop_pm25=TOTAL_PERS*value) %>% 
     group_by(REGION,NOM_REGION,PROVINCIA,NOM_PROVIN,COMUNA,NOM_COMUNA,
              type,year,month) %>% 
     summarise(pop_pm25=sum(pop_pm25,na.rm=T),
@@ -232,9 +284,12 @@ for (r in regions){
   pm25_exp_commune <- pm25_exp_commune %>% 
     left_join(pm25_exp_commune_type)
   
+  names(pm25_exp_commune) <- names(pm25_exp_commune) %>% 
+    str_replace_all("pm25_exposure",colName)
+  
 
   # save
-  write.table(pm25_exp_commune,paste0("Data/Exposure/pm25exposure_commune",r,".csv"),
+  write.table(pm25_exp_commune,paste0("Data/",folder,"/",file_exp_commune,r,".csv"),
   sep=";",row.names = F)
 
   # clean
@@ -245,9 +300,13 @@ rm(raster_brick)
 
 # Next Loop to join all 16 regions
 
-csv_files <- paste0("Data/Exposure/pm25exposure_commune",regions,".csv")
+csv_files <- paste0("Data/",folder,"/",file_exp_commune,regions,".csv")
 pm25_exp_commune <- lapply(csv_files, read.csv2)
 pm25_exp_commune <-  do.call("rbind",pm25_exp_commune)
+
+names(pm25_exp_commune) <- names(pm25_exp_commune) %>% 
+  str_replace_all(colName,"pm25_exposure")
+
 
 pm25_exp_commune <- pm25_exp_commune %>% 
   mutate(codigo_comuna=paste0(if_else(str_length(COMUNA)==4,"0",""),COMUNA),
@@ -264,8 +323,12 @@ pm25_exp_commune$year %>% table()
 pm25_exp_commune$month %>% table()
 pm25_exp_commune %>% group_by(year,month) %>% summarise(sum(total_pop))
 
+# change names again
+names(pm25_exp_commune) <- names(pm25_exp_commune) %>% 
+  str_replace_all("pm25_exposure",colName)
+
 # save
-write.table(pm25_exp_commune,"Data/pm25exposure_commune.csv",
+write.table(pm25_exp_commune,paste0("Data/",file_exp_commune,".csv"),
             sep=";",row.names = F)
 
 
