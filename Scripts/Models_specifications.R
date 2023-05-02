@@ -50,32 +50,32 @@ model_nb<- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+com
 models_nb_res <- getModelInfo(model_nb,"Year+Quarter")
 
 
-# year*month: 1.006 (0.999-1.013)
+# year*month
 mod_nb1 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year*month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb1,"Year*Month"))
 
-# year+month: 1.006 (1.000-1.013)
+# year+month
 mod_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb2,"Year+Month"))
 
-# year+quarter (no month): 1.054 (1.044-1.065)
+# year+quarter (no month)
 mod_nb3 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb3,"Year+Quarter"))
 
-# year*quarter (no month): 1.056 (1.045-1.067)
+# year*quarter (no month)
 mod_nb4 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year*quarter+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb4,"Year*Quarter"))
 
-# year*quarter + month: 1.008 (1.001-1.015)
+# year*quarter + month
 mod_nb5 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year*quarter+month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb5,"Year*Quarter+Month"))
 
-# year+quarter+month: 1.006 (1.000-1.013)
+# year+quarter+month
 mod_nb6 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+month+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb6,"Year+Quarter+Month"))
@@ -90,6 +90,16 @@ mod_nb8 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+region*year+comm
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb8,"Region*Year"))
 
+# year + quarter -landTemp
+mod_nb9 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+region*year+commune+
+                    offset(log(pop75)), data = df,na.action=na.omit)
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb9,"No Temperature (Year+Quarter)"))
+
+# Land Temp Squared year +quarter
+mod_nb10 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+I(landTemp^2)+region*year+commune+
+                    offset(log(pop75)), data = df,na.action=na.omit)
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb10,"T + T^2 (Year+Quarter)"))
+
 
 # save results
 write.csv(models_nb_res,"Data/modelSpecResults.csv",row.names = F)
@@ -97,8 +107,9 @@ models_nb_res <- read.csv("Data/modelSpecResults.csv")
 
 # Figure 
 models_nb_res %>% 
-  mutate(rowname=1:nrow(models_nb_res)) %>% 
-  filter(param=="pm25Exp_10ug") %>% 
+  mutate(rowname=1:nrow(models_nb_res)) %>%
+  filter(param=="pm25Exp_10ug") %>%
+  # filter(param=="landTemp") %>%
 ggplot(aes(reorder(name,rowname,decreasing=T),rr))+
   geom_point(size=1)+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
@@ -106,15 +117,20 @@ ggplot(aes(reorder(name,rowname,decreasing=T),rr))+
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
   labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   # Modify theme to look good
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
 ggsave("Figures//Model/Model_Specifications.png", ggplot2::last_plot(),
+# ggsave("Figures//Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
        # height = 664/3.7795275591)
        width=8.7*2,height=8.7)
+
+
+
 
 # Month coefficients
 month_levels <- paste0("month",12:2)
@@ -153,7 +169,7 @@ df <- df %>%
          pm25Exp_lead6=lead(pm25Exp_10ug,6,order_by=count_month),
          pm25Exp_lead12=lead(pm25Exp_10ug,12,order_by=count_month))
 
-model_nb_lags <- glm.nb(Mortality_Count ~ pm25Exp_10ug+
+model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
                           pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
                           pm25Exp_lead1+pm25Exp_lead6+pm25Exp_lead12+
                           year+quarter+commune+
@@ -163,7 +179,7 @@ model_nb_lags <- glm.nb(Mortality_Count ~ pm25Exp_10ug+
 
 x <- getModelInfo(model_nb_lags,"Lags")
 
-x[2:9,] %>% 
+x[c(2,4:10),] %>% 
   mutate(order_id=case_when(
     str_detect(param,"lag") ~ 10,
     str_detect(param,"lead") ~ 1000,
@@ -241,7 +257,7 @@ df <- df %>%
     pm25Exp_lead11=lead(pm25Exp_10ug,11,order_by=count_month),
     pm25Exp_lead12=lead(pm25Exp_10ug,12,order_by=count_month))
 
-model_nb_lags <- glm.nb(Mortality_Count ~ pm25Exp_10ug+
+model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
                           pm25Exp_lag36+pm25Exp_lag35+pm25Exp_lag34+pm25Exp_lag33+pm25Exp_lag32+
                           pm25Exp_lag31+pm25Exp_lag30+pm25Exp_lag29+pm25Exp_lag28+pm25Exp_lag27+
                           pm25Exp_lag26+pm25Exp_lag25+pm25Exp_lag24+pm25Exp_lag23+pm25Exp_lag22+
@@ -260,7 +276,7 @@ model_nb_lags <- glm.nb(Mortality_Count ~ pm25Exp_10ug+
 
 x <- getModelInfo(model_nb_lags,"AllLags")
 
-x[2:50,] %>% 
+x[c(2,4:51),] %>% 
   mutate(order_id=case_when(
     str_detect(param,"lag") ~ 10,
     str_detect(param,"lead") ~ 1000,
