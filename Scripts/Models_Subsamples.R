@@ -142,21 +142,22 @@ runModel <- function(data_,
                      name,
                      formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))"){
   
-  mod <- glm.nb(as.formula(formula), 
+  mod <- glm.nb(as.formula(formula),
                      data = data_,
                      na.action=na.omit)
-  
+
   coef <- summary(mod)$coefficients
   mean <- weighted.mean(data_$MR_all_cause,data_$pop75,na.rm=T)
   mean_pm25 <- weighted.mean(data_$pm25_exposure,data_$pop75,na.rm=T)
-  
+  mean_temp <- weighted.mean(data_$landTemp,data_$pop75,na.rm=T)
+
   # clustered standard errors by commune
   cluster_se <- vcovCL(mod, cluster = data_$commune)
   cluster_se <- sqrt(diag(cluster_se))
-  
+
   # only PM2.5
   out <- data.frame(var=name,param=rownames(coef),est=coef[,1],se=cluster_se,mean_MR=mean,
-                    N=nobs(mod),bic=BIC(mod),mean_pm25=mean_pm25)
+                    N=nobs(mod),bic=BIC(mod),mean_pm25=mean_pm25,mean_temp=mean_temp)
   return(out)
 }
 
@@ -231,7 +232,8 @@ x <- res %>%
          rr_high=exp(est+1.96*se)*100-100) %>% 
   mutate(N=formatC(N,0, big.mark=",")) %>% 
   mutate(mean_MR=format(round(mean_MR,2),nsmall=2),
-         mean_pm25=format(round(mean_pm25,2),nsmall=2)) %>% 
+         mean_pm25=format(round(mean_pm25,2),nsmall=2),
+         mean_temp=format(round(mean_temp,2),nsmall=2)) %>% 
   mutate(ci=paste0(format(round(rr,1),nsmall=1)," (",
                    format(round(rr_low,1),nsmall=1),", ",
                    format(round(rr_high,1),nsmall=1),")")) %>% 
@@ -272,6 +274,8 @@ x %>%
   geom_text(y=-7,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
   geom_text(y=-4.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
   geom_text(y=-4.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
   geom_text(y=17,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
   geom_text(y=17,aes(label=ci),size=font_size*5/14 * 0.8)+
   # Modify theme to look good
