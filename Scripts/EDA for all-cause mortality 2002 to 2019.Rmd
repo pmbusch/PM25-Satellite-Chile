@@ -1,124 +1,119 @@
-
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
-```
-
-```{r}
 library(dplyr)
 library(ggplot2)
-```
+library(tidyr)
 
-```{r}
+# load the panel data
 # read data
-# all-cause death over 75+
-death_75 <- read.delim("https://raw.githubusercontent.com/pmbusch/PM25-Satelite-Chile/main/Data/chile_elderly_75+_all_cause_mortality_count_comuna_level_year_1990_2019_month.csv", header = TRUE, sep = ",")
+data = read.delim("https://raw.githubusercontent.com/pmbusch/PM25-Satelite-Chile/main/Data/panelData.csv", sep = ";", header = TRUE)
+mort_pm25 = data
+rm(data)
 
-# cardio-respiratory 
-death_75_cr <- read.delim("https://raw.githubusercontent.com/pmbusch/PM25-Satelite-Chile/main/Data/chile_elderly_75+_circulatory_respiratory_mortality_count_comuna_level_year_1997_2019_month.csv", header = TRUE, sep = ",") %>% rename(Mortality_Count_CDP = Mortality_Count)
+# time series plot for all-cause mortality per region
+mort_pm25 %>%
+  na.omit() %>%
+  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>%
+  ggplot(aes(date, MR_all_cause, col=as.factor(REGION), group= as.factor(REGION)))+
+  geom_line(linewidth=0.5) +
+  geom_text(data = . %>% 
+              group_by(REGION, year) %>% 
+              filter(MR_all_cause == max(MR_all_cause)),
+            aes(label = REGION), 
+            hjust = -0.1, size = 3, fontface = "bold") +
+  scale_color_discrete(name = "Region") +
+  labs(x = "Date", y = "Mortality rate (all causes)", 
+       title = "All-cause mortality rate by region")
 
-# join two datasets
-death_75 <- death_75 %>% full_join(death_75_cr)
-rm(death_75_cr)
-
-death_75 <- death_75 %>% rename(Commune = CODIGO_COMUNA_RESIDENCIA)
-
-# total death counts (male+female)
-total_death_count <- death_75 %>%
-  group_by(Commune, Year, Month) %>%
-  summarise(all_cause = sum(Mortality_Count),
-            cadio_resp = sum(Mortality_Count_CDP), .groups = "drop")
-total_death_count <- total_death_count[total_death_count$Year >= 2002,]
-male_female_death <- death_75 
-rm(death_75)
-male_female_death <- male_female_death[male_female_death$Year >= 2002,]
-
-# population data
-pop <- read.csv("population-estimation-2002-2035-comunas.csv")
-pop <- pop[,-c(1:4, 27:42)]
-pop <- pop[pop$Edad >=75,]
-colnames(pop)[c(1,3)] <- c("Commune", "sex")
-pop <- pop[,-2]
-
-# total population for 75+
-pop_sum <- pop %>%
-  group_by(sex, Commune) %>%
-  summarise(across(-Edad, sum), .groups = "drop")
-rm(pop)
-
-# wide to long format
-pop_long <- tidyr::pivot_longer(pop_sum, cols = -1:-2, names_to = "pop_year", values_to = "population")
-
-# leave only year in pop_year
-library(stringr)
-pop_long <- pop_long %>%
-  mutate(pop_year = str_remove_all(pop_year, "Poblacion\\."))
-rm(pop_sum)
-male_female_pop <- pop_long
-
-
-# total population 
-total_pop <- pop_long %>%
-  group_by(Commune, pop_year) %>%
-  summarise(pop = sum(population), .groups = "drop")
-rm(pop_long)
-
-# merge total population and total death
-colnames(total_pop)[2] <- "Year"
-all_mort <- merge(total_death_count, total_pop, by = c("Commune", "Year"), all.x = TRUE)
-all_mort <- all_mort %>%
-  mutate(mortality = all_cause/pop)
-
-# plot for all-cause mortality 
-all_mort %>%
-  group_by(Year, Month, Commune) %>%
-  ggplot(aes(x = as.factor(Month), y = mortality, color = as.factor(Commune), group = as.factor(Commune))) +
-  geom_line() +
-  facet_wrap(~Year)+
-  labs(x= "Month", y = "Mortality", title = "All-Cause Mortality per Month") +
+# time series plot for all-cause mortality per commune
+mort_pm25 %>%
+  na.omit() %>%
+  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>%
+  ggplot(aes(date, MR_all_cause, col=as.factor(commune), group= as.factor(commune)))+
+  geom_line(linewidth=0.5) +
+  geom_text(data = . %>% 
+              group_by(commune, year) %>% 
+              filter(MR_all_cause == max(MR_all_cause)),
+            aes(label = commune), 
+            hjust = -0.1, size = 3, fontface = "bold") +
+  scale_color_discrete(name = "Commune") +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")+
   guides(color = "none")+
-  scale_y_continuous(limits = c(0, 0.25), breaks = seq(0, 0.25, by = 0.05)) +
+  labs(x = "Date", y = "Mortality rate (all causes)", 
+       title = "All-cause mortality rate by commune")
+
+# time series plot for cardiovascular mortality per commune
+mort_pm25 %>%
+  na.omit() %>%
+  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>%
+  ggplot(aes(date, MR_cardio, col=as.factor(commune), group= as.factor(commune)))+
+  geom_line(linewidth=0.5) +
+  geom_text(data = . %>% 
+              group_by(commune, year) %>% 
+              filter(MR_cardio == max(MR_cardio)),
+            aes(label = commune), 
+            hjust = -0.1, size = 3, fontface = "bold") +
+  scale_color_discrete(name = "Commune") +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")+
+  guides(color = "none")+
+  labs(x = "Date", y = "Mortality rate (cardiovascular)", 
+       title = "Cardiovascular mortality rate by commune")
+
+# time series plot for respiratory mortality per commune
+mort_pm25 %>%
+  na.omit() %>%
+  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>%
+  ggplot(aes(date, MR_respiratory, col=as.factor(commune), group= as.factor(commune)))+
+  geom_line(linewidth=0.5) +
+  geom_text(data = . %>% 
+              group_by(commune, year) %>% 
+              filter(MR_respiratory == max(MR_respiratory)),
+            aes(label = commune), 
+            hjust = -0.1, size = 3, fontface = "bold") +
+  scale_color_discrete(name = "Commune") +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")+
+  guides(color = "none")+
+  labs(x = "Date", y = "Mortality rate (respiratory)", 
+       title = "Respiratory mortality rate by commune")
+
+# average mortality all-cause and pm2.5 exposure
+mort_pm25 %>%
+  group_by(month, year) %>%
+  mutate(weight = pop75 / sum(pop75)) %>%
+  summarise(avg_mort = mean(MR_all_cause, na.rm = TRUE),
+            avg_pm = weighted.mean(pm25_exposure, weight, na.rm = TRUE)) %>%
+  ggplot(aes(x= avg_pm, y = avg_mort)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_wrap(~year)+
+  labs(x = "Monthly averaged pm 2.5 exposure", y = "Monthly averaged mortality (All-cause)")+
   theme_bw()
 
-```
-```{r}
-# merge male_female data for population and death
-colnames(male_female_pop)[c(1,3)] <- c("Gender", "Year")
-male_female_death$Gender <- as.factor(male_female_death$Gender)
-library(forcats)
-levels(male_female_death$Gender)
-male_female_death$Gender <-  fct_recode(male_female_death$Gender, "male" = "Hombre", "female" = "Mujer")
-
-male_female_pop$Gender <- as.factor(male_female_pop$Gender) 
-male_female_pop$Gender <- fct_recode(male_female_pop$Gender, "male" = "1", "female" = "2")
-male_female_mort <- merge(male_female_death, male_female_pop, by= c("Commune", "Year", "Gender"))
-male_female_mort <- male_female_mort %>%
-  mutate(mortality = Mortality_Count/population)
-
-# mortality of female
-male_female_mort %>% filter(Gender == "female") %>%
-ggplot(aes(x = as.factor(Month), y = mortality, color = as.factor(Commune), group = as.factor(Commune))) +
-  geom_line() +
-  facet_wrap(~ Year) +
-  labs(title = "Mortality of Female Over Time",
-       x = "Month",
-       y = "Mortality") +
-  guides(color = "none") +
-  scale_y_continuous(limits = c(0, 0.25), breaks = seq(0, 0.25, by = 0.05)) +
-  theme_bw()
-```
-```{r}
-# mortality of male
-male_female_mort %>% filter(Gender == "male") %>%
-ggplot(aes(x = as.factor(Month), y = mortality, color = as.factor(Commune), group = as.factor(Commune))) +
-  geom_line() +
-  facet_wrap(~ Year) +
-  labs(title = "Mortality of Male Over Time",
-       x = "Month",
-       y = "Mortality") +
-  guides(color = "none") +
-  scale_y_continuous(limits = c(0, 0.25), breaks = seq(0, 0.25, by = 0.05)) +
+# average mortality cardio and pm2.5 exposure
+mort_pm25 %>%
+  group_by(month, year) %>%
+  mutate(weight = pop75 / sum(pop75)) %>%
+  summarise(avg_mort = mean(MR_cardio, na.rm = TRUE),
+            avg_pm = weighted.mean(pm25_exposure, weight, na.rm = TRUE)) %>%
+  ggplot(aes(x= avg_pm, y = avg_mort)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_wrap(~year)+
+  labs(x = "Monthly averaged pm 2.5 exposure", y = "Monthly averaged mortality (Cardiovascular)")+
   theme_bw()
 
-```
+# ave.pm2.5 vs. all & card + respir all at once
+mort_pm25 %>%
+  group_by(month, year) %>%
+  mutate(weight = pop75 / sum(pop75)) %>%
+  summarise(avg_mort_all = mean(MR_all_cause, na.rm = TRUE),
+            avg_mort_cardioresp = mean(MR_cardioRespiratory, na.rm = TRUE),
+            avg_pm = weighted.mean(pm25_exposure, weight, na.rm = TRUE)) %>%
+  gather(key = "mortality", value = "value", -month, -year, -avg_pm) %>%
+  ggplot(aes(x = avg_pm, y = value, color = mortality)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_wrap(~year) +
+  labs(x = "Monthly averaged pm 2.5 exposure", y = "Monthly averaged mortality",
+       color = "Mortality Outcome") +
+  theme_bw() +
+  guides(color = guide_legend(title = "Mortality Outcome"))
 
