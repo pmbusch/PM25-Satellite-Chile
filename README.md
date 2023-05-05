@@ -18,7 +18,7 @@ Project developed for the course "STA250 - Data Science for International Develo
 - Literature review:
 	- Papers with same approach
 	- See new papers by professor
-	- Organize paper paragraph based on topics: PM2.5 effects, satellite, and panel data models 
+	- Organize paper paragraph based on topics: PM2.5 effects, satellite, and panel data models -- correlation of satellite pm2.5 $ ground/ pm2.5 ground data with health outcomes/ pm2.5 satellite with health outcomes
 - Satellite data
 	- See accuracy in regions with wood burning
 - Get more dependent variables
