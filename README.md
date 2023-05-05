@@ -19,8 +19,6 @@ Project developed for the course "STA250 - Data Science for International Develo
 	- Papers with same approach
 	- See new papers by professor
 	- Organize paper paragraph based on topics: PM2.5 effects, satellite, and panel data models 
-- Exploratory analysis 
-	- 75+ cardiovascular/respiratory - create figure, time series for the whole time period, population-weighted mean for mortality and pm2.5
 - Satellite data
 	- See accuracy in regions with wood burning
 - Get more dependent variables
