@@ -24,9 +24,15 @@ Project developed for the course "STA250 - Data Science for International Develo
 - Get more dependent variables
 	- Separate CVD from RSP 
 	- Get count data for all external causes
-- Run different model specifications
-- Add Income overtime (for long period analysis)
-- Add temperature as T and T^2
+- New model without outliers and model with PDA sampling
+- New model with zero-inflated and random effects
+	- What % of MR are zero in the data? See exploratory analysis of MR
+- Add Income overtime (for long period analysis) - available?
+- Story: Focus on 4 findings to highlight (consistent with lit. and new findings). Create 4-5 tables/figures to tell the story
+	1. Satellite data predicts well monitor data, but with higher spatial coverage - Figure is scatterplot with correlations + Map of PM2.5
+	2. Both T° and PM2.5 affect mortality in Chile and in the world - Figure is CI ranges + complement of lit. review
+	3. What about PM2.5 in higher ranges of concentration: what is the functional form - Maybe create a figure with the effect of PM2.5 at different levels
+	4. Other ideas: effect of income? effect of cause? lags? metropolitan region?
 
 
 # Xiao Hui Tai review
