@@ -85,6 +85,15 @@ mod_nb7 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+region*quar
                          offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb7,"Region*Quarter"))
 
+mod_nb7a <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year*month+region*quarter+commune+
+                    offset(log(pop75)), data = df,na.action=na.omit)
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb7a,"Region*Quarter+Year*Month"))
+
+mod_nb7b <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+month+region*quarter+commune+
+                    offset(log(pop75)), data = df,na.action=na.omit)
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb7b,"Region*Quarter+Year+Month"))
+
+
 # region*year
 mod_nb8 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+region*year+commune+
                          offset(log(pop75)), data = df,na.action=na.omit)
@@ -128,8 +137,6 @@ ggsave("Figures//Model/Model_Specifications.png", ggplot2::last_plot(),
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
        # height = 664/3.7795275591)
        width=8.7*2,height=8.7)
-
-
 
 
 # Month coefficients
