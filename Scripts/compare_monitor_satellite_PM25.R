@@ -106,21 +106,24 @@ df %>% group_by(region,year) %>%
 library(chilemapas)
 
 ## Regresion Monitor vs Satelite -------------
+library(RColorBrewer)
 
 # Add correlation to year legend
 cor_year$region <- NULL
 df <- df %>% 
   left_join(cor_year, by="year") %>%
-  mutate(year_cor=paste0(year, " (r=",cor,")"))
+  mutate(year_cor=paste0(year, " (r=",format(cor,nsmall=2),")"))
 
 p_year <- ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
-  geom_point(alpha=.5)+
+  geom_point(alpha=.8)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
   labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
        y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
        color="Year (correlation)")+
   theme_bw(9)+
+  # scale_color_manual(values = brewer.pal(7, "Blues"),limits = c(0.3, 1)) +
+  scale_color_viridis_d()+
   theme(legend.position = c(0.8,0.17),
         panel.grid.major = element_blank(),
         legend.key.height = unit(0.1, "cm"),
@@ -175,9 +178,14 @@ rm(eq,p_eq,p)
 cor_region$year <- NULL
 df <- df %>% rename(cor_year=cor) %>% 
   left_join(cor_region, by="region") %>%
-  mutate(region_cor=paste0(region, " (r=",cor,")"))
+  mutate(region_cor=paste0(region, " (r=",format(cor,nsmall=2),")"))
+# order by region
+df <- df %>% mutate(region=factor(region,levels=region_order))
+# get order for new factor
+order_reg <- df %>% group_by(region,region_cor) %>% tally() %>% pull(region_cor)
+df <- df %>% mutate(region_cor=factor(region_cor,levels=order_reg))
 
-p_region <- ggplot(df,aes(value,pm25_satellite,col=factor(region_cor)))+
+p_region <- ggplot(df,aes(value,pm25_satellite,col=region_cor))+
   geom_point(alpha=.5)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
@@ -185,7 +193,7 @@ p_region <- ggplot(df,aes(value,pm25_satellite,col=factor(region_cor)))+
        y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
        color="Region (correlation)")+
   theme_bw(9)+
-  # scale_color_viridis_d()+
+  scale_color_viridis_d(option = "turbo")+
   guides(col=guide_legend(ncol=2))+
   theme(legend.position = c(0.77,0.17),
         panel.grid.major = element_blank(),
