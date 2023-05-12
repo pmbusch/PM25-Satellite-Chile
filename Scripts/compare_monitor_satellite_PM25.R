@@ -114,6 +114,10 @@ df <- df %>%
   left_join(cor_year, by="year") %>%
   mutate(year_cor=paste0(year, " (r=",format(cor,nsmall=2),")"))
 
+# same scale
+
+df$value %>% range()
+
 p_year <- ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
   geom_point(alpha=.8)+
   # geom_smooth()+
@@ -124,7 +128,8 @@ p_year <- ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
   theme_bw(9)+
   # scale_color_manual(values = brewer.pal(7, "Blues"),limits = c(0.3, 1)) +
   scale_color_viridis_d()+
-  theme(legend.position = c(0.8,0.17),
+  xlim(0,205)+ylim(0,205)+
+  theme(legend.position = c(0.2,0.8),
         panel.grid.major = element_blank(),
         legend.key.height = unit(0.1, "cm"),
         legend.box.background = element_rect(colour = "black"))
@@ -178,12 +183,18 @@ rm(eq,p_eq,p)
 cor_region$year <- NULL
 df <- df %>% rename(cor_year=cor) %>% 
   left_join(cor_region, by="region") %>%
-  mutate(region_cor=paste0(region, " (r=",format(cor,nsmall=2),")"))
+  # mutate(reg_length=str_length(region)) %>% 
+  mutate(region_cor=paste0(region,strrep(" ",1) ,"(r=",format(cor,nsmall=2),")"))
+
 # order by region
 df <- df %>% mutate(region=factor(region,levels=region_order))
 # get order for new factor
 order_reg <- df %>% group_by(region,region_cor) %>% tally() %>% pull(region_cor)
 df <- df %>% mutate(region_cor=factor(region_cor,levels=order_reg))
+
+set.seed(123)
+# Randomly order the dataframe for appareance
+df <- df[sample(nrow(df)), ]
 
 p_region <- ggplot(df,aes(value,pm25_satellite,col=region_cor))+
   geom_point(alpha=.5)+
@@ -194,8 +205,9 @@ p_region <- ggplot(df,aes(value,pm25_satellite,col=region_cor))+
        color="Region (correlation)")+
   theme_bw(9)+
   scale_color_viridis_d(option = "turbo")+
+  xlim(0,205)+ylim(0,205)+
   guides(col=guide_legend(ncol=2))+
-  theme(legend.position = c(0.77,0.17),
+  theme(legend.position = c(0.3,0.8),
         panel.grid.major = element_blank(),
         legend.key.height = unit(0.1, "cm"),
         legend.spacing.x = unit(0.001,"cm"),
@@ -210,8 +222,8 @@ ggsave(sprintf(fig_name,"SatelliteAcc_Region.png"),p_region,
 
 library(gridExtra)
 
-p <- grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.2,0.9)),
-             p_region+labs(tag="B")+theme(plot.tag.position = c(0.2,0.9)),
+p <- grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.8,0.9)),
+             p_region+labs(tag="B")+theme(plot.tag.position = c(0.8,0.9)),
              ncol=2)
 
 ggsave(sprintf(fig_name,"SatelliteAcc.png"),p,

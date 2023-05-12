@@ -120,6 +120,33 @@ mod_est <- tibble(
   p_value=p_val
 )
 
+# Figure - Residuals -----
+df$predDeathCount <- predict(model_nb,type = "response")
+
+df %>% 
+  # filter(region==13) %>% 
+  mutate(mr_pred=predDeathCount/pop75*1000,
+         res=MR_all_cause-mr_pred) %>% 
+  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
+  mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% # order by month
+  arrange(count_month) %>% arrange(codigo_comuna) %>% 
+# by region
+    mutate(popRes=res*pop75) %>%
+  group_by(date,region) %>%
+  summarise(popRes=sum(popRes,na.rm=T),
+            pop75=sum(pop75,na.rm = T)) %>% 
+  ungroup() %>% 
+  mutate(res=popRes/pop75) %>% 
+  ggplot(aes(date,res,group=region))+
+  geom_line(alpha=.2,linewidth=.5)+ 
+  facet_wrap(~region)+
+  coord_cartesian(expand = F)+
+  labs(x="",y=expression(paste("Residual Mortality Rate")))+
+  scale_x_date(date_breaks = "2 year",date_labels = "%Y")+
+  # scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
+  theme_bw(8)+
+  theme(panel.grid.major = element_blank())
+
 
 ## Figure - Year Effects ----
 mod_est %>% 
@@ -170,7 +197,7 @@ ggplot(est_commune) +
                      name="Sign. at 5% level")+
   scale_fill_gradient2(low = "blue", mid = "white", high = "red",
                        midpoint = 0,
-                       trans="log",
+                       # trans="log",
                        name = "Percentage increase in Mortality \n relative to Santiago commune") +
   labs(title = "") +
   theme_void(10)
