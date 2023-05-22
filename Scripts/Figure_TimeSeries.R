@@ -39,11 +39,13 @@ p <- grid.arrange(arrangeGrob(p1, top="A: 75+ Mortality Rate All-Cause"),
                   arrangeGrob(p2, top="B: PM2.5 Exposure"),
                   arrangeGrob(p3, top="C: Land Temperature"),
                   ncol=1)
-# p
-
+p
+# 
 ggsave(sprintf("Figures/Timeseries.png"),p,
        units="cm",dpi=500,
        width = 14.8, # full width
        height = 12.2)
 
 df$codigo_comuna %>% unique() %>% length() # 327
+
+# EoF

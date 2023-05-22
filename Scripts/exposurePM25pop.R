@@ -25,14 +25,14 @@ file_exp_commune <- "pm25exposure_commune"
 folder <- "Exposure"
 
 # Land Temp Parameters
-# Comment them for TEMPERATURE 
-fig_name <- "Figures/LandTemp/%s"
-file_url <- "D:/Terra_LandTemp/%s/%s"
-file_nc_monthly <- "LandTemp_%s%s.tif"
-colName <- "landTemp"
-file_exp <- "landTemp"
-file_exp_commune <- "landTemp_commune"
-folder <- "TempExposure"
+# Uncomment them for TEMPERATURE 
+# fig_name <- "Figures/LandTemp/%s"
+# file_url <- "D:/Terra_LandTemp/%s/%s"
+# file_nc_monthly <- "LandTemp_%s%s.tif"
+# colName <- "landTemp"
+# file_exp <- "landTemp"
+# file_exp_commune <- "landTemp_commune"
+# folder <- "TempExposure"
 
 # load population data for all regions -----
 regions <- 1:16
@@ -137,17 +137,17 @@ zones <- zones %>%
 extent_pop <- extent(zones)
 
 months <- 1:12
-# months <- paste0(ifelse(str_length(months)==1,"0",""),months) # not use for landTemp
+months <- paste0(ifelse(str_length(months)==1,"0",""),months) # not use for landTemp
 
 # Files to read all at once
-# x <- expand.grid(months,1998:2019)
-x <- expand.grid(months,2000:2021) # TEMPERATURE
-x <- paste0(x$Var2,"_",x$Var1)
+x <- expand.grid(months,1998:2019)
+# x <- expand.grid(months,2000:2021) # TEMPERATURE
+x <- paste0(x$Var2,"",x$Var1) # "" for PM25, _ for temp
 # remove ends for land_temp
-x <- x[-1:-2] # TEMPERATURE
-x <- x[-254:-262] # TEMPERATURE
+# x <- x[-1:-2] # TEMPERATURE
+# x <- x[-254:-262] # TEMPERATURE
 
-raster_files <- sprintf(file_url,"Monthly",sprintf(file_nc_monthly,x,"")) # change "" for X in PM2.5 
+raster_files <- sprintf(file_url,"Monthly",sprintf(file_nc_monthly,x,x)) # change "" for X in PM2.5. Second x is "" for Temp
 
 # create raster brick with all PM25 monthly data
 raster_list <- lapply(raster_files, raster) # read raster
@@ -220,16 +220,16 @@ for (r in regions){
                  names_to = "period", values_to = "value")
 
   # only for Temp data, correct for scale and Kelvin
-  zones <- zones %>% mutate(value=value*0.02-273.15) %>%
-    filter(value>-100) # some NAs pass as zero
+  # zones <- zones %>% mutate(value=value*0.02-273.15) %>%
+  #   filter(value>-100) # some NAs pass as zero
 
 
   zones <- zones %>%
     mutate(year=substr(period,1,4),
-           month=substr(period,5,6), # pm2.5
-           month=if_else(str_length(period)==6, # TEMPERATURE
-                         substr(period,6,6),
-                         substr(period,6,7))
+           month=substr(period,5,6) # pm2.5
+           # month=if_else(str_length(period)==6, # TEMPERATURE
+           #               substr(period,6,6),
+           #               substr(period,6,7))
            )
 
 
@@ -284,9 +284,39 @@ for (r in regions){
   pm25_exp_commune <- pm25_exp_commune %>% 
     left_join(pm25_exp_commune_type)
   
+  # Need to Fix R06, as it duplicates based on problems with Region name
+  if (r=="R06"){
+    pm25_exp_commune %>% filter(COMUNA=="6101",year==2010,month==1)
+    aux <- pm25_exp_commune$NOM_REGION[1] # region name
+    
+    # merge urban and rural into one row
+    pm25_exp_commune <- pm25_exp_commune %>% 
+      mutate(pm25_exposure=as.numeric(pm25_exposure),
+             pm25_exposure_rural=as.numeric(pm25_exposure_rural),
+             pm25_exposure_urban=as.numeric(pm25_exposure_urban)) %>% 
+      mutate(pop_pm25=total_pop*pm25_exposure) %>% 
+      group_by(REGION,PROVINCIA,NOM_PROVIN,COMUNA,NOM_COMUNA,year,month) %>% 
+      summarise(pop_pm25=sum(pop_pm25,na.rm=T),
+                total_pop=sum(total_pop,na.rm = T),
+                pm25_exposure_urban=mean(pm25_exposure_urban,na.rm=T),
+                pm25_exposure_rural=mean(pm25_exposure_rural,na.rm=T),
+                total_pop_urban=mean(total_pop_urban,na.rm=T),
+                total_pop_rural=mean(total_pop_rural,na.rm=T)) %>% ungroup() %>% 
+      mutate(pm25_exposure=pop_pm25/total_pop)
+    pm25_exp_commune$pop_pm25 <- NULL
+    
+    pm25_exp_commune$NOM_REGION <- aux
+    
+    # order
+    pm25_exp_commune <- pm25_exp_commune %>% relocate(NOM_REGION,.after=REGION) %>% 
+      relocate(pm25_exposure,.after=total_pop)
+    
+    rm(aux)
+  }
+  
+  
   names(pm25_exp_commune) <- names(pm25_exp_commune) %>% 
     str_replace_all("pm25_exposure",colName)
-  
 
   # save
   write.table(pm25_exp_commune,paste0("Data/",folder,"/",file_exp_commune,r,".csv"),
@@ -298,7 +328,7 @@ for (r in regions){
 }
 rm(raster_brick)
 
-# Next Loop to join all 16 regions
+## Next Loop to join all 16 regions ----
 
 csv_files <- paste0("Data/",folder,"/",file_exp_commune,regions,".csv")
 pm25_exp_commune <- lapply(csv_files, read.csv2)
@@ -306,7 +336,6 @@ pm25_exp_commune <-  do.call("rbind",pm25_exp_commune)
 
 names(pm25_exp_commune) <- names(pm25_exp_commune) %>% 
   str_replace_all(colName,"pm25_exposure")
-
 
 pm25_exp_commune <- pm25_exp_commune %>% 
   mutate(codigo_comuna=paste0(if_else(str_length(COMUNA)==4,"0",""),COMUNA),
@@ -321,6 +350,7 @@ pm25_exp_commune$COMUNA %>% unique() %>% length() # 345 Communes
 pm25_exp_commune$pm25_exposure %>% range() # 0 to 90
 pm25_exp_commune$year %>% table()
 pm25_exp_commune$month %>% table()
+pm25_exp_commune$COMUNA %>% table()
 pm25_exp_commune %>% group_by(year,month) %>% summarise(sum(total_pop))
 
 # change names again

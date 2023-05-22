@@ -137,7 +137,7 @@ names(death_75)
 names(landTemp)
 
 
-df <- death_75 %>% left_join(pm25_exp) %>% left_join(landTemp)
+df <- death_75 %>% left_join(pm25_exp) %>% left_join(landTemp) %>% rename(pm25_exposure=pm25_Exposure)
 
 # remove Isla Pascua
 df <- df %>% filter(codigo_comuna!=5201)
@@ -145,6 +145,12 @@ df <- df %>% filter(codigo_comuna!=5201)
 sum(is.na(df$pm25_exposure))
 sum(is.na(df$landTemp))
 
+
+# are complete records?
+nrow(df)
+length(unique(df$codigo_comuna))*length(unique(df$sex))* # 211896 records
+  length(unique(df$year))*length(unique(df$month))
+# 327 communes
 
 
 df <- df %>% 
