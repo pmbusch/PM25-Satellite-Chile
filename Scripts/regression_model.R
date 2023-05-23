@@ -13,7 +13,7 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 df <- read.delim("Data/panelData.csv",sep=";")
 
 df$year %>% range()
-df$codigo_comuna %>% unique() %>% length() # 331
+df$codigo_comuna %>% unique() %>% length() # 327
 df$pm25_exposure %>% range(na.rm=T)
 df$MR_all_cause %>% range(na.rm=T)
 df$landTemp %>% range(na.rm=T)
@@ -237,6 +237,65 @@ coef(model_nb_inter) %>% exp()
 confint(model_nb_inter,method="Wald") %>% exp()
 autoplot(model_nb_inter)
 plot(df$mortality,predict(model_nb_inter,type="response"))
+
+# Comparison of Models ---------
+start_time <- proc.time() # Capture the starting time
+model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
+                     offset(log(pop75)), 
+                   data = df,
+                   na.action=na.omit)
+end_time <- proc.time() # Capture the ending time
+print(end_time - start_time) # 286 sec, almost 5 min
+
+model_poi <- glm(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
+                   offset(log(pop75)), 
+                 data = df,family ="poisson",na.action=na.omit)
+# OLS with grouped fixed effects
+model_ols <- lfe::felm(MR_all_cause ~ pm25Exp_10ug+landTemp | year+quarter+commune,
+                       data=df,weights=df$pop75)
+
+
+# comparison of models
+library(glmmTMB)
+model_nb2 <- glmmTMB(formula = death_count_all_cause ~ pm25Exp_10ug + landTemp + year + quarter + commune +
+                       offset(log(pop75)),data = df,family = "nbinom1")
+model_nb3 <- glmmTMB(formula = death_count_all_cause ~ pm25Exp_10ug + landTemp + year + quarter + commune +
+                       offset(log(pop75)),data = df,family = "nbinom2")
+
+# coefficients
+coef(model_nb)[1:8] %>% exp() # NB using MASS
+coef(model_poi)[1:8] %>% exp() # poisson
+1+coef(model_ols)/mean(df$MR_all_cause) # OLS
+summary(model_nb2)$coefficients$cond[1:8,1] %>% exp() # NB using glmmTMB with nbinom1
+summary(model_nb3)$coefficients$cond[1:8,1] %>% exp() # NB using glmmTMB with nbinom2
+
+# comparing NB to Poisson - https://stats.oarc.ucla.edu/r/dae/negative-binomial-regression/
+pchisq(2 * (logLik(model_nb) - logLik(model_poi)), df = 1, lower.tail = FALSE) # NB is much more appropiate
+lmtest::lrtest(model_poi, model_nb) # NB is better
+
+
+
+
+library(DHARMa)
+# tests if the simulated dispersion is equal to the observed dispersion
+testDispersion(model_nb)
+
+# testZeroinflation() - tests if there are more zeros in the data than expected from the simulations
+testZeroInflation(model_nb)
+
+# testTemporalAutocorrelation() - tests for temporal autocorrelation in the residuals
+simulationOutput <- simulateResiduals(fittedModel = model_nb)
+testTemporalAutocorrelation(simulationOutput,
+                            df$)
+
+
+df %>%
+  group_by(year,month) %>%
+  summarise(
+    means = mean(MR_all_cause),
+    variances = var(MR_all_cause),
+    ratio = variances/means)
+
 
 
 
