@@ -117,21 +117,26 @@ models_nb_res <- read.csv("Data/modelSpecResults.csv")
 # Figure 
 models_nb_res %>% 
   mutate(rowname=1:nrow(models_nb_res)) %>%
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   filter(param=="pm25Exp_10ug") %>%
   # filter(param=="landTemp") %>%
 ggplot(aes(reorder(name,rowname,decreasing=T),rr))+
-  geom_point(size=1)+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=1,aes(col=signif))+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
-  labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
-  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  labs(title="Base Model: MR ~ PM2.5+T°+Commune+...",x="Additional Terms",
+       y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+       # y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   # Modify theme to look good
+  theme_bw(12)+
   theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
 
-ggsave("Figures//Model/Model_Specifications.png", ggplot2::last_plot(),
+ggsave("Figures/Model/Model_Specifications.png", ggplot2::last_plot(),
 # ggsave("Figures//Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
@@ -143,19 +148,23 @@ ggsave("Figures//Model/Model_Specifications.png", ggplot2::last_plot(),
 month_levels <- paste0("month",12:2)
 models_nb_res %>% 
   mutate(rowname=1:nrow(models_nb_res)) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   filter(str_detect(param,"month"),!str_detect(param,":")) %>% 
   mutate(param=factor(param,levels=month_levels)) %>% 
   ggplot(aes(param,rr))+
-  geom_point(size=1)+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=1,aes(col=signif))+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
   facet_wrap(~name)+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   labs(x="",y=expression(paste("Percentage increase in Mortality w.r.t. Month 1")))+
   # Modify theme to look good
+  theme_bw(12)+
   theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
 
 ggsave("Figures//Model/Model_Specifications_MonthEffect.png", ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -191,18 +200,22 @@ x[c(2,4:10),] %>%
     str_detect(param,"lag") ~ 10,
     str_detect(param,"lead") ~ 1000,
     T ~ 100)) %>% 
+  mutate(param=param %>% str_remove("pm25Exp_") %>% str_replace("10ug","Same Period")) %>%
   mutate(row_id = row_number(),
          row_id=row_id+order_id) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(reorder(param,row_id,decreasing = T),rr))+
-  geom_point(size=1)+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=1,aes(col=signif))+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
   # Modify theme to look good
   theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
 
 ggsave("Figures//Model/Model_Lags.png", ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -283,26 +296,31 @@ model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
 
 x <- getModelInfo(model_nb_lags,"AllLags")
 
-x[c(2,4:51),] %>% 
+xx <- x[c(2,4:51),] %>% 
   mutate(order_id=case_when(
     str_detect(param,"lag") ~ 10,
     str_detect(param,"lead") ~ 1000,
     T ~ 100)) %>% 
-  mutate(param=str_remove_all(param,"pm25Exp_")) %>% 
+  mutate(param=param %>% str_remove("pm25Exp_") %>% str_replace("10ug","Same Period")) %>%
   mutate(row_id = row_number(),
          row_id=row_id+order_id) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) # significant at 5%
+xx %>% 
   ggplot(aes(reorder(param,row_id,decreasing = F),rr))+
-  geom_point(size=1)+
-  geom_point(size=3,col="red",x="10ug",y=x[2,]$rr)+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=1,aes(col=signif))+
+  geom_point(size=3,col="red",x="Same Period",y=xx[1,]$rr)+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   geom_vline(xintercept = c(12.5,24.5,36.5,37.5),col="grey")+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
   # Modify theme to look good
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        axis.text.x = element_text(angle = 90))
+        legend.position = "none",
+        axis.text.x = element_text(angle = 90,hjust = 0.5, vjust = 0.5))
 
 ggsave("Figures//Model/Model_AllLags.png", ggplot2::last_plot(),
        units="cm",dpi=500,

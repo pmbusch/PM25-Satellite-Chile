@@ -368,7 +368,7 @@ ggplot(response_pm,aes(x,group=met))+
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   scale_color_manual(values = c("TRUE" = "#114477", "FALSE" = "#117744"))+
   scale_fill_manual(values = c("TRUE" = "#77AADD", "FALSE" = "#44AA77"))+
-  labs(x=expression(paste("PM2.5 Concetration [",mu,"g/",m^3,"]")),
+  labs(x=expression(paste("Land Temperature [°C]","")),
        y=expression(paste("All Cause MR [deaths per 1,000 pop.]","")))+
   theme_bw(20)+
   theme(panel.grid.major = element_blank(),
