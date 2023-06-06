@@ -20,14 +20,9 @@ Project developed for the course "STA250 - Data Science for International Develo
 	- See new papers by professor
 	- Organize paper paragraph based on topics: PM2.5 effects, satellite, and panel data models -- correlation of satellite pm2.5 $ ground/ pm2.5 ground data with health outcomes/ pm2.5 satellite with health outcomes
 - Satellite data
-	- See accuracy in regions with wood burning
-- Get more dependent variables
-	- Separate CVD from RSP 
-	- Get count data for all external causes
+	- See accuracy in regions with wood burning: HIGH, See regions from VII to XI.
 - New model without outliers and model with PDA sampling
 - New model with zero-inflated and random effects
-	- What % of MR are zero in the data? See exploratory analysis of MR
-- Add Income overtime (for long period analysis) - available?
 - Story: Focus on 4 findings to highlight (consistent with lit. and new findings). Create 4-5 tables/figures to tell the story
 	1. Satellite data predicts well monitor data, but with higher spatial coverage - Figure is scatterplot with correlations + Map of PM2.5
 	2. Both T° and PM2.5 affect mortality in Chile and in the world - Figure is CI ranges + complement of lit. review
