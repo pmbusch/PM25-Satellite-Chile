@@ -236,7 +236,7 @@ results[[36]] <- runModel(data=mutate(df,death_count_all_cause=death_count_exter
 
 # merge results
 res <- do.call("rbind",results)
-write.csv(res,"Data/modelResultsre.csv",row.names = F)
+write.csv(res,"Data/modelResults.csv",row.names = F)
 res <- read.csv("Data/modelResults.csv")
 
 

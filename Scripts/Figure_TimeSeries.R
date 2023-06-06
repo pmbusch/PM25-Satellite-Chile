@@ -48,4 +48,18 @@ ggsave(sprintf("Figures/Timeseries.png"),p,
 
 df$codigo_comuna %>% unique() %>% length() # 327
 
+
+# Just T and PM2.5
+
+p <- grid.arrange(arrangeGrob(p2, top="A: PM2.5 Exposure"),
+                  arrangeGrob(p3, top="B: Land Temperature"),
+                  ncol=1)
+p
+# 
+ggsave(sprintf("Figures/Timeseries_2.png"),p,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height = 12.2)
+
+
 # EoF
