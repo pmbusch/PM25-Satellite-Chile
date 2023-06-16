@@ -18,18 +18,18 @@ df <- df %>% filter(!is.na(pm25Exp_10ug))
 
 
 # income data
-income <-  read.delim("Data/Data_Original/income.csv",sep=";")
+income <-  read.csv("Data/socioeconomic.csv")
 
-income_percentil <- quantile(income$income_mean_usd,
+income_percentil <- quantile(income$income_mean,
                                probs = c(0.3,0.65,0.95),na.rm=T)
 
-ggplot(income,aes(income_mean_usd))+
+ggplot(income,aes(income_mean))+
   geom_histogram(bins=50,fill="grey",col="black")+
   geom_vline(xintercept = income_percentil,col="red")+
   annotate("text",x=income_percentil+30,y=50,label=paste0("P",names(income_percentil)),
            angle = 90,col="red")+
   coord_cartesian(expand = F)+
-  labs(x="Mean Income [USD]",y="Number of Communes")+
+  labs(x="Mean Annual Income [USD]",y="Number of Communes")+
   theme_bw(20)+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
 ggsave("Figures/Other/Income_Distribution.png")
@@ -205,14 +205,14 @@ results[[17]] <- runModel(data=filter(df,zone=="Patagonia"),name="Zone: Patagoni
 results[[18]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
 results[[19]] <- runModel(data=filter(df,REGION !=13),name="No Metropolitan region")
 # by Income
-results[[20]] <- runModel(data=filter(df,income_group =="Below P30 (less than $386)"),
-                         name="Income less $386 (P30)")
-results[[21]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($386 to $522)"),
-                         name="Income $386-$522 (P30-P65)")
-results[[22]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($522 to $898)"),
-                         name="Income $522-$898 (P65-P95)")
-results[[23]] <- runModel(data=filter(df,income_group =="Above P95 (more than $898)"),
-                         name="Above $898 (P95)")
+results[[20]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
+                         name="Income less $3,352 (P30)")
+results[[21]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($3,352 to $4,320)"),
+                         name="Income $3,352-$4,320 (P30-P65)")
+results[[22]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($4,320 to $6,991)"),
+                         name="Income $4,320-$6,991 (P65-P95)")
+results[[23]] <- runModel(data=filter(df,income_group =="Above P95 (more than $6,991)"),
+                         name="Above $6,991 (P95)")
 # by season
 results[[24]] <- runModel(data=filter(df,quarter_text =="Summer"),name="Quarter: Summer",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
 results[[25]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: Fall",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
