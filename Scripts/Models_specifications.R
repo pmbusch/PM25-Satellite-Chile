@@ -9,6 +9,8 @@ library(sandwich)
 
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
+source("Scripts/Fucntions.R",encoding="UTF-8")
+
 
 # Load required data -----
 df <- read.delim("Data/panelData.csv",sep=";")
@@ -22,23 +24,6 @@ df <- df %>% mutate(quarter=factor(quarter),
                     commune=as.factor(codigo_comuna),
                     commune=relevel(commune,ref="13101")) # Santiago
 
-# Function to get data from fitted models ----
-getModelInfo <- function(mod,name){
-  
-  coef <- summary(mod)$coefficients
- 
-  # clustered standard errors by commune
-  cluster_se <- vcovCL(mod, cluster = df$commune)
-  cluster_se <- sqrt(diag(cluster_se))
-  
-  # all
-  out <- data.frame(name=name,param=rownames(coef),est=coef[,1],se=cluster_se,N=nobs(mod),bic=BIC(mod)) %>% 
-    mutate(rr=exp(est)*100-100,
-           rr_low=exp(est-1.96*se)*100-100, # by the huge number of n, the t-stat converges to 1.96 for 5%
-           rr_high=exp(est+1.96*se)*100-100)
-  
-  return(out)
-}
 
 
 ## Negative Binomial forms ----

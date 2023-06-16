@@ -18,11 +18,14 @@ df <- read.delim("Data/panelData.csv",sep=";")
 # df <- read.delim("https://raw.githubusercontent.com/pmbusch/PM25-Satelite-Chile/main/Data/panelData.csv",sep=";")
 
 
-df <- df %>% mutate(quarter=factor(quarter),
-                    year=as.factor(year),
-                    month=as.factor(month),
-                    commune=as.factor(codigo_comuna),
-                    commune=relevel(commune,ref="13101")) # Santiago
+df <- df %>% 
+  mutate(year_quarter=paste0(year,"-",quarter)) %>% 
+  mutate(quarter=factor(quarter),
+         year=as.factor(year),
+         year_quarter=as.factor(year_quarter),
+         month=as.factor(month),
+         commune=as.factor(codigo_comuna),
+         commune=relevel(commune,ref="13101")) # Santiago
 
 # to debug, select 50 random communes
 df$commune %>% unique() %>% length()
@@ -134,14 +137,27 @@ write_csv(data.frame(x = 1:length(outPM25), pm25Exp_10ug = outPM25,landTemp=outT
           file = "Data/Bootstrap/Bootstrap_NoMetropolitan.csv")
 
 
+# Option 2 - Use SE from Regression Model ----------
+
+model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                     offset(log(pop75)), 
+                   data = df,
+                   na.action=na.omit)
+
+cluster_se <- vcovCL(model_nb, cluster = df$commune)
+coef_est <- coef(model_nb)
+coef_se <- sqrt(diag(cluster_se)) 
+ci_lower <- coef_est - 1.96 * coef_se
+ci_upper <- coef_est + 1.96 * coef_se
+
 
 # Figure -----
 
 #calculate weighted mean for base rate
 br <- weighted.mean(df$MR_all_cause,df$pop75)  
 pm <- weighted.mean(df$pm25_exposure,df$pop75) 
-boot <- read.csv2("Data/Bootstrap/Bootstrap_Main.csv")
-boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
+# boot <- read.csv2("Data/Bootstrap/Bootstrap_Main.csv")
+# boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
 
 # convert to RR
 boot$pm25Exp_10ug <- boot$pm25Exp_10ug %>% exp()
@@ -150,8 +166,11 @@ df$pm25_exposure %>% range()
 df$pm25_exposure %>% quantile(c(0.01,0.99))
 pm_range <- 0:60 ## 99 percentile
 
-mean_rr <- mean(boot$pm25Exp_10ug)
-ci_rr <- quantile(boot$pm25Exp_10ug,c(0.025,0.975))
+# mean_rr <- mean(boot$pm25Exp_10ug)
+mean_rr <- mean(exp(coef_est["pm25Exp_10ug"]))
+
+# ci_rr <- quantile(boot$pm25Exp_10ug,c(0.025,0.975))
+ci_rr <- c(exp(ci_lower["pm25Exp_10ug"]),exp(ci_upper["pm25Exp_10ug"]))
 rr <- c(mean_rr,ci_rr)
 
 # slope assumed linear (constant). Slipe is per 10 ug/m3 change
@@ -168,20 +187,20 @@ response_pm <- response_pm %>%
 ggplot(response_pm,aes(x))+
   geom_ribbon(aes(ymin = y_low,
   ymax = y_high),
-  alpha = 0.4,fill="#77AADD")+
-  geom_line(aes(y=y),linewidth=1,col="#114477")+
+  alpha = 0.4,fill="#8B451380")+
+  geom_line(aes(y=y),linewidth=1,col="#8B4513")+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*50,weight=pop75),
                  data=df,binwidth = 0.5,
-                 alpha=0.4,fill="#114477",col="white")+
+                 alpha=0.4,fill="#8B4513",col="white")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
-  labs(x=expression(paste("PM2.5 Concetration [",mu,"g/",m^3,"]")),
-       y=expression(paste("All Cause MR [deaths per 1,000 pop.]","")))+
+  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
   theme_bw(20)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-ggsave("Figures/Model/Effect.png", ggplot2::last_plot(),
+ggsave("Figures/Model/Effect_se.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
@@ -221,7 +240,7 @@ ggplot(response_pm,aes(x))+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,9,2)),limits = c(0,9)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   labs(x=expression(paste("Land Temperature [°C]","")),
-       y=expression(paste("All Cause MR [deaths per 1,000 pop.]","")))+
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
   theme_bw(20)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
@@ -231,24 +250,48 @@ ggsave("Figures/Model/EffectTemp.png", ggplot2::last_plot(),
        width=8.7,height=8.7)
 
 
+# Option 2 ---------
+# Met
+model_nb1 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                     offset(log(pop75)), 
+                   data = filter(df,REGION==13),
+                   na.action=na.omit)
+cluster_se <- vcovCL(model_nb1, cluster = filter(df,REGION==13)$commune)
+coef_est <- coef(model_nb1)
+coef_se <- sqrt(diag(cluster_se)) 
+ci_lower <- coef_est - 1.96 * coef_se
+ci_upper <- coef_est + 1.96 * coef_se
+
+# No MET
+model_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                      offset(log(pop75)), 
+                    data = filter(df,REGION!=13),
+                    na.action=na.omit)
+cluster_se2 <- vcovCL(model_nb2, cluster = filter(df,REGION!=13)$commune)
+coef_est2 <- coef(model_nb2)
+coef_se2 <- sqrt(diag(cluster_se2)) 
+ci_lower2 <- coef_est2 - 1.96 * coef_se2
+ci_upper2 <- coef_est2 + 1.96 * coef_se2
+
+
 ## Figure for Metropolitan region and rest of country ----
 
 #calculate weighted mean for base rate
-df <- df %>% mutate(met=REGION ==13)
+df <- df %>% mutate(met= REGION==13)
 
 # order if False (no met) and true (met)
 br <- df %>% group_by(met) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
 pm <-  df %>% group_by(met) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
 
-boot <- read.csv("Data/Bootstrap/Bootstrap_Metropolitan.csv")
-boot2 <- read.csv("Data/Bootstrap/Bootstrap_NoMetropolitan.csv")
-boot$met <- T; boot2$met <- F;
-boot <- rbind(boot,boot2); rm(boot2)
+# boot <- read.csv("Data/Bootstrap/Bootstrap_Metropolitan.csv")
+# boot2 <- read.csv("Data/Bootstrap/Bootstrap_NoMetropolitan.csv")
+# boot$met <- T; boot2$met <- F;
+# boot <- rbind(boot,boot2); rm(boot2)
 
-boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
+# boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
 
 # convert to RR
-boot$pm25Exp_10ug <- boot$pm25Exp_10ug %>% exp()
+# boot$pm25Exp_10ug <- boot$pm25Exp_10ug %>% exp()
 
 df %>% group_by(met) %>% summarise(range(pm25_exposure))
 df %>% group_by(met) %>% summarise(quantile(pm25_exposure,c(0.01,0.99)))
@@ -256,9 +299,16 @@ df %>% group_by(met) %>% summarise(quantile(pm25_exposure,c(0.01,0.99)))
 pm_range <- 5:59 ## 99 percentile
 pm_range_met <- 10:49
 
-rr <- boot %>% group_by(met) %>% summarise(mean_rr=mean(pm25Exp_10ug),
-                                           ci_low=quantile(pm25Exp_10ug,c(0.025)),
-                                           ci_high=quantile(pm25Exp_10ug,c(0.975)))
+# rr <- boot %>% group_by(met) %>% summarise(mean_rr=mean(pm25Exp_10ug),
+#                                            ci_low=quantile(pm25Exp_10ug,c(0.025)),
+#                                            ci_high=quantile(pm25Exp_10ug,c(0.975)))
+
+# option 2
+rr <- data.frame(met=c(F,T),
+                 mean_rr=c(exp(coef_est2["pm25Exp_10ug"]),exp(coef_est["pm25Exp_10ug"])),
+                 ci_low=c(exp(ci_lower2["pm25Exp_10ug"]),exp(ci_lower["pm25Exp_10ug"])),
+                 ci_high=c(exp(ci_upper2["pm25Exp_10ug"]),exp(ci_upper["pm25Exp_10ug"])))
+
 
 # slope assumed linear (constant). Slope is per 10 ug/m3 change
 rr$br <- br
@@ -289,24 +339,24 @@ ggplot(response_pm,aes(x,group=met))+
   # histograms
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
                  data=filter(df,met==F),binwidth = 0.5,
-                 alpha=0.4,fill="#AA4488",col="white")+
+                 alpha=0.4,fill="#2ecc71",col="white")+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2),
                  data=filter(df,met==T),binwidth = 0.5,
-                 alpha=0.4,fill="#DDAA77",col="white")+
-  annotate("text", x = 30, y = 1.2, label = "Rest of Country", color = "#AA4488")+
-  annotate("text", x = 30, y = 3.2, label = "Metropolitan Region", color = "#DDAA77")+
+                 alpha=0.4,fill="#9b59b6",col="white")+
+  annotate("text", x = 30, y = 1.2, label = "Rest of Country", color = "#2ecc71")+
+  annotate("text", x = 30, y = 3.2, label = "Metropolitan Region", color = "#9b59b6")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
-  scale_color_manual(values = c("TRUE" = "#DDAA77", "FALSE" = "#AA4488"))+
-  scale_fill_manual(values = c("TRUE" = "#AA7744", "FALSE" = "#CC99BB"))+
-  labs(x=expression(paste("PM2.5 Concetration [",mu,"g/",m^3,"]")),
-       y=expression(paste("All Cause MR [deaths per 1,000 pop.]","")))+
+  scale_color_manual(values = c("TRUE" = "#9b59b6", "FALSE" = "#2ecc71"))+
+  scale_fill_manual(values = c("TRUE" = "#9b59b680", "FALSE" = "#2ecc7180"))+
+  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
   theme_bw(20)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures/Model/Effect_Met.png", ggplot2::last_plot(),
+ggsave("Figures/Model/Effect_Met_se.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
@@ -369,7 +419,7 @@ ggplot(response_pm,aes(x,group=met))+
   scale_color_manual(values = c("TRUE" = "#114477", "FALSE" = "#117744"))+
   scale_fill_manual(values = c("TRUE" = "#77AADD", "FALSE" = "#44AA77"))+
   labs(x=expression(paste("Land Temperature [°C]","")),
-       y=expression(paste("All Cause MR [deaths per 1,000 pop.]","")))+
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
   theme_bw(20)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -405,8 +455,105 @@ print(end_time - start_time)  # 11 min for 3 runs
 write_csv(bres,path = "Data/Bootstrap/bootstrap_model.csv")
 
 
+# By Half of year -----
+
+df %>% group_by(month) %>% summarise(mean(pm25_exposure))
+
+df <- df %>% mutate(cold = quarter %in% c("2","3"))
+df %>% group_by(quarter,cold) %>% tally()
+
+# Cold
+model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                     offset(log(pop75)), 
+                   data = filter(df,cold==T),
+                   na.action=na.omit)
+
+cluster_se <- vcovCL(model_nb, cluster = filter(df,cold==T)$commune)
+coef_est <- coef(model_nb)
+coef_se <- sqrt(diag(cluster_se)) 
+ci_lower <- coef_est - 1.96 * coef_se
+ci_upper <- coef_est + 1.96 * coef_se
+
+# Hot
+model_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                      offset(log(pop75)), 
+                    data = filter(df,cold==F),
+                    na.action=na.omit)
+cluster_se2 <- vcovCL(model_nb2, cluster =filter(df,cold==F)$commune)
+coef_est2 <- coef(model_nb2)
+coef_se2 <- sqrt(diag(cluster_se2)) 
+ci_lower2 <- coef_est2 - 1.96 * coef_se2
+ci_upper2 <- coef_est2 + 1.96 * coef_se2
 
 
+# order if False (summer and spring) and true (fall and winter)
+br <- df %>% group_by(cold) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
+pm <-  df %>% group_by(cold) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
+
+
+df %>% group_by(cold) %>% summarise(range(pm25_exposure))
+df %>% group_by(cold) %>% summarise(quantile(pm25_exposure,c(0.01,0.99)))
+
+pm_range <- 5:24 ## 99 percentile
+pm_range_cold <- 10:62
+
+
+# option 2
+rr <- data.frame(cold=c(F,T),
+                 mean_rr=c(exp(coef_est2["pm25Exp_10ug"]),exp(coef_est["pm25Exp_10ug"])),
+                 ci_low=c(exp(ci_lower2["pm25Exp_10ug"]),exp(ci_lower["pm25Exp_10ug"])),
+                 ci_high=c(exp(ci_upper2["pm25Exp_10ug"]),exp(ci_upper["pm25Exp_10ug"])))
+
+
+# slope assumed linear (constant). Slope is per 10 ug/m3 change
+rr$br <- br
+rr$pm <- pm
+rr <- rr %>% pivot_longer(c(-cold,-br,-pm), names_to = "est", values_to = "rr") %>% 
+  mutate(slope=(rr-1)*br) %>% dplyr::select(-rr) %>% 
+  pivot_wider(names_from = est, values_from = slope)
+
+
+# create dataframe with points for lines
+response_pm <- tibble(x=pm_range);response_pm$cold <- F;
+response_pm2 <- tibble(x=pm_range_cold);response_pm2$cold <- T;
+response_pm <- rbind(response_pm,response_pm2);rm(response_pm2)
+
+response_pm <- response_pm %>% left_join(rr)
+
+response_pm <- response_pm %>% 
+  mutate(y=br+(x-pm)/10*mean_rr, # Check: Simple linear slope starting from means
+         y_low=br+(x-pm)/10*ci_low,
+         y_high=br+(x-pm)/10*ci_high)
+
+
+ggplot(response_pm,aes(x,group=cold))+
+  geom_ribbon(aes(ymin = y_low,
+                  ymax = y_high,fill=cold),
+              alpha = 0.4)+
+  geom_line(aes(y=y,col=cold),linewidth=1)+
+  # histograms
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
+                 data=filter(df,cold==F),binwidth = 0.5,
+                 alpha=0.4,fill="#8B0000",col="white")+
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2.4),
+                 data=filter(df,cold==T),binwidth = 0.5,
+                 alpha=0.4,fill="#1A237E",col="white")+
+  annotate("text", x = 30, y = 1.2, label = "Summer & Spring", color = "#8B0000")+
+  annotate("text", x = 30, y = 3.6, label = "Winter & Fall", color = "#1A237E")+
+  scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
+  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
+  scale_color_manual(values = c("TRUE" = "#1A237E", "FALSE" = "#8B0000"))+
+  scale_fill_manual(values = c("TRUE" = "#1A237E80", "FALSE" = "#8B000080"))+
+  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  theme_bw(20)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
+
+ggsave("Figures/Model/Effect_Season_se.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7)
 
 
 # EoF

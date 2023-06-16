@@ -11,7 +11,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 
 # Load required data -----
-df <- read.delim("Data/panelData.csv",sep=";")
+# df <- read.delim("Data/panelData.csv",sep=";")
+df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
 
 df <- df %>% filter(!is.na(pm25Exp_10ug))
 
@@ -53,7 +54,9 @@ df <- df %>%
     T ~ "Spring") %>% factor(levels=c("Fall","Spring","Winter","Summer")))
 
 # sex data
-df_sex <- read.delim("Data/panelData_sex.csv",sep=";")
+# df_sex <- read.delim("Data/panelData_sex.csv",sep=";")
+df_sex <- read.delim("Data/panelData_sex_65.csv",sep=";") # 65+
+
 
 df_sex <- df_sex %>% filter(!is.na(pm25Exp_10ug))
 
@@ -236,8 +239,10 @@ results[[36]] <- runModel(data=mutate(df,death_count_all_cause=death_count_exter
 
 # merge results
 res <- do.call("rbind",results)
-write.csv(res,"Data/modelResults.csv",row.names = F)
-res <- read.csv("Data/modelResults.csv")
+# write.csv(res,"Data/modelResults.csv",row.names = F)
+write.csv(res,"Data/modelResults_65.csv",row.names = F)
+
+# res <- read.csv("Data/modelResults.csv")
 
 
 # Summary Figure -----
@@ -245,8 +250,8 @@ res <- read.csv("Data/modelResults.csv")
 # Calculate RR and C.I.
 rows <- res %>% filter(param=="pm25Exp_10ug") %>% nrow()
 x <- res %>% 
-  filter(param=="pm25Exp_10ug") %>%
-  # filter(param=="landTemp") %>%
+  # filter(param=="pm25Exp_10ug") %>%
+  filter(param=="landTemp") %>%
   mutate(rr=exp(est)*100-100,
          rr_low=exp(est-1.96*se)*100-100, # by the huge number of n, the t-stat converges to 1.96 for 5%
          rr_high=exp(est+1.96*se)*100-100) %>% 
@@ -274,8 +279,8 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   geom_vline(xintercept = c(5.5,5.5,9.5,13.5,17.5,19.5,24.5,26.5,31.5,33.5,35.5),
              col="grey",linewidth=0.2)+
-  labs(x="",y=expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
-  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   # add bottom bar
   geom_segment(x = 0.01, xend = 0.01, yend = max_value,
                y=-3,
@@ -297,10 +302,10 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_text(y=-9,aes(label=N),size=font_size*5/14 * 0.8)+
   geom_text(y=-7,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
   geom_text(y=-7,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
-  geom_text(y=-4.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
-  geom_text(y=-4.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
-  # geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
-  # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
+  geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+2,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+2,aes(label=ci),size=font_size*5/14 * 0.8)+
   # Modify theme to look good
@@ -313,8 +318,10 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
         axis.text.y=element_blank(),
         axis.ticks.y = element_blank())
 
-ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
+# ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
+# ggsave("Figures//Model/AllModels_65.png", ggplot2::last_plot(),
 # ggsave("Figures//Model/AllModels_Temp.png", ggplot2::last_plot(),
+ggsave("Figures//Model/AllModels_Temp_65.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
        # height = 664/3.7795275591)

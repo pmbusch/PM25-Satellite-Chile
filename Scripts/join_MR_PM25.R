@@ -11,10 +11,16 @@ library(readxl)
 # mortality <- read.delim("Data/mortality_data.csv")
 # mortality <- mortality %>% rename(year=Year,quarter=Quarter)
 
-# 75+ years death data----
+# 75+ or 65+ years death data----
+# make sure to save the data with names
 # all causes
-death_75 <- read.delim("Data/chile_elderly_75+_all_cause_external_cardio_respiratory_mortality_count_commune_level_year_1990_2019_quarter_month.csv",
+
+death_75 <- read.delim(paste0("Data/chile_elderly_",
+                              "75+",
+                              # "65+",
+                              "_all_cause_external_cardio_respiratory_mortality_count_commune_level_year_1990_2019_quarter_month.csv"),
                        sep=",")
+death_75$Age <- NULL
 
 names(death_75)
 # all causes no CDP
@@ -68,7 +74,8 @@ pop <- pop %>% pivot_longer(c(-1:-8), names_to = "year", values_to = "pop") %>%
 # first filter to reduce computational burden
 names(pop)[7] <- "Sexo"
 pop <- pop %>% 
-  filter(Edad>74) %>% 
+  filter(Edad>74) %>%
+  # filter(Edad>64) %>% 
   mutate(sex=if_else(Sexo==1,"Hombre","Mujer"))
 
 pop_aux <- pop
@@ -99,7 +106,7 @@ death_75 <- death_75 %>% filter(codigo_comuna!=99999)
 
 # use only counties with at least 50 people in the age group (on average)
 pop_counties <- death_75 %>% group_by(codigo_comuna) %>% summarise(pop75=mean(pop75))
-pop_counties <- pop_counties %>% filter(pop75>50) %>% pull(codigo_comuna) # 328
+pop_counties <- pop_counties %>% filter(pop75>50) %>% pull(codigo_comuna) # 328 for 75+, 333 for 65+
 
 death_75 <- death_75 %>% filter(codigo_comuna %in% pop_counties)
 
@@ -150,7 +157,7 @@ sum(is.na(df$landTemp))
 nrow(df)
 length(unique(df$codigo_comuna))*length(unique(df$sex))* # 211896 records
   length(unique(df$year))*length(unique(df$month))
-# 327 communes
+# 327 communes for 75+, 332 for 65+
 
 
 df <- df %>% 
@@ -164,6 +171,7 @@ df_all <- df %>% filter(sex=="TOTAL")
 df_all$sex <- NULL
 
 write.table(df_all,"Data/panelData.csv",sep = ";",row.names = F)
+# write.table(df_all,"Data/panelData_65.csv",sep = ";",row.names = F)
 
 
 
@@ -171,6 +179,8 @@ df_sex <- df %>% filter(sex!="TOTAL")
 df_sex$sex %>% table()
 
 write.table(df_sex,"Data/panelData_Sex.csv",sep = ";",row.names = F)
+# write.table(df_sex,"Data/panelData_Sex_65.csv",sep = ";",row.names = F)
+
 
 # Check communes
 df %>% group_by(NOM_COMUNA) %>% summarise(pm25_exposure=mean(pm25_exposure)) %>% arrange(pm25_exposure)

@@ -44,9 +44,9 @@ df <- df %>%  mutate(quarter=ceiling(month/3) %>% as.integer()) %>% # quarters b
       factor(levels = c("Summer","Fall","Winter","Spring")))
 
 # Ratios -----
-mean(df$value)/mean(df$pm25_satellite) # 1.03
-df <- df %>% mutate(ratio=value/pm25_satellite) # on average scale is the same
-summary(df$ratio) # up to 6.5 times more, and 7 times less
+mean(df$pm25_satellite)/mean(df$value) # 0.97
+df <- df %>% mutate(ratio=pm25_satellite/value) # on average scale is the same
+summary(df$ratio) # up to 6 times more, and 6 times less
 quantile(summary(df$ratio),c(0.025,0.975))
 
 df %>% group_by(year) %>% summarise(mean(value)/mean(pm25_satellite))
@@ -63,7 +63,8 @@ p_ratios <- ggplot(df,aes(ratio))+
   scale_x_log10(breaks = c(0.2, 0.25,1/3,0.5, 1, 2, 3, 4, 5),
                 labels = c("1/5", "1/4","1/3","1/2", "1", "2", "3", "4", "5"))+
   geom_vline(xintercept = 1,linetype="dashed",col="black")+
-  labs(y="Freq.",x="Ratio Monitor/Satellite PM2.5", caption="Log Scale")
+  labs(y="Freq.",x="Ratio Satellite/Monitor PM2.5", caption="Log Scale")+
+  theme(panel.grid.minor = element_blank())
 p_ratios
 
 ggsave(sprintf(fig_name,"Ratio_Satellite.png"),
