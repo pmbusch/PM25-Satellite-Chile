@@ -11,8 +11,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 
 # Load required data -----
-# df <- read.delim("Data/panelData.csv",sep=";")
-df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
+df <- read.delim("Data/panelData.csv",sep=";")
+# df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
 
 df <- df %>% filter(!is.na(pm25Exp_10ug))
 
@@ -40,7 +40,9 @@ rm(income)
 # Change some parameters
 df <- df %>% 
   mutate(quarter=ceiling(as.numeric(month)/3) %>% factor()) %>% 
+  mutate(year_quarter=paste0(year,"-",quarter)) %>% 
   mutate(year=as.factor(year),
+         year_quarter=as.factor(year_quarter),
          region=as.factor(REGION),
          commune=as.factor(codigo_comuna),
          month=as.factor(month),
@@ -54,8 +56,8 @@ df <- df %>%
     T ~ "Spring") %>% factor(levels=c("Fall","Spring","Winter","Summer")))
 
 # sex data
-# df_sex <- read.delim("Data/panelData_sex.csv",sep=";")
-df_sex <- read.delim("Data/panelData_sex_65.csv",sep=";") # 65+
+df_sex <- read.delim("Data/panelData_sex.csv",sep=";")
+# df_sex <- read.delim("Data/panelData_sex_65.csv",sep=";") # 65+
 
 
 df_sex <- df_sex %>% filter(!is.na(pm25Exp_10ug))
@@ -63,7 +65,9 @@ df_sex <- df_sex %>% filter(!is.na(pm25Exp_10ug))
 # Change some paramters
 df_sex <- df_sex %>% 
   mutate(quarter=ceiling(as.numeric(month)/3) %>% factor()) %>% 
+  mutate(year_quarter=paste0(year,"-",quarter)) %>% 
   mutate(year=as.factor(year),
+         year_quarter=as.factor(year_quarter),
          region=as.factor(REGION),
          commune=as.factor(codigo_comuna),
          month=as.factor(month),
@@ -119,6 +123,29 @@ df <- df %>% mutate(pop_case=if_else(commune %in% commune_pop,"Above Median","Be
 rm(commune_pop)
 # df %>% group_by(commune,pop_case) %>% tally() %>% view()
 
+# Population 
+
+# use only communes with at least 500 people in the age group (on average)
+pop_commune <- df %>% group_by(commune) %>% summarise(pop75=mean(pop75))
+ggplot(pop_commune,aes(pop75))+stat_ecdf()
+nrow(filter(pop_commune,pop75>500))/nrow(pop_commune) # 75% of communes
+pop_commune <- pop_commune %>% filter(pop75>500) %>% pull(commune) # 246 for 75+,
+
+df <- df %>% mutate(pop500=(commune %in% pop_commune))
+
+# Urban Share
+com_rural <- df %>% group_by(commune) %>% 
+  summarise(total_pop_urban=sum(total_pop_urban,na.rm=T)/12/18,
+            total_pop_rural=sum(total_pop_rural,na.rm=T)/12/18) %>% ungroup() %>% 
+  mutate(rural_share=total_pop_rural/(total_pop_rural+total_pop_urban)) %>% 
+  arrange(desc(rural_share))
+ggplot(com_rural,aes(rural_share))+stat_ecdf()
+nrow(filter(com_rural,rural_share>0.5))/nrow(com_rural) # 28%
+# Communes with more than 50% of rural habitants
+com_rural <- com_rural %>% filter(rural_share>0.5) %>% pull(commune) # 93
+
+df <- df %>% mutate(comRural=(commune %in% com_rural))
+
 
 # Bad regions identification
 df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12"),1,0))
@@ -149,10 +176,10 @@ df <- df %>%
 
 # income
 df <- df %>% mutate(income_group=case_when(
-  income_mean_usd<income_percentil[1] ~ "Below P30 (less than $386)",
-  income_mean_usd<income_percentil[2] ~ "Between P30-P65 ($386 to $522)",
-  income_mean_usd<income_percentil[3] ~ "Between P65-P95 ($522 to $898)",
-  T ~ "Above P95 (more than $898)"))
+  income_mean<income_percentil[1] ~ "Below P30 (less than $3,352)",
+  income_mean<income_percentil[2] ~ "Between P30-P65 ($3,352 to $4,320)",
+  income_mean<income_percentil[3] ~ "Between P65-P95 ($4,320 to $6,990)",
+  T ~ "Above P95 (more than $6,990)"))
 # df %>% group_by(commune,income_group) %>% tally() %>% view()
 
 
@@ -161,7 +188,7 @@ df <- df %>% mutate(income_group=case_when(
 # see: https://github.com/echolab-stanford/NCC2018/blob/master/scripts/functions.R
 runModel <- function(data_,
                      name,
-                     formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+offset(log(pop75))"){
+                     formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+offset(log(pop75))"){
   
   mod <- glm.nb(as.formula(formula),
                      data = data_,
@@ -196,51 +223,53 @@ results[[8]] <- runModel(data=filter(df,pm25_level=="PM2.5 20-25"),name="PM2.5 2
 results[[9]] <- runModel(data=filter(df,pm25_level=="PM2.5 25-30"),name="PM2.5 25-30") 
 results[[10]] <- runModel(data=filter(df,pm25_level=="PM2.5 Above 30"),name="PM2.5 Above 30") 
 results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+: Above Median") 
-results[[12]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+: Below Median") 
-results[[13]] <- runModel(data=filter(df,bad_region==0),name="No bad regions (satellite)")
-results[[14]] <- runModel(data=filter(df,zone=="North"),name="Zone: North")
-results[[15]] <- runModel(data=filter(df,zone=="Center"),name="Zone: Center")
-results[[16]] <- runModel(data=filter(df,zone=="South"),name="Zone: South")
-results[[17]] <- runModel(data=filter(df,zone=="Patagonia"),name="Zone: Patagonia")
-results[[18]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
-results[[19]] <- runModel(data=filter(df,REGION !=13),name="No Metropolitan region")
+results[[12]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+: Below Median")
+results[[13]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500 habs")
+results[[14]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>50% pop. rural)")
+results[[15]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
+results[[16]] <- runModel(data=filter(df,bad_region==0),name="No bad regions (satellite)")
+results[[17]] <- runModel(data=filter(df,zone=="North"),name="Zone: North")
+results[[18]] <- runModel(data=filter(df,zone=="Center"),name="Zone: Center")
+results[[19]] <- runModel(data=filter(df,zone=="South"),name="Zone: South")
+results[[20]] <- runModel(data=filter(df,zone=="Patagonia"),name="Zone: Patagonia")
+results[[21]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
+results[[22]] <- runModel(data=filter(df,REGION !=13),name="No Metropolitan region")
 # by Income
-results[[20]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
+results[[23]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
                          name="Income less $3,352 (P30)")
-results[[21]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($3,352 to $4,320)"),
+results[[24]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($3,352 to $4,320)"),
                          name="Income $3,352-$4,320 (P30-P65)")
-results[[22]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($4,320 to $6,991)"),
-                         name="Income $4,320-$6,991 (P65-P95)")
-results[[23]] <- runModel(data=filter(df,income_group =="Above P95 (more than $6,991)"),
-                         name="Above $6,991 (P95)")
+results[[25]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($4,320 to $6,990)"),
+                         name="Income $4,320-$6,990 (P65-P95)")
+results[[26]] <- runModel(data=filter(df,income_group =="Above P95 (more than $6,990)"),
+                         name="Above $6,990 (P95)")
 # by season
-results[[24]] <- runModel(data=filter(df,quarter_text =="Summer"),name="Quarter: Summer",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
-results[[25]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: Fall",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
-results[[26]] <- runModel(data=filter(df,quarter_text =="Winter"),name="Quarter: Winter",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
-results[[27]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter: Spring",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
+results[[27]] <- runModel(data=filter(df,quarter_text =="Summer"),name="Quarter: Summer",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
+results[[28]] <- runModel(data=filter(df,quarter_text =="Fall"),name="Quarter: Fall",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
+results[[29]] <- runModel(data=filter(df,quarter_text =="Winter"),name="Quarter: Winter",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
+results[[30]] <- runModel(data=filter(df,quarter_text =="Spring"),name="Quarter: Spring",formula="death_count_all_cause ~ pm25Exp_10ug+landTemp+year+commune+offset(log(pop75))")
 # by periods of year
-results[[28]] <- runModel(data=filter(df,year %in% c("2002","2003","2004","2005")),name="Period: 2002-2005")
-results[[29]] <- runModel(data=filter(df,year %in% c("2006","2007","2008","2009","2010")),name="Period: 2006-2010")
-results[[30]] <- runModel(data=filter(df,year %in% c("2011","2012","2013","2014","2015")),name="Period: 2011-2015")
-results[[31]] <- runModel(data=filter(df,year %in% c("2016","2017","20018","2019")),name="Period: 2016-2019")
+results[[31]] <- runModel(data=filter(df,year %in% c("2002","2003","2004","2005")),name="Period: 2002-2005")
+results[[32]] <- runModel(data=filter(df,year %in% c("2006","2007","2008","2009","2010")),name="Period: 2006-2010")
+results[[33]] <- runModel(data=filter(df,year %in% c("2011","2012","2013","2014","2015")),name="Period: 2011-2015")
+results[[34]] <- runModel(data=filter(df,year %in% c("2016","2017","20018","2019")),name="Period: 2016-2019")
 # other Endpoints Full Model
-results[[32]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
+results[[35]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
                                       MR_all_cause=MR_cardioRespiratory),name="Cardiorespiratory cause")
-results[[33]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
+results[[36]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
                                       MR_all_cause=MR_cardio),name="Cardiovascular cause")
-results[[34]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
+results[[37]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
                                       MR_all_cause=MR_respiratory),name="Respiratory cause")
-results[[35]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
+results[[38]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
                                       MR_all_cause=MR_all_cause_NoCDP),name="All cause no Cardiorespiratory")
-results[[36]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
+results[[39]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
-
 
 
 # merge results
 res <- do.call("rbind",results)
-# write.csv(res,"Data/modelResults.csv",row.names = F)
-write.csv(res,"Data/modelResults_65.csv",row.names = F)
+write.csv(res,"Data/modelResults.csv",row.names = F)
+# write.csv(res,"Data/modelResults_65.csv",row.names = F)
 
 # res <- read.csv("Data/modelResults.csv")
 
@@ -250,8 +279,8 @@ write.csv(res,"Data/modelResults_65.csv",row.names = F)
 # Calculate RR and C.I.
 rows <- res %>% filter(param=="pm25Exp_10ug") %>% nrow()
 x <- res %>% 
-  # filter(param=="pm25Exp_10ug") %>%
-  filter(param=="landTemp") %>%
+  filter(param=="pm25Exp_10ug") %>%
+  # filter(param=="landTemp") %>%
   mutate(rr=exp(est)*100-100,
          rr_low=exp(est-1.96*se)*100-100, # by the huge number of n, the t-stat converges to 1.96 for 5%
          rr_high=exp(est+1.96*se)*100-100) %>% 
@@ -277,10 +306,10 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   # geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_vline(xintercept = c(5.5,5.5,9.5,13.5,17.5,19.5,24.5,26.5,31.5,33.5,35.5),
+  geom_vline(xintercept = c(5.5,5.5,9.5,13.5,17.5,19.5,24.5,27.5,32.5,34.5,36.5),
              col="grey",linewidth=0.2)+
-  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
-  labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  labs(x="",y=expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   # add bottom bar
   geom_segment(x = 0.01, xend = 0.01, yend = max_value,
                y=-3,
@@ -302,12 +331,12 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_text(y=-9,aes(label=N),size=font_size*5/14 * 0.8)+
   geom_text(y=-7,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
   geom_text(y=-7,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
-  # geom_text(y=-4.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
-  # geom_text(y=-4.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
-  geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
-  geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
-  geom_text(y=max_value+2,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
-  geom_text(y=max_value+2,aes(label=ci),size=font_size*5/14 * 0.8)+
+  geom_text(y=-4.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
+  geom_text(y=-4.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
+  geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
+  geom_text(y=max_value+1,aes(label=ci),size=font_size*5/14 * 0.8)+
   # Modify theme to look good
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -318,10 +347,10 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
         axis.text.y=element_blank(),
         axis.ticks.y = element_blank())
 
-# ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
+ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
 # ggsave("Figures//Model/AllModels_65.png", ggplot2::last_plot(),
 # ggsave("Figures//Model/AllModels_Temp.png", ggplot2::last_plot(),
-ggsave("Figures//Model/AllModels_Temp_65.png", ggplot2::last_plot(),
+# ggsave("Figures//Model/AllModels_Temp_65.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
        # height = 664/3.7795275591)

@@ -9,7 +9,7 @@ library(sandwich)
 
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
-source("Scripts/Fucntions.R",encoding="UTF-8")
+source("Scripts/Functions.R",encoding="UTF-8")
 
 
 # Load required data -----
@@ -17,13 +17,15 @@ df <- read.delim("Data/panelData.csv",sep=";")
 
 df <- df %>% filter(!is.na(pm25Exp_10ug))
 
-df <- df %>% mutate(quarter=factor(quarter),
-                    year=as.factor(year),
-                    region=as.factor(REGION),
-                    month=as.factor(month),
-                    commune=as.factor(codigo_comuna),
-                    commune=relevel(commune,ref="13101")) # Santiago
-
+df <- df %>% 
+  mutate(year_quarter=paste0(year,"-",quarter)) %>% 
+  mutate(quarter=factor(quarter),
+         year=as.factor(year),
+         year_quarter=as.factor(year_quarter),
+         region=as.factor(REGION),
+         month=as.factor(month),
+         commune=as.factor(codigo_comuna),
+         commune=relevel(commune,ref="13101")) # Santiago
 
 
 ## Negative Binomial forms ----

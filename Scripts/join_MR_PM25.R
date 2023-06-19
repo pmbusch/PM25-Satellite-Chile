@@ -104,7 +104,7 @@ death_75 <- death_75 %>% filter(year>2001)
 # remove commune 9999
 death_75 <- death_75 %>% filter(codigo_comuna!=99999)
 
-# use only counties with at least 50 people in the age group (on average)
+# use only communes with at least 50 people in the age group (on average)
 pop_counties <- death_75 %>% group_by(codigo_comuna) %>% summarise(pop75=mean(pop75))
 pop_counties <- pop_counties %>% filter(pop75>50) %>% pull(codigo_comuna) # 328 for 75+, 333 for 65+
 

@@ -13,13 +13,14 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 df <- read.delim("Data/panelData.csv",sep=";")
 # df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
 
-df <- df %>% mutate(quarter=factor(quarter),
-                    year=as.factor(year),
-                    month=as.factor(month),
-                    commune=as.factor(codigo_comuna),
-                    commune=relevel(commune,ref="13101")) # Santiago
-
-
+df <- df %>% 
+  mutate(year_quarter=paste0(year,"-",quarter)) %>% 
+  mutate(quarter=factor(quarter),
+         year=as.factor(year),
+         year_quarter=as.factor(year_quarter),
+         month=as.factor(month),
+         commune=as.factor(codigo_comuna),
+         commune=relevel(commune,ref="13101")) # Santiago
 
 df$year %>% range()
 df$codigo_comuna %>% unique() %>% length() # 327
