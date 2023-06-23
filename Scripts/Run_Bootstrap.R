@@ -555,5 +555,115 @@ ggsave("Figures/Model/Effect_Season_se.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+# By Urban and Rural --------
+
+# Urban Share
+com_rural <- df %>% group_by(commune) %>% 
+  summarise(total_pop_urban=sum(total_pop_urban,na.rm=T)/12/18,
+            total_pop_rural=sum(total_pop_rural,na.rm=T)/12/18) %>% ungroup() %>% 
+  mutate(rural_share=total_pop_rural/(total_pop_rural+total_pop_urban)) %>% 
+  arrange(desc(rural_share))
+nrow(filter(com_rural,rural_share>0.5))/nrow(com_rural) # 28%
+# Communes with more than 50% of rural habitants
+com_rural <- com_rural %>% filter(rural_share>0.5) %>% pull(commune) # 93
+
+df <- df %>% mutate(comRural=(commune %in% com_rural))
+
+df %>% group_by(comRural) %>% summarise(mean(pm25_exposure))
+
+
+# Urban
+model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                     offset(log(pop75)), 
+                   data = filter(df,comRural==F),
+                   na.action=na.omit)
+
+cluster_se <- vcovCL(model_nb, cluster = filter(df,comRural==F)$commune)
+coef_est <- coef(model_nb)
+coef_se <- sqrt(diag(cluster_se)) 
+ci_lower <- coef_est - 1.96 * coef_se
+ci_upper <- coef_est + 1.96 * coef_se
+
+# Rural
+model_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                      offset(log(pop75)), 
+                    data = filter(df,comRural==T),
+                    na.action=na.omit)
+cluster_se2 <- vcovCL(model_nb2, cluster =filter(df,comRural==T)$commune)
+coef_est2 <- coef(model_nb2)
+coef_se2 <- sqrt(diag(cluster_se2)) 
+ci_lower2 <- coef_est2 - 1.96 * coef_se2
+ci_upper2 <- coef_est2 + 1.96 * coef_se2
+
+
+# order if False (urban) and true (rural)
+br <- df %>% group_by(comRural) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
+pm <-  df %>% group_by(comRural) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
+
+
+df %>% group_by(comRural) %>% reframe(range(pm25_exposure))
+df %>% group_by(comRural) %>% reframe(quantile(pm25_exposure,c(0.01,0.99)))
+
+pm_range <- 6:58 ## 99 percentile
+pm_range_rural <- 5:58
+
+
+# option 2
+rr <- data.frame(comRural=c(F,T),
+                 mean_rr=c(exp(coef_est["pm25Exp_10ug"]),exp(coef_est2["pm25Exp_10ug"])),
+                 ci_low=c(exp(ci_lower["pm25Exp_10ug"]),exp(ci_lower2["pm25Exp_10ug"])),
+                 ci_high=c(exp(ci_upper["pm25Exp_10ug"]),exp(ci_upper2["pm25Exp_10ug"])))
+
+
+# slope assumed linear (constant). Slope is per 10 ug/m3 change
+rr$br <- br
+rr$pm <- pm
+rr <- rr %>% pivot_longer(c(-comRural,-br,-pm), names_to = "est", values_to = "rr") %>% 
+  mutate(slope=(rr-1)*br) %>% dplyr::select(-rr) %>% 
+  pivot_wider(names_from = est, values_from = slope)
+
+
+# create dataframe with points for lines
+response_pm <- tibble(x=pm_range);response_pm$comRural <- F;
+response_pm2 <- tibble(x=pm_range_rural);response_pm2$comRural <- T;
+response_pm <- rbind(response_pm,response_pm2);rm(response_pm2)
+
+response_pm <- response_pm %>% left_join(rr)
+
+response_pm <- response_pm %>% 
+  mutate(y=br+(x-pm)/10*mean_rr, # Check: Simple linear slope starting from means
+         y_low=br+(x-pm)/10*ci_low,
+         y_high=br+(x-pm)/10*ci_high)
+
+
+ggplot(response_pm,aes(x,group=comRural))+
+  geom_ribbon(aes(ymin = y_low,
+                  ymax = y_high,fill=comRural),
+              alpha = 0.4)+
+  geom_line(aes(y=y,col=comRural),linewidth=1)+
+  # histograms
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
+                 data=filter(df,comRural==F),binwidth = 0.5,
+                 alpha=0.4,fill="#333333",col="white")+
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2.4),
+                 data=filter(df,comRural==T),binwidth = 0.5,
+                 alpha=0.4,fill="#F4A460",col="white")+
+  annotate("text", x = 30, y = 1.2, label = "Urban", color = "#333333")+
+  annotate("text", x = 30, y = 3.6, label = "Rural", color = "#F4A460")+
+  scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
+  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
+  scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
+  scale_fill_manual(values = c("TRUE" = "#F4A46080", "FALSE" = "#33333380"))+
+  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  theme_bw(20)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
+
+ggsave("Figures/Model/Effect_Urban.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7)
+
 
 # EoF

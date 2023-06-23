@@ -6,12 +6,12 @@
 
 
 # Function to get data from fitted models ----
-getModelInfo <- function(mod,name,ols=F,baseRate=0, robustSE=T){
+getModelInfo <- function(mod,name,ols=F,baseRate=0, robustSE=T, data_df=df){
   
   coef <- if(robustSE) summary(mod)$coefficients else summary(mod)$coefficients$cond
   
   # clustered standard errors by commune
-  cluster_se <- if(robustSE) vcovCL(mod, cluster = df$commune) else vcov(mod)$cond
+  cluster_se <- if(robustSE) vcovCL(mod, cluster = data_df$commune) else vcov(mod)$cond
   cluster_se <- sqrt(diag(cluster_se))
   
   # all

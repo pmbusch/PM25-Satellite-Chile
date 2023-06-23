@@ -15,7 +15,7 @@ fig_name <- "Figures/Satellite_Monitor/%s"
 
 monitor <- read.delim("Data/pm25_month.csv",sep = ";")
 satellite <- read.delim("Data/pm25Satellite_month.csv",sep=";")
-skim(satellite);skim(monitor);
+# skim(satellite);skim(monitor);
 
 
 ## join ----
@@ -131,8 +131,15 @@ cor(x= df$value, y= df$pm25_satellite,
 # summary(lm(value~pm25_satellite,data=df))
 # summary(lm(value~pm25_satellite-1,data=df))
 
+# correlations without major range
+df_filter <- df %>% 
+  filter(value >0, value<70)
+  # filter(pm25_satellite>10,pm25_satellite<50)
 
-
+cor(x= df_filter$value, y= df_filter$pm25_satellite,
+      use = "complete.obs",
+      method = "pearson")
+rm(df_filter)
 
 cor_region <- df %>% group_by(region) %>% 
   summarise(cor=cor(value,pm25_satellite) %>% round(2))
@@ -147,7 +154,7 @@ cor_month <- df %>% group_by(month) %>%
 
 
 df %>% group_by(site) %>% 
-  summarise(cor=cor(value,pm25_satellite) %>% round(2)) %>% view()
+  summarise(cor=cor(value,pm25_satellite) %>% round(2))
 
 
 cor_quarter <- df %>% group_by(quarter) %>% 
@@ -208,8 +215,6 @@ df %>% group_by(region,year) %>%
   pivot_wider(names_from = year, values_from = n)
 
 
-
-
 library(chilemapas)
 
 ## Regresion Monitor vs Satelite -------------
@@ -221,14 +226,7 @@ df <- df %>%
   left_join(cor_year, by="year") %>%
   mutate(year_cor=paste0(year, " (r=",format(cor,nsmall=2),")"))
 
-# by quarter
-df <- df %>% 
-  left_join(cor_quarter, by="quarter") %>%
-  mutate(year_cor=paste0(quarter, " (r=",format(cor,nsmall=2),")")) %>% 
-  dplyr::select(-year) %>% rename(year=quarter)
-
 # same scale
-
 df$value %>% range()
 
 p_year <- ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
@@ -343,6 +341,91 @@ ggsave(sprintf(fig_name,"SatelliteAcc.png"),p,
        units="cm",dpi=500,
        width = 8.7*2, # full width
        height = 8.7)
+
+
+### By Quarter -----
+# Add correlation to year legend
+cor_quarter$quarter_string <- c("Summer","Fall","Winter","Spring")
+df <- df %>% dplyr::select(-cor) %>% 
+  left_join(cor_quarter, by="quarter") %>%
+  mutate(quarter_cor=paste0(quarter_string,strrep(" ",1) ,"(r=",format(cor,nsmall=2),")"))
+
+
+
+# get order for new factor
+order_qt <- df %>% group_by(quarter,quarter_cor) %>% tally() %>% pull(quarter_cor)
+df <- df %>% mutate(quarter_cor=factor(quarter_cor,levels=order_qt))
+
+
+set.seed(123)
+# Randomly order the dataframe for appareance
+df <- df[sample(nrow(df)), ]
+
+p_quarter <- ggplot(df,aes(value,pm25_satellite,col=quarter_cor))+
+  geom_point(alpha=.5)+
+  # geom_smooth()+
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
+  labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
+       y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
+       color="Quarter (correlation)")+
+  theme_bw(9)+
+  # scale_color_viridis_d(option = "turbo")+
+  scale_color_manual(values = c("#FF7F27","#8B4513","#0000FF","#00AA00"))+
+  xlim(0,205)+ylim(0,205)+
+  guides(col=guide_legend(ncol=1))+
+  theme(legend.position = c(0.3,0.8),
+        panel.grid.major = element_blank(),
+        legend.key.height = unit(0.1, "cm"),
+        legend.spacing.x = unit(0.001,"cm"),
+        legend.text = element_text(size=6),
+        legend.box.background = element_rect(colour = "black"))
+p_quarter
+
+ggsave(sprintf(fig_name,"SatelliteAcc_Quarter.png"),p_quarter,
+       units="cm",dpi=500,
+       width = 8.7, #  1 column width
+       height = 8.7)
+
+### By Month -----
+# Add correlation to year legend
+cor_month
+df <- df %>% dplyr::select(-cor) %>% 
+  left_join(cor_month, by="month") %>%
+  mutate(month_cor=paste0(month,strrep(" ",1) ,"(r=",format(cor,nsmall=2),")"))
+
+
+order_m <- df %>% group_by(month,month_cor) %>% tally() %>% pull(month_cor)
+df <- df %>% mutate(month_cor=factor(month_cor,levels=order_m))
+
+set.seed(123)
+# Randomly order the dataframe for appareance
+df <- df[sample(nrow(df)), ]
+
+p_month <- ggplot(df,aes(value,pm25_satellite,col=month_cor))+
+  geom_point(alpha=.5)+
+  # geom_smooth()+
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
+  labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
+       y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
+       color="Month (correlation)")+
+  theme_bw(9)+
+  scale_color_viridis_d(option = "turbo",direction = -1)+
+  xlim(0,205)+ylim(0,205)+
+  guides(col=guide_legend(ncol=2))+
+  theme(legend.position = c(0.3,0.8),
+        panel.grid.major = element_blank(),
+        legend.key.height = unit(0.1, "cm"),
+        legend.spacing.x = unit(0.001,"cm"),
+        legend.text = element_text(size=6),
+        legend.box.background = element_rect(colour = "black"))
+p_month
+
+ggsave(sprintf(fig_name,"SatelliteAcc_Month.png"),p_month,
+       units="cm",dpi=500,
+       width = 8.7, #  1 column width
+       height = 8.7)
+
+
 
 
 ## Temporal correlation --------

@@ -19,7 +19,7 @@ df <- df %>% filter(tipo_dato=="validados")
 
 # years, since 2015
 df$year %>% table()
-df <- df %>% filter(year>2014 & year!=2023)
+df <- df %>% filter(year>2014 & year<2022) # satellite data is up to 2021
 
 df <- df %>% filter(unidad!="s/i")
 
@@ -52,6 +52,10 @@ df_month <- df %>% group_by(region,province,commune,site,longitude,latitude,year
             n=n(), 
             completeness=n/31*100)
 ggplot(df_month,aes(completeness))+stat_ecdf()
+
+
+# monitor %>% left_join(satellite)
+# origianl 4019, then 3858, 161 lost
 df_month <- df_month %>% filter(completeness>=75)
 
 write.table(df_month,"Data/pm25_month.csv",sep=";",row.names = F)
