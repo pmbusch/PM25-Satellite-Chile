@@ -2,7 +2,6 @@
 ## PBH
 ## April 2023
 
-
 library(tidyverse)
 library(readxl)
 
@@ -41,7 +40,6 @@ death_75 %>%
 
 
 # Add sex inmediately - IDEA: duplicate DF with new "TOTAL" value to show in the group by
-
 death_75_aux <- death_75
 death_75_aux$sex <- "TOTAL"
 death_75 <- rbind(death_75,death_75_aux)
@@ -104,13 +102,21 @@ death_75 <- death_75 %>% filter(year>2001)
 # remove commune 9999
 death_75 <- death_75 %>% filter(codigo_comuna!=99999)
 
+death_75 <- death_75 %>% mutate(mortality=death_count/pop75*1000)
+
+data_save <- death_75 %>% filter(sex=="TOTAL") %>% 
+  filter(cause=="Death_count_all_cause") %>% dplyr::select(-sex)
+data_save$codigo_comuna %>% unique() %>% length()
+write.csv(data_save,"Data/mortality_data.csv",row.names = F)
+rm(data_save)
+
+
 # use only communes with at least 50 people in the age group (on average)
 pop_counties <- death_75 %>% group_by(codigo_comuna) %>% summarise(pop75=mean(pop75))
 pop_counties <- pop_counties %>% filter(pop75>50) %>% pull(codigo_comuna) # 328 for 75+, 333 for 65+
 
 death_75 <- death_75 %>% filter(codigo_comuna %in% pop_counties)
 
-death_75 <- death_75 %>% mutate(mortality=death_count/pop75*1000)
 
 # are complete records?
 nrow(death_75)
@@ -129,11 +135,15 @@ names(death_75) <- names(death_75) %>%
 
 # pm25 pollution data exposure ------
 pm25_exp <- read.delim("Data/pm25exposure_commune.csv",sep = ";")
+pm25_exp$codigo_comuna %>% unique() %>% length()
 
 # remove below 1 exposure
 # pm25_exp <- pm25_exp %>% filter(pm25_exposure>1)
 
 landTemp <-  read.delim("Data/landTemp_commune.csv",sep = ";")
+landTemp$codigo_comuna %>% unique() %>% length()
+
+
 names(landTemp) <- names(landTemp) %>% str_replace_all("total_pop","total_pop_T")
 
 

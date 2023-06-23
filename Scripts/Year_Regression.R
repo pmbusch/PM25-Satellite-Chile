@@ -90,7 +90,11 @@ df %>%
   reframe(pm25_pop=sum(pm25_pop),
           pop75=sum(pop75)) %>% 
   mutate(pm25=pm25_pop/pop75)
-    
+
+# df %>% 
+#   group_by(year) %>% 
+#   reframe(pm25=mean(pm25_exposure),
+#           pm25_sd=sd(pm25_exposure))
 
 
 # EoF
