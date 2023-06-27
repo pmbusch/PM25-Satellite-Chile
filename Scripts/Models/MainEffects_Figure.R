@@ -1,23 +1,22 @@
-## Run Bootstrap for main Model
-## PBH
-## May 2023
+# Main Effects figure
+#
+# PBH June 2023
 
 
 library(tidyverse)
 library(MASS)
 library(lme4)
 library(sandwich)
-# library(boot)
 
+# Load data -----
 
-# Code takes a lot to run
+# Two options: 
+# (1) Load previously saved data coming from bootstraps runs
+# (2) Use the standard errors from the models fitted
+
 
 # Load Panel Data
 df <- read.delim("Data/panelData.csv",sep=";")
-# Directly from GitHub
-# df <- read.delim("https://raw.githubusercontent.com/pmbusch/PM25-Satelite-Chile/main/Data/panelData.csv",sep=";")
-
-
 df <- df %>% 
   mutate(year_quarter=paste0(year,"-",quarter)) %>% 
   mutate(quarter=factor(quarter),
@@ -25,138 +24,34 @@ df <- df %>%
          year_quarter=as.factor(year_quarter),
          month=as.factor(month),
          commune=as.factor(codigo_comuna),
-         commune=relevel(commune,ref="13101")) # Santiago
-
-# to debug, select 50 random communes
-df$commune %>% unique() %>% length()
-set.seed(1)
-coms <- df$commune %>% unique() %>% sample(50,replace = F)
-
-df <- df %>% filter(commune %in% coms)
-
-
-# run bootstrap of base model.
-# SOURCE: https://github.com/echolab-stanford/NCC2018/blob/master/scripts/MakeFigure1.R
-
-# Note: Bootstrap should be made by choosing communes with their full time series data, if not, the model does not make
-# sense as it loses the time series data for each commune
-
-
-# BOOTSTRAP -----
-# TAKES FOREVEEEEEEER TO RUN, NEED TO DO IT IN FASTER MACHINE
-coms<- unique(df$commune)
-set.seed(1)
-# bootsize <- length(coms)
-bootsize <- 50 # to debug faster
-# bootreps <- 1000
-bootreps <- 100 
-outPM25 <- c()
-outTemp <- c()
-
-# Define a function to fit the glm.nb model
-fit_glm_nb <- function(data,i) {
-  subset_data <- data[i,]
-  reg <- summary(glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
-                          offset(log(pop75)), data = subset_data, 
-                        na.action=na.omit))$coefficients[c("pm25Exp_10ug","landTemp"),"Estimate"]
-  return(reg)  
-}
-
-
-start_time <- proc.time() 
-# Perform fast bootstrap using boot function
-boot_results <- boot(data = df, statistic = fit_glm_nb, R = 100, 
-                     sim = "ordinary",strata = df$commune)
-end_time <- proc.time() 
-print(end_time - start_time) # 400 seg, 6 min for 100 with 50 coms
-
-
-boot_results$data
+         commune=relevel(commune,ref="13101"))
 
 
 
+# Figure Main Effect Full Model -----
 
-for (i in 1:bootreps) {
-  tryCatch( { samp <- data.frame(commune=sample(coms,bootsize,replace=T))
-      subdata <- inner_join(df,samp)    
-      reg <- summary(glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
-                              offset(log(pop75)), data = subdata, 
-                            na.action=na.omit))$coefficients[c("pm25Exp_10ug","landTemp"),"Estimate"]
-      outPM25 <- c(outPM25,reg[1])
-      outTemp <- c(outTemp,reg[2])
-      }, error=function(e){})
-      print(i)
-    }
+# Option 1
+# boot <- read.csv2("Data/Bootstrap/Bootstrap_Main.csv")
 
-write_csv(data.frame(x = 1:length(outPM25), pm25Exp_10ug = outPM25,landTemp=outTemp),
-            file = "Data/Bootstrap/Bootstrap_Main.csv")
-
-
-## For Metropolitan region subsample ------
-
-df_met <- filter(df,REGION ==13)
-coms<- unique(df_met$commune)
-set.seed(1)
-outPM25 <- c()
-outTemp <- c()
-
-for (i in 1:bootreps) {
-  tryCatch( { samp <- data.frame(commune=sample(coms,length(coms),replace=T))
-  subdata <- inner_join(df_met,samp)    
-  reg <- summary(glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
-                          offset(log(pop75)), data = subdata, 
-                        na.action=na.omit))$coefficients[c("pm25Exp_10ug","landTemp"),"Estimate"]
-  outPM25 <- c(outPM25,reg[1])
-  outTemp <- c(outTemp,reg[2])
-  }, error=function(e){})
-  print(i)
-}
-write_csv(data.frame(x = 1:length(outPM25), pm25Exp_10ug = outPM25,landTemp=outTemp),
-          file = "Data/Bootstrap/Bootstrap_Metropolitan.csv")
-
-## Rest of Country -----
-
-df_met <- filter(df,REGION !=13)
-coms<- unique(df_met$commune)
-set.seed(1)
-outPM25 <- c()
-outTemp <- c()
-
-for (i in 1:bootreps) {
-  tryCatch( { samp <- data.frame(commune=sample(coms,bootsize,replace=T))
-  subdata <- inner_join(df_met,samp)    
-  reg <- summary(glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
-                          offset(log(pop75)), data = subdata, 
-                        na.action=na.omit))$coefficients[c("pm25Exp_10ug","landTemp"),"Estimate"]
-  outPM25 <- c(outPM25,reg[1])
-  outTemp <- c(outTemp,reg[2])
-  }, error=function(e){})
-  print(i)
-}
-write_csv(data.frame(x = 1:length(outPM25), pm25Exp_10ug = outPM25,landTemp=outTemp),
-          file = "Data/Bootstrap/Bootstrap_NoMetropolitan.csv")
-
-
-# Option 2 - Use SE from Regression Model ----------
-
+## Option 2 - Use SE from Regression Model
 model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
-
+# Robust SE
 cluster_se <- vcovCL(model_nb, cluster = df$commune)
 coef_est <- coef(model_nb)
 coef_se <- sqrt(diag(cluster_se)) 
 ci_lower <- coef_est - 1.96 * coef_se
 ci_upper <- coef_est + 1.96 * coef_se
 
-
-# Figure -----
+## PM2.5 Figure -----
 
 #calculate weighted mean for base rate
 br <- weighted.mean(df$MR_all_cause,df$pop75)  
 pm <- weighted.mean(df$pm25_exposure,df$pop75) 
-# boot <- read.csv2("Data/Bootstrap/Bootstrap_Main.csv")
+
+
 # boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
 
 # convert to RR
@@ -186,8 +81,8 @@ response_pm <- response_pm %>%
 
 ggplot(response_pm,aes(x))+
   geom_ribbon(aes(ymin = y_low,
-  ymax = y_high),
-  alpha = 0.4,fill="#8B451380")+
+                  ymax = y_high),
+              alpha = 0.4,fill="#8B451380")+
   geom_line(aes(y=y),linewidth=1,col="#8B4513")+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*50,weight=pop75),
                  data=df,binwidth = 0.5,
@@ -204,6 +99,8 @@ ggsave("Figures/Model/Effect_se.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+
+## Temperature Figure -----
 
 # same for temp
 #calculate weighted mean for base rate
@@ -249,13 +146,18 @@ ggsave("Figures/Model/EffectTemp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+####
+####
+####
 
-# Option 2 ---------
+# Figure for Metropolitan region and rest of country ----
+
+# Option 2
 # Met
 model_nb1 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                     offset(log(pop75)), 
-                   data = filter(df,REGION==13),
-                   na.action=na.omit)
+                      offset(log(pop75)), 
+                    data = filter(df,REGION==13),
+                    na.action=na.omit)
 cluster_se <- vcovCL(model_nb1, cluster = filter(df,REGION==13)$commune)
 coef_est <- coef(model_nb1)
 coef_se <- sqrt(diag(cluster_se)) 
@@ -274,10 +176,10 @@ ci_lower2 <- coef_est2 - 1.96 * coef_se2
 ci_upper2 <- coef_est2 + 1.96 * coef_se2
 
 
-## Figure for Metropolitan region and rest of country ----
-
 #calculate weighted mean for base rate
 df <- df %>% mutate(met= REGION==13)
+
+## PM2.5 Figure -----
 
 # order if False (no met) and true (met)
 br <- df %>% group_by(met) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
@@ -360,6 +262,8 @@ ggsave("Figures/Model/Effect_Met_se.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+
+## Temperature Figure -----
 # Same for Temperature
 
 # order if False (no met) and true (met)
@@ -429,33 +333,12 @@ ggsave("Figures/Model/Effect_Temp_Met.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+####
+####
+####
 
 
-# Source: https://stackoverflow.com/questions/54749641/bootstrapping-with-glm-model
-# data structure for results
-nboot <- 3
-bres <- matrix(NA,
-               nrow=nboot,
-               ncol=length(coef(model_nb)),
-               dimnames=list(rep=seq(nboot),
-                             coef=names(coef(model_nb))[2:3])) # save T and PM2.5
-# bootstrap
-set.seed(1)
-bootsize <- nobs(model_nb)
-df_boot <- df
-start_time <- proc.time() 
-for (i in seq(nboot)) {
-  bdat <- df_boot[sample(nrow(df_boot),size=bootsize,replace=TRUE),]
-  bfit <- update(model_nb, data=bdat)  ## refit with new data
-  bres[i,] <- coef(bfit)[2:3]
-}
-end_time <- proc.time()
-print(end_time - start_time)  # 11 min for 3 runs
-
-write_csv(bres,path = "Data/Bootstrap/bootstrap_model.csv")
-
-
-# By Half of year -----
+# Figure by Half of year -----
 
 df %>% group_by(month) %>% summarise(mean(pm25_exposure))
 
@@ -485,7 +368,7 @@ coef_se2 <- sqrt(diag(cluster_se2))
 ci_lower2 <- coef_est2 - 1.96 * coef_se2
 ci_upper2 <- coef_est2 + 1.96 * coef_se2
 
-
+## PM2.5 Figure -----
 # order if False (summer and spring) and true (fall and winter)
 br <- df %>% group_by(cold) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
 pm <-  df %>% group_by(cold) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
@@ -555,7 +438,12 @@ ggsave("Figures/Model/Effect_Season_se.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
-# By Urban and Rural --------
+## Temperature Figure -----
+
+# TO DO
+
+
+# Figure by Urban and Rural --------
 
 # Urban Share
 com_rural <- df %>% group_by(commune) %>% 
@@ -595,7 +483,7 @@ coef_se2 <- sqrt(diag(cluster_se2))
 ci_lower2 <- coef_est2 - 1.96 * coef_se2
 ci_upper2 <- coef_est2 + 1.96 * coef_se2
 
-
+## PM2.5 Figure -----
 # order if False (urban) and true (rural)
 br <- df %>% group_by(comRural) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
 pm <-  df %>% group_by(comRural) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
@@ -664,6 +552,12 @@ ggplot(response_pm,aes(x,group=comRural))+
 ggsave("Figures/Model/Effect_Urban.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+
+## Temperature Figure -----
+
+# TO DO
+
+
 
 
 # EoF
