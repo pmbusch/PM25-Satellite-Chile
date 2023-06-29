@@ -2,11 +2,14 @@
 #
 # PBH June 2023
 
-
 library(tidyverse)
 library(MASS)
 library(lme4)
 library(sandwich)
+
+source("Scripts/Functions.R",encoding = "UTF-8")
+
+fig_name <- "Figures/Effects/%s.png"
 
 # Load data -----
 
@@ -26,7 +29,38 @@ df <- df %>%
          commune=as.factor(codigo_comuna),
          commune=relevel(commune,ref="13101"))
 
+# Function to fit model  - Option 2 ----
+fitmod <- function(data_){
+  mod <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
+                  year_quarter+commune+
+                       offset(log(pop75)), 
+                     data = data_,
+                     na.action=na.omit)
+  return(mod)
+}
 
+# Function to calculate risk slope and line for the plot ----
+getRiskSlope <- function(data_, mod_info,pm_range=0:60,temp=F){
+  #calculate weighted mean for base rate
+  br <- weighted.mean(data_$MR_all_cause,data_$pop75)  
+  pm <- weighted.mean(data_$pm25_exposure,data_$pop75) 
+  adj <- if (temp) 1 else 10 # present per 10 PM2.5 or per 1 °C
+  if (temp) {
+    pm <- weighted.mean(data_$landTemp,data_$pop75)
+  }
+  
+  # slope assumed linear (constant). Slope is per 10 ug/m3 change
+  rr <- c(mod_info$rr,mod_info$rr_low, mod_info$rr_high)
+  slope <- (rr/100)*br
+  
+  # create dataframe with points for lines
+  response_pm <- tibble(x=pm_range)
+  response_pm <- response_pm %>% 
+    mutate(y=br+(x-pm)/adj*slope[1], # Check: Simple linear slope starting from means
+           y_low=br+(x-pm)/adj*slope[2],
+           y_high=br+(x-pm)/adj*slope[3])
+  return(response_pm)
+}
 
 # Figure Main Effect Full Model -----
 
@@ -34,115 +68,76 @@ df <- df %>%
 # boot <- read.csv2("Data/Bootstrap/Bootstrap_Main.csv")
 
 ## Option 2 - Use SE from Regression Model
-model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                     offset(log(pop75)), 
-                   data = df,
-                   na.action=na.omit)
-# Robust SE
-cluster_se <- vcovCL(model_nb, cluster = df$commune)
-coef_est <- coef(model_nb)
-coef_se <- sqrt(diag(cluster_se)) 
-ci_lower <- coef_est - 1.96 * coef_se
-ci_upper <- coef_est + 1.96 * coef_se
+model_nb <- fitmod(df)
+# get model info - Robust SE
+out <- getModelInfo(model_nb,"Main")
+
+
+# bootstrap option
+# boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
+# boot$pm25Exp_10ug <- boot$pm25Exp_10ug %>% exp()
+# mean_rr <- mean(boot$pm25Exp_10ug)
+# ci_rr <- quantile(boot$pm25Exp_10ug,c(0.025,0.975))
 
 ## PM2.5 Figure -----
+df$pm25_exposure %>% quantile(c(0.01,0.99)) # 99 percentile
 
-#calculate weighted mean for base rate
-br <- weighted.mean(df$MR_all_cause,df$pop75)  
-pm <- weighted.mean(df$pm25_exposure,df$pop75) 
+# get line with CI
+out_pm25 <- out %>% filter(param=="pm25Exp_10ug")
+response_pm <- getRiskSlope(df, out_pm25, pm_range = 0:60)
 
-
-# boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
-
-# convert to RR
-boot$pm25Exp_10ug <- boot$pm25Exp_10ug %>% exp()
-
-df$pm25_exposure %>% range()
-df$pm25_exposure %>% quantile(c(0.01,0.99))
-pm_range <- 0:60 ## 99 percentile
-
-# mean_rr <- mean(boot$pm25Exp_10ug)
-mean_rr <- mean(exp(coef_est["pm25Exp_10ug"]))
-
-# ci_rr <- quantile(boot$pm25Exp_10ug,c(0.025,0.975))
-ci_rr <- c(exp(ci_lower["pm25Exp_10ug"]),exp(ci_upper["pm25Exp_10ug"]))
-rr <- c(mean_rr,ci_rr)
-
-# slope assumed linear (constant). Slipe is per 10 ug/m3 change
-slope <- (rr-1)*br
-
-# create dataframe with points for lines
-response_pm <- tibble(x=pm_range)
-response_pm <- response_pm %>% 
-  mutate(y=br+(x-pm)/10*slope[1], # Check: Simple linear slope starting from means
-         y_low=br+(x-pm)/10*slope[2],
-         y_high=br+(x-pm)/10*slope[3])
-
-
+# Figure
 ggplot(response_pm,aes(x))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high),
               alpha = 0.4,fill="#8B451380")+
-  geom_line(aes(y=y),linewidth=1,col="#8B4513")+
+  geom_line(aes(y=y),linewidth=0.5,col="#8B4513")+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*50,weight=pop75),
                  data=df,binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#8B4513",col="white")+
+  annotate("text", x = 40, y = 1.2, size=10*5/14 * 0.8,
+           label = "PM2.5 Exposure distribution", color = "#8B4513")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
        y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(20)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-ggsave("Figures/Model/Effect_se.png", ggplot2::last_plot(),
+ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
 
 ## Temperature Figure -----
 
-# same for temp
-#calculate weighted mean for base rate
-br <- weighted.mean(df$MR_all_cause,df$pop75)  
-temp <- weighted.mean(df$landTemp,df$pop75) 
-# convert to RR
-boot$landTemp <- boot$landTemp %>% exp()
-
 df$landTemp %>% range()
 df$landTemp %>% quantile(c(0.01,0.99))
-pm_range <- 0:45 ## 99 percentile
 
-mean_rr <- mean(boot$landTemp)
-ci_rr <- quantile(boot$landTemp,c(0.025,0.975))
-rr <- c(mean_rr,ci_rr)
-
-slope <- (rr-1)*br
-
-# create dataframe with points for lines
-response_pm <- tibble(x=pm_range)
-response_pm <- response_pm %>% 
-  mutate(y=br+(x-pm)*slope[1],
-         y_low=br+(x-pm)*slope[2],
-         y_high=br+(x-pm)*slope[3])
-
+response_pm <- getRiskSlope(df, filter(out,param=="landTemp"), 
+                            pm_range = 0:45,temp = T)
 ggplot(response_pm,aes(x))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high),
-              alpha = 0.4,fill="#AA7744")+
-  geom_line(aes(y=y),linewidth=1,col="#DDAA77")+
+              alpha = 0.4,fill="#8000008B")+
+  geom_line(aes(y=y),linewidth=0.5,col="#00008B")+
   geom_histogram(aes(landTemp,y=after_stat(density)*50,weight=pop75),
                  data=df,binwidth = 0.5,
-                 alpha=0.4,fill="#DDAA77",col="white")+
+                 linewidth=0.1,center=0,
+                 alpha=0.4,fill="#00008B",col="white")+
+  annotate("text", x = 30, y = 2.2, size=10*5/14 * 0.8,
+           label = "Land Temperature distribution", color = "#00008B")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,9,2)),limits = c(0,9)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   labs(x=expression(paste("Land Temperature [°C]","")),
        y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(20)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-ggsave("Figures/Model/EffectTemp.png", ggplot2::last_plot(),
+ggsave(sprintf(fig_name,"EffectTemp"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
@@ -154,182 +149,105 @@ ggsave("Figures/Model/EffectTemp.png", ggplot2::last_plot(),
 
 # Option 2
 # Met
-model_nb1 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                      offset(log(pop75)), 
-                    data = filter(df,REGION==13),
-                    na.action=na.omit)
-cluster_se <- vcovCL(model_nb1, cluster = filter(df,REGION==13)$commune)
-coef_est <- coef(model_nb1)
-coef_se <- sqrt(diag(cluster_se)) 
-ci_lower <- coef_est - 1.96 * coef_se
-ci_upper <- coef_est + 1.96 * coef_se
-
+model_nb1 <- fitmod(filter(df,REGION==13))
+out1 <- getModelInfo(model_nb1,"Met",data_df = filter(df,REGION==13))
+  
 # No MET
-model_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                      offset(log(pop75)), 
-                    data = filter(df,REGION!=13),
-                    na.action=na.omit)
-cluster_se2 <- vcovCL(model_nb2, cluster = filter(df,REGION!=13)$commune)
-coef_est2 <- coef(model_nb2)
-coef_se2 <- sqrt(diag(cluster_se2)) 
-ci_lower2 <- coef_est2 - 1.96 * coef_se2
-ci_upper2 <- coef_est2 + 1.96 * coef_se2
+model_nb2 <- fitmod(filter(df,REGION!=13))
+out2 <- getModelInfo(model_nb2,"NoMet",data_df = filter(df,REGION!=13))
 
-
-#calculate weighted mean for base rate
-df <- df %>% mutate(met= REGION==13)
 
 ## PM2.5 Figure -----
+df <- df %>% mutate(met= REGION==13)
+df %>% group_by(met) %>% reframe(quantile(pm25_exposure,c(0.01,0.99)))
 
-# order if False (no met) and true (met)
-br <- df %>% group_by(met) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
-pm <-  df %>% group_by(met) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
-
-# boot <- read.csv("Data/Bootstrap/Bootstrap_Metropolitan.csv")
-# boot2 <- read.csv("Data/Bootstrap/Bootstrap_NoMetropolitan.csv")
-# boot$met <- T; boot2$met <- F;
-# boot <- rbind(boot,boot2); rm(boot2)
-
-# boot$pm25Exp_10ug <- as.numeric(boot$pm25Exp_10ug);boot$landTemp <- as.numeric(boot$landTemp);
-
-# convert to RR
-# boot$pm25Exp_10ug <- boot$pm25Exp_10ug %>% exp()
-
-df %>% group_by(met) %>% summarise(range(pm25_exposure))
-df %>% group_by(met) %>% summarise(quantile(pm25_exposure,c(0.01,0.99)))
-
-pm_range <- 5:59 ## 99 percentile
-pm_range_met <- 10:49
-
-# rr <- boot %>% group_by(met) %>% summarise(mean_rr=mean(pm25Exp_10ug),
-#                                            ci_low=quantile(pm25Exp_10ug,c(0.025)),
-#                                            ci_high=quantile(pm25Exp_10ug,c(0.975)))
-
-# option 2
-rr <- data.frame(met=c(F,T),
-                 mean_rr=c(exp(coef_est2["pm25Exp_10ug"]),exp(coef_est["pm25Exp_10ug"])),
-                 ci_low=c(exp(ci_lower2["pm25Exp_10ug"]),exp(ci_lower["pm25Exp_10ug"])),
-                 ci_high=c(exp(ci_upper2["pm25Exp_10ug"]),exp(ci_upper["pm25Exp_10ug"])))
-
-
-# slope assumed linear (constant). Slope is per 10 ug/m3 change
-rr$br <- br
-rr$pm <- pm
-rr <- rr %>% pivot_longer(c(-met,-br,-pm), names_to = "est", values_to = "rr") %>% 
-  mutate(slope=(rr-1)*br) %>% dplyr::select(-rr) %>% 
-  pivot_wider(names_from = est, values_from = slope)
-
-
-# create dataframe with points for lines
-response_pm <- tibble(x=pm_range);response_pm$met <- F;
-response_pm2 <- tibble(x=pm_range_met);response_pm2$met <- T;
-response_pm <- rbind(response_pm,response_pm2);rm(response_pm2)
-
-response_pm <- response_pm %>% left_join(rr)
-
-response_pm <- response_pm %>% 
-  mutate(y=br+(x-pm)/10*mean_rr, # Check: Simple linear slope starting from means
-         y_low=br+(x-pm)/10*ci_low,
-         y_high=br+(x-pm)/10*ci_high)
-
+response_pm1 <- getRiskSlope(filter(df,REGION==13), 
+                            filter(out1,param=="pm25Exp_10ug"), 
+                            pm_range = 10:49)
+response_pm2 <- getRiskSlope(filter(df,REGION!=13), 
+                             filter(out2,param=="pm25Exp_10ug"), 
+                            pm_range = 5:59)
+response_pm1$met <- T; response_pm2$met <- F
+response_pm <- rbind(response_pm1,response_pm2)
 
 ggplot(response_pm,aes(x,group=met))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high,fill=met),
               alpha = 0.4)+
-  geom_line(aes(y=y,col=met),linewidth=1)+
+  geom_line(aes(y=y,col=met),linewidth=0.5)+
   # histograms
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
                  data=filter(df,met==F),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#2ecc71",col="white")+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2),
                  data=filter(df,met==T),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#9b59b6",col="white")+
-  annotate("text", x = 30, y = 1.2, label = "Rest of Country", color = "#2ecc71")+
-  annotate("text", x = 30, y = 3.2, label = "Metropolitan Region", color = "#9b59b6")+
+  annotate("text", x = 30, y = 1.2, size=10*5/14 * 0.8,
+           label = "Rest of Country", color = "#2ecc71")+
+  annotate("text", x = 30, y = 3.2, size=10*5/14 * 0.8,
+           label = "Metropolitan Region", color = "#9b59b6")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#9b59b6", "FALSE" = "#2ecc71"))+
   scale_fill_manual(values = c("TRUE" = "#9b59b680", "FALSE" = "#2ecc7180"))+
   labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
        y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(20)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures/Model/Effect_Met_se.png", ggplot2::last_plot(),
+ggsave(sprintf(fig_name,"Effect_Met_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
 
 ## Temperature Figure -----
-# Same for Temperature
 
-# order if False (no met) and true (met)
-br <- df %>% group_by(met) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
-temp <-  df %>% group_by(met) %>% summarize(x = weighted.mean(landTemp,w=pop75)) %>% pull(x)
+df %>% group_by(met) %>% reframe(quantile(landTemp,c(0.01,0.99)))
 
-# convert to RR
-boot$landTemp <- boot$landTemp %>% exp()
-
-df %>% group_by(met) %>% summarise(range(landTemp))
-df %>% group_by(met) %>% summarise(quantile(landTemp,c(0.01,0.99)))
-
-pm_range <- 3:44 ## 99 percentile
-pm_range_met <- 11:42
-
-rr <- boot %>% group_by(met) %>% summarise(mean_rr=mean(landTemp),
-                                           ci_low=quantile(landTemp,c(0.025)),
-                                           ci_high=quantile(landTemp,c(0.975)))
-
-# slope assumed linear (constant). Slope is per 10 ug/m3 change
-rr$br <- br
-rr$pm <- temp
-rr <- rr %>% pivot_longer(c(-met,-br,-pm), names_to = "est", values_to = "rr") %>% 
-  mutate(slope=(rr-1)*br) %>% dplyr::select(-rr) %>% 
-  pivot_wider(names_from = est, values_from = slope)
-
-
-# create dataframe with points for lines
-response_pm <- tibble(x=pm_range);response_pm$met <- F;
-response_pm2 <- tibble(x=pm_range_met);response_pm2$met <- T;
-response_pm <- rbind(response_pm,response_pm2);rm(response_pm2)
-
-response_pm <- response_pm %>% left_join(rr)
-
-response_pm <- response_pm %>% 
-  mutate(y=br+(x-pm)*mean_rr, # Check: Simple linear slope starting from means
-         y_low=br+(x-pm)*ci_low,
-         y_high=br+(x-pm)*ci_high)
+response_pm1 <- getRiskSlope(filter(df,REGION==13), 
+                             filter(out1,param=="landTemp"), 
+                             pm_range = 11:42,temp=T)
+response_pm2 <- getRiskSlope(filter(df,REGION!=13), 
+                             filter(out2,param=="landTemp"), 
+                             pm_range = 3:44,temp=T)
+response_pm1$met <- T; response_pm2$met <- F
+response_pm <- rbind(response_pm1,response_pm2)
 
 
 ggplot(response_pm,aes(x,group=met))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high,fill=met),
               alpha = 0.4)+
-  geom_line(aes(y=y,col=met),linewidth=1)+
+  geom_line(aes(y=y,col=met),linewidth=0.5)+
   # histograms
   geom_histogram(aes(landTemp,y=after_stat(density)*20,weight=pop75),
                  data=filter(df,met==F),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#117744",col="white")+
   geom_histogram(aes(landTemp,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2),
                  data=filter(df,met==T),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#114477",col="white")+
-  annotate("text", x = 30, y = 1.2, label = "Rest of Country", color = "#117744")+
-  annotate("text", x = 30, y = 3.2, label = "Metropolitan Region", color = "#114477")+
+  annotate("text", x = 30, y = 1.2,size=10*5/14 * 0.8, 
+           label = "Rest of Country", color = "#117744")+
+  annotate("text", x = 30, y = 3.2,size=10*5/14 * 0.8, 
+           label = "Metropolitan Region", color = "#114477")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   scale_color_manual(values = c("TRUE" = "#114477", "FALSE" = "#117744"))+
   scale_fill_manual(values = c("TRUE" = "#77AADD", "FALSE" = "#44AA77"))+
   labs(x=expression(paste("Land Temperature [°C]","")),
        y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(20)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures/Model/Effect_Temp_Met.png", ggplot2::last_plot(),
+ggsave(sprintf(fig_name,"Effect_Temp_Met"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
@@ -341,106 +259,106 @@ ggsave("Figures/Model/Effect_Temp_Met.png", ggplot2::last_plot(),
 # Figure by Half of year -----
 
 df %>% group_by(month) %>% summarise(mean(pm25_exposure))
-
 df <- df %>% mutate(cold = quarter %in% c("2","3"))
-df %>% group_by(quarter,cold) %>% tally()
-
+rm(model_nb1,model_nb2)
 # Cold
-model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                     offset(log(pop75)), 
-                   data = filter(df,cold==T),
-                   na.action=na.omit)
-
-cluster_se <- vcovCL(model_nb, cluster = filter(df,cold==T)$commune)
-coef_est <- coef(model_nb)
-coef_se <- sqrt(diag(cluster_se)) 
-ci_lower <- coef_est - 1.96 * coef_se
-ci_upper <- coef_est + 1.96 * coef_se
-
+model_nb1 <- fitmod(filter(df,cold==T))
+out1 <- getModelInfo(model_nb1,"Cold",data_df = filter(df,cold==T))
 # Hot
-model_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                      offset(log(pop75)), 
-                    data = filter(df,cold==F),
-                    na.action=na.omit)
-cluster_se2 <- vcovCL(model_nb2, cluster =filter(df,cold==F)$commune)
-coef_est2 <- coef(model_nb2)
-coef_se2 <- sqrt(diag(cluster_se2)) 
-ci_lower2 <- coef_est2 - 1.96 * coef_se2
-ci_upper2 <- coef_est2 + 1.96 * coef_se2
+model_nb2 <- fitmod(filter(df,cold==F))
+out2 <- getModelInfo(model_nb2,"Hot",data_df = filter(df,cold==F))
+
 
 ## PM2.5 Figure -----
-# order if False (summer and spring) and true (fall and winter)
-br <- df %>% group_by(cold) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
-pm <-  df %>% group_by(cold) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
 
-
-df %>% group_by(cold) %>% summarise(range(pm25_exposure))
-df %>% group_by(cold) %>% summarise(quantile(pm25_exposure,c(0.01,0.99)))
-
-pm_range <- 5:24 ## 99 percentile
-pm_range_cold <- 10:62
-
-
-# option 2
-rr <- data.frame(cold=c(F,T),
-                 mean_rr=c(exp(coef_est2["pm25Exp_10ug"]),exp(coef_est["pm25Exp_10ug"])),
-                 ci_low=c(exp(ci_lower2["pm25Exp_10ug"]),exp(ci_lower["pm25Exp_10ug"])),
-                 ci_high=c(exp(ci_upper2["pm25Exp_10ug"]),exp(ci_upper["pm25Exp_10ug"])))
-
-
-# slope assumed linear (constant). Slope is per 10 ug/m3 change
-rr$br <- br
-rr$pm <- pm
-rr <- rr %>% pivot_longer(c(-cold,-br,-pm), names_to = "est", values_to = "rr") %>% 
-  mutate(slope=(rr-1)*br) %>% dplyr::select(-rr) %>% 
-  pivot_wider(names_from = est, values_from = slope)
-
-
-# create dataframe with points for lines
-response_pm <- tibble(x=pm_range);response_pm$cold <- F;
-response_pm2 <- tibble(x=pm_range_cold);response_pm2$cold <- T;
-response_pm <- rbind(response_pm,response_pm2);rm(response_pm2)
-
-response_pm <- response_pm %>% left_join(rr)
-
-response_pm <- response_pm %>% 
-  mutate(y=br+(x-pm)/10*mean_rr, # Check: Simple linear slope starting from means
-         y_low=br+(x-pm)/10*ci_low,
-         y_high=br+(x-pm)/10*ci_high)
-
+df %>% group_by(cold) %>% reframe(quantile(pm25_exposure,c(0.01,0.99)))
+response_pm1 <- getRiskSlope(filter(df,cold==T), 
+                             filter(out1,param=="pm25Exp_10ug"), 
+                             pm_range = 10:62)
+response_pm2 <- getRiskSlope(filter(df,cold==F), 
+                             filter(out2,param=="pm25Exp_10ug"), 
+                             pm_range = 5:24)
+response_pm1$cold <- T; response_pm2$cold <- F
+response_pm <- rbind(response_pm1,response_pm2)
 
 ggplot(response_pm,aes(x,group=cold))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high,fill=cold),
               alpha = 0.4)+
-  geom_line(aes(y=y,col=cold),linewidth=1)+
+  geom_line(aes(y=y,col=cold),linewidth=0.5)+
   # histograms
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
                  data=filter(df,cold==F),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#8B0000",col="white")+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2.4),
                  data=filter(df,cold==T),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#1A237E",col="white")+
-  annotate("text", x = 30, y = 1.2, label = "Summer & Spring", color = "#8B0000")+
-  annotate("text", x = 30, y = 3.6, label = "Winter & Fall", color = "#1A237E")+
+  annotate("text", x = 30, y = 1.2,size=10*5/14 * 0.8, 
+           label = "Summer & Spring", color = "#8B0000")+
+  annotate("text", x = 30, y = 3.6,size=10*5/14 * 0.8, 
+           label = "Winter & Fall", color = "#1A237E")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#1A237E", "FALSE" = "#8B0000"))+
   scale_fill_manual(values = c("TRUE" = "#1A237E80", "FALSE" = "#8B000080"))+
   labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
        y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(20)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures/Model/Effect_Season_se.png", ggplot2::last_plot(),
+ggsave(sprintf(fig_name,"Effect_Season_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
 ## Temperature Figure -----
 
-# TO DO
+df %>% group_by(cold) %>% reframe(quantile(landTemp,c(0.01,0.99)))
+response_pm1 <- getRiskSlope(filter(df,cold==T), 
+                             filter(out1,param=="landTemp"), 
+                             pm_range = 1:35,temp=T)
+response_pm2 <- getRiskSlope(filter(df,cold==F), 
+                             filter(out2,param=="landTemp"), 
+                             pm_range = 12:46,temp=T)
+response_pm1$cold <- T; response_pm2$cold <- F
+response_pm <- rbind(response_pm1,response_pm2)
+
+
+ggplot(response_pm,aes(x,group=cold))+
+  geom_ribbon(aes(ymin = y_low,
+                  ymax = y_high,fill=cold),
+              alpha = 0.4)+
+  geom_line(aes(y=y,col=cold),linewidth=0.5)+
+  # histograms
+  geom_histogram(aes(landTemp,y=after_stat(density)*20,weight=pop75),
+                 data=filter(df,cold==F),binwidth = 0.5,
+                 linewidth=0.1,center=0,
+                 alpha=0.4,fill="#8B0000",col="white")+
+  geom_histogram(aes(landTemp,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2),
+                 data=filter(df,cold==T),binwidth = 0.5,
+                 linewidth=0.1,center=0,
+                 alpha=0.4,fill="#1A237E",col="white")+
+  annotate("text", x = 20, y = 1.2,size=10*5/14 * 0.8, 
+           label = "Summer & Spring", color = "#8B0000")+
+  annotate("text", x = 20, y = 3.6,size=10*5/14 * 0.8, 
+           label = "Winter & Fall", color = "#1A237E")+
+   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8.1)) +
+  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,46))+
+  scale_color_manual(values = c("TRUE" = "#1A237E", "FALSE" = "#8B0000"))+
+  scale_fill_manual(values = c("TRUE" = "#1A237E80", "FALSE" = "#8B000080"))+
+  labs(x=expression(paste("Land Temperature [°C]","")),
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
+
+ggsave(sprintf(fig_name,"Effect_Temp_Season_se"), ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7)
 
 
 # Figure by Urban and Rural --------
@@ -460,104 +378,104 @@ df <- df %>% mutate(comRural=(commune %in% com_rural))
 df %>% group_by(comRural) %>% summarise(mean(pm25_exposure))
 
 
+rm(model_nb1,model_nb2)
 # Urban
-model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                     offset(log(pop75)), 
-                   data = filter(df,comRural==F),
-                   na.action=na.omit)
-
-cluster_se <- vcovCL(model_nb, cluster = filter(df,comRural==F)$commune)
-coef_est <- coef(model_nb)
-coef_se <- sqrt(diag(cluster_se)) 
-ci_lower <- coef_est - 1.96 * coef_se
-ci_upper <- coef_est + 1.96 * coef_se
-
+model_nb1 <- fitmod(filter(df,comRural==F))
+out1 <- getModelInfo(model_nb1,"Urban",data_df = filter(df,comRural==F))
 # Rural
-model_nb2 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                      offset(log(pop75)), 
-                    data = filter(df,comRural==T),
-                    na.action=na.omit)
-cluster_se2 <- vcovCL(model_nb2, cluster =filter(df,comRural==T)$commune)
-coef_est2 <- coef(model_nb2)
-coef_se2 <- sqrt(diag(cluster_se2)) 
-ci_lower2 <- coef_est2 - 1.96 * coef_se2
-ci_upper2 <- coef_est2 + 1.96 * coef_se2
+model_nb2 <- fitmod(filter(df,comRural==T))
+out2 <- getModelInfo(model_nb2,"Rural",data_df = filter(df,comRural==T))
+
 
 ## PM2.5 Figure -----
-# order if False (urban) and true (rural)
-br <- df %>% group_by(comRural) %>% summarize(x = weighted.mean(MR_all_cause,w=pop75)) %>% pull(x)
-pm <-  df %>% group_by(comRural) %>% summarize(x = weighted.mean(pm25_exposure,w=pop75)) %>% pull(x)
-
-
-df %>% group_by(comRural) %>% reframe(range(pm25_exposure))
 df %>% group_by(comRural) %>% reframe(quantile(pm25_exposure,c(0.01,0.99)))
-
-pm_range <- 6:58 ## 99 percentile
-pm_range_rural <- 5:58
-
-
-# option 2
-rr <- data.frame(comRural=c(F,T),
-                 mean_rr=c(exp(coef_est["pm25Exp_10ug"]),exp(coef_est2["pm25Exp_10ug"])),
-                 ci_low=c(exp(ci_lower["pm25Exp_10ug"]),exp(ci_lower2["pm25Exp_10ug"])),
-                 ci_high=c(exp(ci_upper["pm25Exp_10ug"]),exp(ci_upper2["pm25Exp_10ug"])))
-
-
-# slope assumed linear (constant). Slope is per 10 ug/m3 change
-rr$br <- br
-rr$pm <- pm
-rr <- rr %>% pivot_longer(c(-comRural,-br,-pm), names_to = "est", values_to = "rr") %>% 
-  mutate(slope=(rr-1)*br) %>% dplyr::select(-rr) %>% 
-  pivot_wider(names_from = est, values_from = slope)
-
-
-# create dataframe with points for lines
-response_pm <- tibble(x=pm_range);response_pm$comRural <- F;
-response_pm2 <- tibble(x=pm_range_rural);response_pm2$comRural <- T;
-response_pm <- rbind(response_pm,response_pm2);rm(response_pm2)
-
-response_pm <- response_pm %>% left_join(rr)
-
-response_pm <- response_pm %>% 
-  mutate(y=br+(x-pm)/10*mean_rr, # Check: Simple linear slope starting from means
-         y_low=br+(x-pm)/10*ci_low,
-         y_high=br+(x-pm)/10*ci_high)
+response_pm1 <- getRiskSlope(filter(df,comRural==F), 
+                             filter(out1,param=="pm25Exp_10ug"), 
+                             pm_range = 6:58)
+response_pm2 <- getRiskSlope(filter(df,comRural==T), 
+                             filter(out2,param=="pm25Exp_10ug"), 
+                             pm_range = 5:58)
+response_pm1$comRural <- F; response_pm2$comRural <- T
+response_pm <- rbind(response_pm1,response_pm2)
 
 
 ggplot(response_pm,aes(x,group=comRural))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high,fill=comRural),
               alpha = 0.4)+
-  geom_line(aes(y=y,col=comRural),linewidth=1)+
+  geom_line(aes(y=y,col=comRural),linewidth=0.5)+
   # histograms
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
                  data=filter(df,comRural==F),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#333333",col="white")+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2.4),
                  data=filter(df,comRural==T),binwidth = 0.5,
+                 linewidth=0.1,center=0,
                  alpha=0.4,fill="#F4A460",col="white")+
-  annotate("text", x = 30, y = 1.2, label = "Urban", color = "#333333")+
-  annotate("text", x = 30, y = 3.6, label = "Rural", color = "#F4A460")+
+  annotate("text", x = 30, y = 1.2,size=10*5/14 * 0.8, 
+           label = "Urban", color = "#333333")+
+  annotate("text", x = 30, y = 3.6, size=10*5/14 * 0.8,
+           label = "Rural", color = "#F4A460")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
   scale_fill_manual(values = c("TRUE" = "#F4A46080", "FALSE" = "#33333380"))+
   labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
        y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(20)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures/Model/Effect_Urban.png", ggplot2::last_plot(),
+ggsave(sprintf(fig_name,"Effect_Urban2"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
 ## Temperature Figure -----
 
-# TO DO
+df %>% group_by(comRural) %>% reframe(quantile(landTemp,c(0.01,0.99)))
+response_pm1 <- getRiskSlope(filter(df,comRural==F), 
+                             filter(out1,param=="landTemp"), 
+                             pm_range = 3:43,temp=T)
+response_pm2 <- getRiskSlope(filter(df,comRural==T), 
+                             filter(out2,param=="landTemp"), 
+                             pm_range = 3:44,temp=T)
+response_pm1$comRural <- F; response_pm2$comRural <- T
+response_pm <- rbind(response_pm1,response_pm2)
 
 
+ggplot(response_pm,aes(x,group=comRural))+
+  geom_ribbon(aes(ymin = y_low,
+                  ymax = y_high,fill=comRural),
+              alpha = 0.4)+
+  geom_line(aes(y=y,col=comRural),linewidth=0.5)+
+  # histograms
+  geom_histogram(aes(landTemp,y=after_stat(density)*20,weight=pop75),
+                 data=filter(df,comRural==F),binwidth = 0.5,
+                 linewidth=0.1,center=0,
+                 alpha=0.4,fill="#333333",col="white")+
+  geom_histogram(aes(landTemp,y=after_stat(density)*20,weight=pop75), position = position_nudge(y=2),
+                 data=filter(df,comRural==T),binwidth = 0.5,
+                 linewidth=0.1,center=0,
+                 alpha=0.4,fill="#F4A460",col="white")+
+  annotate("text", x = 20, y = 1.2,size=10*5/14 * 0.8, 
+           label = "Urban", color = "#333333")+
+  annotate("text", x = 20, y = 3.6, size=10*5/14 * 0.8,
+           label = "Rural", color = "#F4A460")+
+  scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
+  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
+  scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
+  scale_fill_manual(values = c("TRUE" = "#F4A46080", "FALSE" = "#33333380"))+
+  labs(x=expression(paste("Land Temperature [°C]","")),
+       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
 
+ggsave(sprintf(fig_name,"Effect_Urban_temp"), ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7)
 
 # EoF

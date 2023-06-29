@@ -3,8 +3,6 @@
 ## March 2023
 
 
-
-
 # Function to get data from fitted models ----
 getModelInfo <- function(mod,name,ols=F,baseRate=0, robustSE=T, data_df=df){
   
@@ -29,9 +27,6 @@ getModelInfo <- function(mod,name,ols=F,baseRate=0, robustSE=T, data_df=df){
            rr_low=exp(est-1.96*se)*100-100, # by the huge number of n, the t-stat converges to 1.96 for 5%
            rr_high=exp(est+1.96*se)*100-100)  
   }
-  
-  
-  
   
   return(out)
 }
