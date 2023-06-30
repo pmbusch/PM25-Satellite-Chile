@@ -22,7 +22,6 @@ df <- df %>%
          commune=as.factor(codigo_comuna),
          commune=relevel(commune,ref="13101")) # Santiago
 
-df$year %>% range()
 df$codigo_comuna %>% unique() %>% length() # 327
 df$pm25_exposure %>% range(na.rm=T)
 df$MR_all_cause %>% range(na.rm=T)
@@ -136,14 +135,13 @@ df$met <- df$REGION=="13"
 df$met <- df$met*df$pm25Exp_10ug
 
 model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+
-                     # met+ # interaction for met
                      landTemp+
+                     year_quarter
+                     commune+
+                     # met+ # interaction for met
                      # I(landTemp^2)+
                      # month+
-                     year+
-                     quarter+
                      # quarter:pm25Exp_10ug+
-                     commune+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
@@ -312,36 +310,7 @@ ggsave("Figures/Model/CommuneEffects.png", ggplot2::last_plot(),
        width=8.7,height=8.7*2)
 
 
-## Estimate avoided deaths in the whole period -----
-limit <- 12
-names(df)
-df %>% ungroup() %>% 
-  dplyr::select(-codigo_comuna,-codigo_region,-codigo_provincia,
-                -region,-quarter,-commune,-year,-month,-total_pop) %>% 
-  mutate(reduction=if_else(pm25_exposure>limit,pm25Exp_10ug-limit/10,0)) %>% # get reduction in terms of 10 ug/m2
-  mutate(red_perc_mortality=exp(coef(model_nb))[2]^(-reduction)) %>% # get relative decrease in mortality rate
-  # mutate(red_perc_mortality=ci_pm25[1]^(-reduction)) %>% # low
-  # mutate(red_perc_mortality=ci_pm25[2]^(-reduction)) %>% # high
-  mutate(new_MR=mortality*red_perc_mortality,
-         new_death_counts=pop75*new_MR/1000,
-         avoided_deaths=Mortality_Count-new_death_counts) %>% 
-  # head() %>% 
-  pull(avoided_deaths) %>% sum()/60
 
-
-# NB with interaction
-model_nb_inter <- glm.nb(Mortality_Count ~ pm25Exp_10ug+year+region*quarter+
-                     offset(log(pop75)), 
-                   data = df,
-                   na.action=na.omit)
-
-summary(model_nb_inter)
-nobs(model_nb_inter)
-BIC(model_nb_inter)
-coef(model_nb_inter) %>% exp()
-confint(model_nb_inter,method="Wald") %>% exp()
-autoplot(model_nb_inter)
-plot(df$mortality,predict(model_nb_inter,type="response"))
 
 # Comparison of Models ---------
 # start_time <- proc.time() # Capture the starting time

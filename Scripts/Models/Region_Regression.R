@@ -53,9 +53,10 @@ for (x in regs){
 df_fig <- all_mods %>% 
   filter(param=="pm25Exp_10ug")
 
-region_levels <- c("15","1","2","3","4","5","13","6","7","8","16","9","14","10","11","12")
+region_levels <- c("15","1","2","3","4","5","M","6","7","8","16","9","14","10","11","12")
 
 df_fig %>%
+  mutate(name=name %>% str_replace("13","M")) %>% 
   mutate(region=factor(name,levels=rev(region_levels))) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(x = region, y = rr)) +
@@ -64,18 +65,17 @@ df_fig %>%
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   geom_hline(yintercept = rr_base, linetype="dashed",col="red",linewidth=0.5)+
   coord_flip()+
+  # coord_flip(ylim = c(-10,10))+
   # scale_y_continuous(breaks = seq(-12.5, 18, by = 2.5))+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   # annotation
   annotate("text", x = 1, y = rr_base+7, label = "Pooled estimate",size=8*5/14 * 0.8) +
   geom_segment(aes(x = 1, y = rr_base+3.2, xend = 1, yend = rr_base+1.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
-  labs(x = "Region",
-       y = expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
-  
-  theme_bw(10)+
+  labs(x = "",y =lab_rr)+
+  theme_bw(9)+
   theme(legend.position = "none",
-        axis.title.y = element_text(size = 8),
+        # axis.title.y = element_text(size = 1),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
@@ -84,6 +84,7 @@ ggsave("Figures//Model/RegionModels.png", ggplot2::last_plot(),
        width=8.7,height=8.7)
 
 # Average exposure by region
+region_levels <- c("15","1","2","3","4","5","13","6","7","8","16","9","14","10","11","12")
 df_stats <- df %>% 
   mutate(region=factor(region,levels=region_levels)) %>% 
   mutate(pm25_pop=pop75*pm25_exposure) %>% 
@@ -112,8 +113,8 @@ df_fig %>%
   annotate("text", x = 8, y = rr_base+7, label = "Pooled estimate",size=8*5/14 * 0.8, hjust=0) +
   geom_segment(aes(x = 10, y = rr_base+5.2, xend = 10, yend = rr_base+1.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
-  labs(x ="PM2.5 Exposure",
-       y = expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  labs(x =lab_pm25,
+       y = lab_rr)+
   theme_bw(10)+
   theme(legend.position = "none",
         axis.title.y = element_text(size = 8),

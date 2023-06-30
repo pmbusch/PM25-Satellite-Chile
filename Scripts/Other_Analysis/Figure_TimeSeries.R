@@ -6,6 +6,8 @@ library(tidyverse)
 
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
+source("Scripts/Functions.R",encoding="UTF-8")
+
 # Load Panel Data ----
 df <- read.delim("Data/panelData.csv",sep=";")
 
@@ -20,24 +22,33 @@ p2 <- df %>%
   ggplot(aes(date,pm25_exposure,group=commune))+
   geom_line(alpha=.2,linewidth=.1,col="#800000")+ 
   coord_cartesian(expand = F)+
-  labs(x="",y=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]","")))+
+  labs(x="",y=lab_pm25)+
   scale_x_date(date_breaks = "2 year",date_labels = "%Y")+
   # scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
   theme_bw(8)+
   theme(panel.grid.major = element_blank())
 # p2
-p3 <- p2+aes(y=landTemp)+labs(y="Land Temperature [°C]")+geom_line(alpha=.2,linewidth=.1,col="#000080")
+p3 <- p2+aes(y=landTemp)+labs(y=lab_temp)+geom_line(alpha=.2,linewidth=.1,col="#000080")
 # p3
-p1 <- p2+aes(y=MR_all_cause)+labs(y="75+ Mortality Rate \n All-Cause [per 1,000 habs]")+
+p1 <- p2+aes(y=MR_all_cause)+labs(y=lab_mr)+
   geom_line(alpha=.2,linewidth=.1,col="black")
 # p1
 
 # Arrange in row format
 library(gridExtra)
 
-p <- grid.arrange(arrangeGrob(p1, top="A: 75+ Mortality Rate All-Cause"),
-                  arrangeGrob(p2, top="B: PM2.5 Exposure"),
-                  arrangeGrob(p3, top="C: Land Temperature"),
+# Add titles
+p1 <- p1 +   ggtitle("A: 75+ Mortality Rate All-Cause") +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+p2 <- p2 +   ggtitle(expression("B: PM"[2.5]~"Exposure")) +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+p3 <- p3 +   ggtitle("C: Land Temperature") +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+
+
+p <- grid.arrange(arrangeGrob(p1),
+                  arrangeGrob(p2),
+                  arrangeGrob(p3),
                   ncol=1)
 p
 # 
@@ -51,8 +62,11 @@ df$codigo_comuna %>% unique() %>% length() # 327
 
 # Just T and PM2.5
 
-p <- grid.arrange(arrangeGrob(p2, top="A: PM2.5 Exposure"),
-                  arrangeGrob(p3, top="B: Land Temperature"),
+p2 <- p2 +   ggtitle(expression("A: PM"[2.5]~"Exposure"))
+p3 <- p3 +   ggtitle("B: Land Temperature")
+
+p <- grid.arrange(arrangeGrob(p2),
+                  arrangeGrob(p3),
                   ncol=1)
 p
 # 

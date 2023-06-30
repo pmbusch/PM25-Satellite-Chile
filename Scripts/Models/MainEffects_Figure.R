@@ -11,12 +11,15 @@ source("Scripts/Functions.R",encoding = "UTF-8")
 
 fig_name <- "Figures/Effects/%s.png"
 
+fig_fontsize <- 10
+fig_fontsize <- 6 # 6 for smaller panel
+
+
 # Load data -----
 
 # Two options: 
 # (1) Load previously saved data coming from bootstraps runs
 # (2) Use the standard errors from the models fitted
-
 
 # Load Panel Data
 df <- read.delim("Data/panelData.csv",sep=";")
@@ -87,7 +90,7 @@ out_pm25 <- out %>% filter(param=="pm25Exp_10ug")
 response_pm <- getRiskSlope(df, out_pm25, pm_range = 0:60)
 
 # Figure
-ggplot(response_pm,aes(x))+
+p1 <- ggplot(response_pm,aes(x))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high),
               alpha = 0.4,fill="#8B451380")+
@@ -96,19 +99,24 @@ ggplot(response_pm,aes(x))+
                  data=df,binwidth = 0.5,
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#8B4513",col="white")+
-  annotate("text", x = 40, y = 1.2, size=10*5/14 * 0.8,
-           label = "PM2.5 Exposure distribution", color = "#8B4513")+
+  annotate("text", x = 40, y = 1.2, size=8*5/14 * 0.8,
+           label = "PM"[2.5] ~ " Exposure distribution", color = "#8B4513")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
-  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(10)+
+  labs(x=lab_pm25,y=lab_mr2)+
+  theme_bw(8)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
-
+p1
 ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+
+p1 <- last_plot()+labs(y="75+ MR All-Cause \n [per 1,000 habs]")
+p1
+ggsave(sprintf(fig_name,"Effect_se2"), ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7/2)
 
 
 ## Temperature Figure -----
@@ -127,12 +135,11 @@ ggplot(response_pm,aes(x))+
                  data=df,binwidth = 0.5,
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#00008B",col="white")+
-  annotate("text", x = 30, y = 2.2, size=10*5/14 * 0.8,
+  annotate("text", x = 30, y = 2.2, size=8*5/14 * 0.8,
            label = "Land Temperature distribution", color = "#00008B")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,9,2)),limits = c(0,9)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
-  labs(x=expression(paste("Land Temperature [°C]","")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  labs(x=lab_temp,y=lab_mr2)+
   theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
@@ -170,7 +177,7 @@ response_pm2 <- getRiskSlope(filter(df,REGION!=13),
 response_pm1$met <- T; response_pm2$met <- F
 response_pm <- rbind(response_pm1,response_pm2)
 
-ggplot(response_pm,aes(x,group=met))+
+p2 <- ggplot(response_pm,aes(x,group=met))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high,fill=met),
               alpha = 0.4)+
@@ -184,25 +191,24 @@ ggplot(response_pm,aes(x,group=met))+
                  data=filter(df,met==T),binwidth = 0.5,
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#9b59b6",col="white")+
-  annotate("text", x = 30, y = 1.2, size=10*5/14 * 0.8,
+  annotate("text", x = 35, y = 1.2, size=fig_fontsize*5/14 * 0.8,
            label = "Rest of Country", color = "#2ecc71")+
-  annotate("text", x = 30, y = 3.2, size=10*5/14 * 0.8,
+  annotate("text", x = 35, y = 3.2, size=fig_fontsize*5/14 * 0.8,
            label = "Metropolitan Region", color = "#9b59b6")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#9b59b6", "FALSE" = "#2ecc71"))+
   scale_fill_manual(values = c("TRUE" = "#9b59b680", "FALSE" = "#2ecc7180"))+
-  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(10)+
+  labs(x=lab_pm25,y=lab_mr2)+
+  theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-
+p2
 ggsave(sprintf(fig_name,"Effect_Met_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
-
+p2 <- p2+labs(y="75+ MR All-Cause \n [per 1,000 habs]")
 
 ## Temperature Figure -----
 
@@ -240,8 +246,7 @@ ggplot(response_pm,aes(x,group=met))+
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   scale_color_manual(values = c("TRUE" = "#114477", "FALSE" = "#117744"))+
   scale_fill_manual(values = c("TRUE" = "#77AADD", "FALSE" = "#44AA77"))+
-  labs(x=expression(paste("Land Temperature [°C]","")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  labs(x=lab_temp,y=lab_mr2)+
   theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -303,8 +308,7 @@ ggplot(response_pm,aes(x,group=cold))+
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#1A237E", "FALSE" = "#8B0000"))+
   scale_fill_manual(values = c("TRUE" = "#1A237E80", "FALSE" = "#8B000080"))+
-  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  labs(x=lab_pm25,y=lab_mr2)+
   theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -349,8 +353,7 @@ ggplot(response_pm,aes(x,group=cold))+
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,46))+
   scale_color_manual(values = c("TRUE" = "#1A237E", "FALSE" = "#8B0000"))+
   scale_fill_manual(values = c("TRUE" = "#1A237E80", "FALSE" = "#8B000080"))+
-  labs(x=expression(paste("Land Temperature [°C]","")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  labs(x=lab_temp,y=lab_mr2)+
   theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -399,7 +402,7 @@ response_pm1$comRural <- F; response_pm2$comRural <- T
 response_pm <- rbind(response_pm1,response_pm2)
 
 
-ggplot(response_pm,aes(x,group=comRural))+
+p3 <- ggplot(response_pm,aes(x,group=comRural))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high,fill=comRural),
               alpha = 0.4)+
@@ -413,24 +416,24 @@ ggplot(response_pm,aes(x,group=comRural))+
                  data=filter(df,comRural==T),binwidth = 0.5,
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#F4A460",col="white")+
-  annotate("text", x = 30, y = 1.2,size=10*5/14 * 0.8, 
+  annotate("text", x = 30, y = 1.2,size=fig_fontsize*5/14 * 0.8, 
            label = "Urban", color = "#333333")+
-  annotate("text", x = 30, y = 3.6, size=10*5/14 * 0.8,
+  annotate("text", x = 30, y = 3.6, size=fig_fontsize*5/14 * 0.8,
            label = "Rural", color = "#F4A460")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
   scale_fill_manual(values = c("TRUE" = "#F4A46080", "FALSE" = "#33333380"))+
-  labs(x=expression(paste("PM2.5 Exposure [",mu,"g/",m^3,"]")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
-  theme_bw(10)+
+  labs(x=lab_pm25,y=lab_mr2)+
+  theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-
-ggsave(sprintf(fig_name,"Effect_Urban2"), ggplot2::last_plot(),
+p3
+ggsave(sprintf(fig_name,"Effect_Urban"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+p3 <- p3+labs(y="75+ MR All-Cause \n [per 1,000 habs]")
 
 ## Temperature Figure -----
 
@@ -467,8 +470,7 @@ ggplot(response_pm,aes(x,group=comRural))+
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
   scale_fill_manual(values = c("TRUE" = "#F4A46080", "FALSE" = "#33333380"))+
-  labs(x=expression(paste("Land Temperature [°C]","")),
-       y=expression(paste("75+ Mortality Rate All-Cause [per 1,000 habs]","")))+
+  labs(x=lab_temp,y=lab_mr2)+
   theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -477,5 +479,25 @@ ggplot(response_pm,aes(x,group=comRural))+
 ggsave(sprintf(fig_name,"Effect_Urban_temp"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+
+# Combined Figure -----------
+
+# Need to Run Figure_Demeaning scrip to get p_dem
+
+library(gridExtra)
+
+# Combine them and label them
+p <- grid.arrange(arrangeGrob(p_dem+ # left side
+                                annotate("text", x = 1, y = 41, size=14*5/14 * 0.8,label = "A"),nrow = 1), 
+             arrangeGrob(p1 + annotate("text", x = 4, y = 7, size=14*5/14 * 0.8,label = "B"), # right side top
+                         arrangeGrob(p2+annotate("text", x = 4, y = 7, size=14*5/14 * 0.8,label = "C"),
+                                     p3+annotate("text", x = 4, y = 7, size=14*5/14 * 0.8,label = "D"),
+                                     ncol = 2), # right side bottom
+                         nrow = 2),
+             ncol = 2)
+p
+ggsave(sprintf(fig_name,"AllEffect"), p,
+       units="cm",dpi=500,
+       width=8.7*2,height=8.7)
 
 # EoF

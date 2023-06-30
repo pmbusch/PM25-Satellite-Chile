@@ -63,7 +63,7 @@ df_fig %>%
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif)) +
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_hline(yintercept = rr_base, linetype="dashed",col="red",linewidth=0.5)+
+  geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
   # annotation
@@ -71,7 +71,7 @@ df_fig %>%
   geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
   labs(x = "",
-       y = expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+       y = lab_rr)+
   theme_bw(10)+
   theme(legend.position = "none",
         axis.title.y = element_text(size = 8),
@@ -96,7 +96,7 @@ df %>%
 #   reframe(pm25=mean(pm25_exposure),
 #           pm25_sd=sd(pm25_exposure))
 
-# check qurater effects
+# check quarter effects
 names(all_mods)
 all_mods %>% 
   filter(str_detect(param,"year")) %>% 
@@ -163,7 +163,7 @@ df_fig %>%
   #              arrow = arrow(length = unit(0.3, "cm"))) +
   coord_flip()+
   labs(x = "",
-       y = expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+       y = lab_rr)+
   theme_bw(10)+
   theme(legend.position = "none",
         axis.title.y = element_text(size = 8),

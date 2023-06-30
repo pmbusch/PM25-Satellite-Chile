@@ -14,8 +14,6 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 df <- read.delim("Data/panelData.csv",sep=";")
 # df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
 
-df <- df %>% filter(!is.na(pm25Exp_10ug))
-
 
 # income data
 income <-  read.csv("Data/socioeconomic.csv")
@@ -124,7 +122,6 @@ rm(commune_pop)
 # df %>% group_by(commune,pop_case) %>% tally() %>% view()
 
 # Population 
-
 # use only communes with at least 500 people in the age group (on average)
 pop_commune <- df %>% group_by(commune) %>% summarise(pop75=mean(pop75))
 ggplot(pop_commune,aes(pop75))+stat_ecdf()
@@ -157,6 +154,10 @@ df <- df %>% mutate(zone=case_when(
   region %in% c("11","12") ~ "Patagonia",
   T ~ "South"))
 df %>% group_by(zone,region) %>% tally()
+
+# only polluted regions
+df <- df %>% mutate(centersouth_regions=region %in% c("5","13","6","7","8","16","9","14"))
+
 
 # pm.25 by zone
 df %>%
@@ -264,7 +265,7 @@ results[[38]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_c
                                       MR_all_cause=MR_all_cause_NoCDP),name="All cause no Cardiorespiratory")
 results[[39]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
-
+results[[40]] <- runModel(data=filter(df,centersouth_regions==T),name="Center-South Regions")
 
 # merge results
 res <- do.call("rbind",results)
@@ -308,7 +309,7 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   geom_vline(xintercept = c(5.5,5.5,9.5,13.5,17.5,19.5,24.5,27.5,32.5,34.5,36.5),
              col="grey",linewidth=0.2)+
-  labs(x="",y=expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  labs(x="",y=lab_rr)+
   # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   # add bottom bar
   geom_segment(x = 0.01, xend = 0.01, yend = max_value,

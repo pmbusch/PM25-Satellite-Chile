@@ -1,4 +1,4 @@
-## Scatter Figure - Show Demeaning effect of PM2.5 on Mortality 75+ in Chile
+##  Figure - Show Demeaning effect of PM2.5 on Mortality 75+ in Chile
 ## PBH
 ## June 2023
 
@@ -49,26 +49,31 @@ df <- df %>%
                              labels = labels, right = FALSE))
 
 # Figure -----
-df %>% 
+p_dem <- df %>% 
   mutate(met=if_else(REGION=="13","Metropolitan Region","Rest of Country")) %>% 
   # sample_n(1000) %>% 
   ggplot(aes(pm25_category,diff_mr))+
   # geom_point(alpha=0.5, aes(fill=met))+
   # geom_violin(aes(fill=met)) +
-  geom_boxplot(aes(fill=met))+
+  geom_boxplot(aes(fill=met),outlier.size = 0.1,linewidth=0.1)+
   geom_hline(yintercept = 0,linetype="dashed")+
   scale_fill_manual(values = c("#9b59b680", "#2ecc7180")) +
   labs(y="75+ Mortality Rate All-Cause \n deviation* [per 1,000 habs]",
        fill="",
        caption="(*): Commune and Year-Quarter Fixed Effects removed",
-       x=expression(paste("PM2.5 Exposure deviation* [",mu,"g/",m^3,"]","")))+
+       x=expression(paste("",PM[2.5] ," Exposure deviation* [",mu,"g/",m^3,"]","")))+
   # ylim(-10,10)+
-  theme(legend.position = c(0.8,0.8))
+  theme_bw(8)+
+  theme(legend.position = c(0.78,0.78),
+        legend.text = element_text(size = 6),
+        panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+p_dem
 
 ggsave("Figures/MR_PM25_met.png", 
        ggplot2::last_plot(),
        units="cm",dpi=500,
-       width=8.7*2,height=8.7*2)
+       width=8.7,height=8.7)
 
 # Other -----
 
