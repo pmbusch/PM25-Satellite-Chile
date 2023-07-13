@@ -7,6 +7,8 @@ library(MASS)
 library(lme4)
 library(sandwich)
 
+source("Scripts/Functions.R",encoding="UTF-8")
+
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 
@@ -56,7 +58,6 @@ df <- df %>%
 # sex data
 df_sex <- read.delim("Data/panelData_sex.csv",sep=";")
 # df_sex <- read.delim("Data/panelData_sex_65.csv",sep=";") # 65+
-
 
 df_sex <- df_sex %>% filter(!is.na(pm25Exp_10ug))
 
@@ -183,6 +184,16 @@ df <- df %>% mutate(income_group=case_when(
   T ~ "Above P95 (more than $6,990)"))
 # df %>% group_by(commune,income_group) %>% tally() %>% view()
 
+# see communes by incom
+df %>% group_by(income_group,region) %>% tally() %>% 
+  mutate(n=n/18/12) %>% 
+  pivot_wider(names_from = income_group, values_from = n)
+# RM: 11 communes of 23
+df %>% dplyr::select(region,NOM_COMUNA,income_group) %>% 
+  filter(income_group=="Above P95 (more than $6,990)") %>% 
+  group_by(region,NOM_COMUNA) %>% tally() %>% view()
+
+
 
 ## Function to run Negative Binomial Model ----- 
 # for offset, see https://stats.stackexchange.com/questions/66791/where-does-the-offset-go-in-poisson-negative-binomial-regression
@@ -272,7 +283,13 @@ res <- do.call("rbind",results)
 write.csv(res,"Data/modelResults.csv",row.names = F)
 # write.csv(res,"Data/modelResults_65.csv",row.names = F)
 
-# res <- read.csv("Data/modelResults.csv")
+res <- read.csv("Data/modelResults.csv")
+# res <- read.csv("Data/modelResults_65.csv")
+
+fig_name <- "Figures/Model/%s.png"
+fig_name <- sprintf(fig_name,"Models_Subsample")
+# fig_name <- sprintf(fig_name,"Models_Subsample65")
+# fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 
 
 # Summary Figure -----
@@ -357,5 +374,101 @@ ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
        # height = 664/3.7795275591)
        width=8.7*2,height=8.7)
 
+# Figure for article ------
+
+x$var %>% unique()
+
+# select relevant to show
+robustness <- c( "Full Sample","ROBUSTNESS",
+                 "Sex: Male","Sex: Female",
+                   "Pop. 75+: Below Median","Pop. 75+: Above Median",
+                   "Pop. 75+ Above 500 habs","No bad regions (satellite)")
+heterogen <- c("HETEROGENEITY",
+               "Only Metropolitan region","No Metropolitan region",
+               "Urban Commune","Rural Commune (>50% pop. rural)",
+               "Income less $3,352 (P30)","Income $3,352-$4,320 (P30-P65)",
+               "Income $4,320-$6,990 (P65-P95)","Above $6,990 (P95)")
+other_causes <- c("OTHER MORTALITY CAUSES",
+                  "Cardiorespiratory cause","Cardiovascular cause",
+                  "Respiratory cause","All cause no Cardiorespiratory",
+                  "External cause")
+
+# add rows
+y <- rbind(x,c("ROBUSTNESS",rep(NA,ncol(x)-1)),
+           c("HETEROGENEITY",rep(NA,ncol(x)-1)),
+           c("OTHER MORTALITY CAUSES",rep(NA,ncol(x)-1)))
+
+y <- y %>% 
+  filter(var %in% c(robustness,heterogen,other_causes)) %>% 
+  mutate(var=factor(var,levels=rev(c(robustness,heterogen,other_causes)))) %>%
+  mutate(rr=as.numeric(rr),
+         rr_low=as.numeric(rr_low),
+         rr_high=as.numeric(rr_high)) %>% 
+  mutate(title=var %in% c("ROBUSTNESS","HETEROGENEITY","OTHER MORTALITY CAUSES"))
+rows <- y %>% nrow()
+
+# Figure
+# Need to comment/uncomment to recreate the Temperature and 65+ version
+font_size <- 7.5
+range(y$rr_low,na.rm=T);range(y$rr_high,na.rm=T)
+max_value <- ceiling(max(y$rr_high,na.rm=T))
+temp_adj <- 0
+# temp_adj <- 2 # for temp
+ggplot(y,aes(var,rr))+
+  geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=0.6,aes(col=signif))+
+  # geom_point(size=0.6,col="red")+ # all T are significant
+  # add separating lines
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  geom_vline(xintercept = c(6.5,15.5,23.5),
+             col="grey",linewidth=0.3)+
+  geom_vline(xintercept = c(10.5,12.5,16.5,19.5,21.5),
+             col="grey",linewidth=0.15,linetype="dashed")+
+  labs(x="",y=lab_rr)+
+  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  # add bottom bar
+  geom_segment(x = 0.01, xend = 0.01, yend = max_value,
+               y=-1,
+               # y = -2.5, # temp
+               col="black",linewidth=0.5)+
+  # adjust range of axis
+  coord_flip(xlim=c(0,rows+2),expand = F)+
+  scale_y_continuous(expand = c(0,0),
+                     breaks = c(seq(0,5,2.5)),
+                     # breaks = c(seq(-2,0,1)), # temp
+                     limits = c(-14,9.3)) +
+                     # limits = c(-16,4)) + # temp
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  theme_bw(font_size)+
+  # add text data
+  geom_text(y=-14-temp_adj,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8)+
+  geom_text(data=filter(y,!title),y=-14-temp_adj,aes(label=var),
+            hjust = 0,size=font_size*5/14 * 0.8)+
+  geom_text(data=filter(y,title),y=-14-temp_adj,aes(label=var),
+            hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-7-temp_adj,x=rows+1,label="n",size=font_size*5/14 * 0.8)+
+  geom_text(y=-7-temp_adj,aes(label=N),size=font_size*5/14 * 0.8)+
+  geom_text(y=-5-temp_adj,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
+  geom_text(y=-5-temp_adj,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
+  geom_text(y=-2.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
+  geom_text(y=-2.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
+  geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
+  geom_text(y=max_value+1,aes(label=ci),size=font_size*5/14 * 0.8)+
+  # Modify theme to look good
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        panel.border=element_blank(),
+        axis.line.y=element_blank(),
+        # axis.line.x = element_line(colour = "black"),
+        axis.text.y=element_blank(),
+        axis.title.x = element_text(hjust = 0.9),
+        axis.ticks.y = element_blank())
+
+ggsave(fig_name, ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7*2,height=8.7)
 
 # EoF

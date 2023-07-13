@@ -314,18 +314,18 @@ ggsave("Figures/Model/CommuneEffects.png", ggplot2::last_plot(),
 
 # Comparison of Models ---------
 # start_time <- proc.time() # Capture the starting time
-model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
+model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
 # end_time <- proc.time() # Capture the ending time
 # print(end_time - start_time) # 286 sec, almost 5 min
 
-model_poi <- glm(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
+model_poi <- glm(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
                    offset(log(pop75)), 
                  data = df,family ="poisson",na.action=na.omit)
 # OLS with grouped fixed effects
-model_ols <- lfe::felm(MR_all_cause ~ pm25Exp_10ug+landTemp | year+quarter+commune,
+model_ols <- lfe::felm(MR_all_cause ~ pm25Exp_10ug+landTemp | year_quarter+commune,
                        data=df,weights=df$pop75)
 summary(model_ols)
 
@@ -376,7 +376,7 @@ source("Scripts/Functions.R",encoding="UTF-8")
 
 br <- weighted.mean(df$MR_all_cause,df$pop75,na.rm=T)
 
-models_nb_res <- getModelInfo(model_nb,"Negative Binomial")
+models_nb_res <- getModelInfo(model_nb,"Negative \n Binomial")
 models_nb_res <- rbind(models_nb_res,getModelInfo(model_poi,"Poisson"))
 models_nb_res <- rbind(models_nb_res,getModelInfo(model_ols,"OLS",ols=T,baseRate = br))
 models_nb_res <- rbind(models_nb_res,getModelInfo(model_nb2,"NB glmmTMB 1",robustSE = F))
@@ -400,21 +400,22 @@ models_nb_res %>%
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
   # scale_color_manual(values = c("black", "red"), labels = c(F, T))+
-  labs(title="Model: MR ~ PM2.5+T°+Commune+Year+Quarter",x="Model Used",
-       y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  labs(caption=expression(paste("Model: MR ~ ",PM[2.5],"+T°+Commune+Year:Quarter","")),
+       # x="Model Used",
+       x="",
+       y=lab_rr)+
   # y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   # Modify theme to look good
-  theme_bw(12)+
+  theme_bw(8)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        # axis.title.y=element_text(angle=0,margin=margin(r=-50)),
         legend.position = "none")
 
 ggsave("Figures/Model/Model_Method.png", ggplot2::last_plot(),
        # ggsave("Figures//Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
-
-
 
 
 
