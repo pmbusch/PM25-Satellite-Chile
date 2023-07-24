@@ -51,10 +51,21 @@ for (x in yrs){
   rm(out)
 }
 
+write.csv(all_mods,"Data/modelResults_year.csv",row.names = F)
+all_mods <- read.csv("Data/modelResults_year.csv")
+
 # Figure ------
 
 df_fig <- all_mods %>% 
   filter(param=="pm25Exp_10ug")
+  # filter(param=="landTemp") # temp
+
+rr_base <-  getModelInfo(mod_base,"Base") %>% 
+  filter(param=="pm25Exp_10ug") %>% pull(rr)
+
+# temp - uncomment
+# rr_base <-  getModelInfo(mod_base,"Base") %>%
+#   filter(param=="landTemp") %>% pull(rr)
 
 df_fig %>%
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
@@ -62,6 +73,7 @@ df_fig %>%
   ggplot(aes(x = year, y = rr)) +
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif)) +
+  # geom_point(size=1,col="red")+ # all T are significant
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
@@ -70,15 +82,23 @@ df_fig %>%
   annotate("text", x = 2017.5, y = rr_base+1.5, label = "Pooled estimate",size=8*5/14 * 0.8) +
   geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
-  labs(x = "",
-       y = lab_rr)+
+  annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
+  # temp - uncomment
+  # annotate("text", x = 2017.5, y = rr_base+0.7, label = "Pooled estimate",size=8*5/14 * 0.8) +
+  # geom_segment(aes(x = 2018, y = rr_base+0.6, xend = 2018, yend = rr_base+0.05),
+  #              arrow = arrow(length = unit(0.3, "cm"))) +
+  # annotate("text", x = 2002, y = 0.3, size=14*5/14 * 0.8,label = "A")+
+  labs(x = "Year",y = lab_rr)+
+  # labs(x="Year",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   theme_bw(10)+
   theme(legend.position = "none",
         axis.title.y = element_text(size = 8),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
+fig_name <- "YearModels"
+# fig_name <- "YearModels_Temp"
 
-ggsave("Figures//Model/YearModels.png", ggplot2::last_plot(),
+ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 

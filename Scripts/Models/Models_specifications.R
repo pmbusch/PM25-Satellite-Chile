@@ -112,15 +112,18 @@ ggplot(aes(reorder(name,rowname,decreasing=T),rr))+
   geom_point(size=1,aes(col=signif))+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
+  geom_vline(xintercept = 2.5, linetype="dashed",col="grey",linewidth=0.1)+
   coord_flip()+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
-  labs(title="Base Model: MR ~ PM2.5+T°+Commune+...",x="Additional Terms",
-       y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  labs(title=expression(paste("Base Model: MR ~ ",PM[2.5],"+T°+Commune+...","")),
+       x="Additional term",
+       y=lab_rr)+
        # y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   # Modify theme to look good
   theme_bw(12)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        axis.title.y=element_text(angle=0,margin=margin(r=-60)),
         legend.position = "none")
 
 ggsave("Figures/Model/Model_Specifications.png", ggplot2::last_plot(),

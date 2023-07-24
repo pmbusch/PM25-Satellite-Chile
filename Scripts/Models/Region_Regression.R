@@ -48,43 +48,81 @@ for (x in regs){
   rm(out)
 }
 
+
+write.csv(all_mods,"Data/modelResults_region.csv",row.names = F)
+all_mods <- read.csv("Data/modelResults_region.csv")
+
+
 # Figure ------
 
 df_fig <- all_mods %>% 
   filter(param=="pm25Exp_10ug")
+  # filter(param=="landTemp") # temp
 
-region_levels <- c("15","1","2","3","4","5","M","6","7","8","16","9","14","10","11","12")
+rr_base <-  getModelInfo(mod_base,"Base") %>% 
+  filter(param=="pm25Exp_10ug") %>% pull(rr)
 
-df_fig %>%
+# temp - uncomment
+# rr_base <-  getModelInfo(mod_base,"Base") %>% 
+#   filter(param=="landTemp") %>% pull(rr)
+
+region_levels <- c("15","1","2","3","4","5","M","6","7","16","8","9","14","10","11","12")
+region_levels2 <- c("XV","I","II","III","IV","V","M","VI","VII","XVI","VIII","IX","XIV","X","XI","XII")
+
+reg_codes <- data.frame(name=region_levels, region=region_levels2)
+
+# Change regions name
+df_fig <- df_fig %>%
   mutate(name=name %>% str_replace("13","M")) %>% 
-  mutate(region=factor(name,levels=rev(region_levels))) %>% 
+  left_join(reg_codes, by="name") %>% 
+  mutate(region=factor(region,levels=rev(region_levels2)))
+
+# Figure
+df_fig %>%
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(x = region, y = rr)) +
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif)) +
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_hline(yintercept = rr_base, linetype="dashed",col="red",linewidth=0.5)+
+  geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
   coord_flip()+
-  # coord_flip(ylim = c(-10,10))+
-  # scale_y_continuous(breaks = seq(-12.5, 18, by = 2.5))+
+  # coord_flip(ylim = c(-8,10))+
+  scale_y_continuous(breaks = seq(-10, 15, by = 5))+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   # annotation
-  annotate("text", x = 1, y = rr_base+7, label = "Pooled estimate",size=8*5/14 * 0.8) +
-  geom_segment(aes(x = 1, y = rr_base+3.2, xend = 1, yend = rr_base+1.2),
+  annotate("text", x = 1, y = rr_base+7.5, label = "Pooled estimate",size=8*5/14 * 0.8) +
+  geom_segment(aes(x = 1, y = rr_base+3.2, xend = 1, yend = rr_base+1.3),
                arrow = arrow(length = unit(0.3, "cm"))) +
-  labs(x = "",y =lab_rr)+
-  theme_bw(9)+
+  annotate("text", x = 16, y = -12, size=14*5/14 * 0.8,label = "B")+
+  # temp - uncomment
+  # annotate("text", x = 5, y = rr_base-1, label = "Pooled \n estimate",size=8*5/14 * 0.8) +
+  # geom_segment(aes(x = 5, y = rr_base-1.2, xend = 5, yend = rr_base-0.3),
+  #              arrow = arrow(length = unit(0.3, "cm"))) +
+  # annotate("text", x = 16, y = -3, size=14*5/14 * 0.8,label = "B")+
+  labs(x = "Region",y =lab_rr)+
+  # labs(x="Region",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  theme_bw(8.3)+
   theme(legend.position = "none",
         # axis.title.y = element_text(size = 1),
+        axis.title.y=element_text(angle=0,vjust = -0.05,hjust=1),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-ggsave("Figures//Model/RegionModels.png", ggplot2::last_plot(),
+fig_name <- "RegionModels"
+# fig_name <- "RegionModelsTemp"
+ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+
+# Average effect of sign. regions
+df_fig %>%
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>% 
+  group_by(signif) %>% 
+  summarise(rr=mean(rr)) #4.8%
+
+
 # Average exposure by region
-region_levels <- c("15","1","2","3","4","5","13","6","7","8","16","9","14","10","11","12")
 df_stats <- df %>% 
   mutate(region=factor(region,levels=region_levels)) %>% 
   mutate(pm25_pop=pop75*pm25_exposure) %>% 

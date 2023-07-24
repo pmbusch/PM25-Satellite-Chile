@@ -68,6 +68,26 @@ pop <- read_excel("Data/estimaciones-y-proyecciones-2002-2035-comunas.xlsx",
 pop <- pop %>% pivot_longer(c(-1:-8), names_to = "year", values_to = "pop") %>% 
   mutate(year=year %>% str_remove_all("Poblacion ") %>% as.numeric())
 
+
+# pop share above 75+ by region - 2019
+pop %>% 
+  filter(year==2019) %>% 
+  mutate(above_75=if_else(Edad>74,"Above75","Below75")) %>% 
+  group_by(Region,above_75) %>% 
+  summarise(pop=sum(pop)) %>% ungroup() %>% 
+  pivot_wider(names_from = above_75, values_from = pop) %>% 
+  mutate(share_75=Above75/(Above75+Below75))
+
+# commnune
+pop %>% 
+  filter(year==2019) %>% 
+  mutate(above_75=if_else(Edad>74,"Above75","Below75")) %>% 
+  group_by(Region,`Nombre Comuna`,above_75) %>% 
+  summarise(pop=sum(pop)) %>% ungroup() %>% 
+  pivot_wider(names_from = above_75, values_from = pop) %>% 
+  mutate(share_75=Above75/(Above75+Below75)) %>% arrange(desc(share_75))
+
+
 # same as before to get sex at the same moment
 # first filter to reduce computational burden
 names(pop)[7] <- "Sexo"
