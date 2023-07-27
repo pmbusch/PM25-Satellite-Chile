@@ -80,7 +80,7 @@ df_sex <- df_sex %>%
 #   geom_smooth(method="lm", data=dplyr::select(df,-quarter_text),col="grey")+
 #   facet_wrap(~quarter_text)+
 #   labs(x="PM2.5 Exposure [ug/m3]",
-#        y="75+ All Cause Mortality Rate, per 1000 hab",col="")+
+#        y="75+ All Cause Mortality Rate, per 1,000",col="")+
 #   theme(legend.position = "none")
 
 
@@ -139,8 +139,11 @@ com_rural <- df %>% group_by(commune) %>%
   arrange(desc(rural_share))
 ggplot(com_rural,aes(rural_share))+stat_ecdf()
 nrow(filter(com_rural,rural_share>0.5))/nrow(com_rural) # 28%
+nrow(filter(com_rural,rural_share>0.6))/nrow(com_rural) # 16%
+nrow(filter(com_rural,rural_share>0.7))/nrow(com_rural) # 8.5%
+nrow(filter(com_rural,rural_share>0.8))/nrow(com_rural) # 4%
 # Communes with more than 50% of rural habitants
-com_rural <- com_rural %>% filter(rural_share>0.5) %>% pull(commune) # 93
+com_rural <- com_rural %>% filter(rural_share>0.5) %>% pull(commune) # 93 for 50%, 52 for 60%
 
 df <- df %>% mutate(comRural=(commune %in% com_rural))
 
@@ -191,7 +194,7 @@ df %>% group_by(income_group,region) %>% tally() %>%
 # RM: 11 communes of 23
 df %>% dplyr::select(region,NOM_COMUNA,income_group) %>% 
   filter(income_group=="Above P95 (more than $6,990)") %>% 
-  group_by(region,NOM_COMUNA) %>% tally() %>% view()
+  group_by(region,NOM_COMUNA) %>% tally()
 
 
 
@@ -236,16 +239,16 @@ results[[9]] <- runModel(data=filter(df,pm25_level=="PM2.5 25-30"),name="PM2.5 2
 results[[10]] <- runModel(data=filter(df,pm25_level=="PM2.5 Above 30"),name="PM2.5 Above 30") 
 results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+: Above Median") 
 results[[12]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+: Below Median")
-results[[13]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500 habs")
+results[[13]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
 results[[14]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>50% pop. rural)")
 results[[15]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
-results[[16]] <- runModel(data=filter(df,bad_region==0),name="No bad regions (satellite)")
+results[[16]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
 results[[17]] <- runModel(data=filter(df,zone=="North"),name="Zone: North")
 results[[18]] <- runModel(data=filter(df,zone=="Center"),name="Zone: Center")
 results[[19]] <- runModel(data=filter(df,zone=="South"),name="Zone: South")
 results[[20]] <- runModel(data=filter(df,zone=="Patagonia"),name="Zone: Patagonia")
 results[[21]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
-results[[22]] <- runModel(data=filter(df,REGION !=13),name="No Metropolitan region")
+results[[22]] <- runModel(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
 # by Income
 results[[23]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
                          name="Income less $3,352 (P30)")
@@ -349,9 +352,10 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
   geom_text(y=-9,aes(label=N),size=font_size*5/14 * 0.8)+
   geom_text(y=-7,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
   geom_text(y=-7,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
-  geom_text(y=-4.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
+  geom_text(y=-4.5,x=rows+1,size=font_size*5/14 * 0.8,
+            label=expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]")))+
   geom_text(y=-4.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
-  # geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,x=rows+1,label="Mean T [°C]",size=font_size*5/14 * 0.8)+
   # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+1,aes(label=ci),size=font_size*5/14 * 0.8)+
@@ -382,9 +386,9 @@ x$var %>% unique()
 robustness <- c( "Full Sample","ROBUSTNESS",
                  "Sex: Male","Sex: Female",
                    "Pop. 75+: Below Median","Pop. 75+: Above Median",
-                   "Pop. 75+ Above 500 habs","No bad regions (satellite)")
+                   "Pop. 75+ Above 500","Excluding regions with low satellite accuracy")
 heterogen <- c("HETEROGENEITY",
-               "Only Metropolitan region","No Metropolitan region",
+               "Only Metropolitan region","Excluding Metropolitan region",
                "Urban Commune","Rural Commune (>50% pop. rural)",
                "Income less $3,352 (P30)","Income $3,352-$4,320 (P30-P65)",
                "Income $4,320-$6,990 (P65-P95)","Above $6,990 (P95)")
@@ -450,9 +454,10 @@ ggplot(y,aes(var,rr))+
   geom_text(y=-7-temp_adj,aes(label=N),size=font_size*5/14 * 0.8)+
   geom_text(y=-5-temp_adj,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
   geom_text(y=-5-temp_adj,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
-  geom_text(y=-2.5,x=rows+1,label="Mean PM2.5",size=font_size*5/14 * 0.8)+
+  geom_text(y=-2.5,x=rows+1,size=font_size*5/14 * 0.8,
+            label=expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]")))+
   geom_text(y=-2.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
-  # geom_text(y=-4.5,x=rows+1,label="Mean T°",size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,x=rows+1,label="Mean T [°C]",size=font_size*5/14 * 0.8)+
   # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+1,aes(label=ci),size=font_size*5/14 * 0.8)+

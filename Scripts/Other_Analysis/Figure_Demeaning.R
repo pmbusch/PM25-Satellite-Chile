@@ -58,7 +58,7 @@ p_dem <- df %>%
   geom_boxplot(aes(fill=met),outlier.size = 0.1,linewidth=0.1)+
   geom_hline(yintercept = 0,linetype="dashed")+
   scale_fill_manual(values = c("#9b59b680", "#2ecc7180")) +
-  labs(y="75+ Mortality Rate All-Cause \n deviation* [per 1,000 habs]",
+  labs(y="75+ Mortality Rate All-Cause \n deviation* [per 1,000]",
        fill="",
        caption="(*): Commune and Year-Quarter Fixed Effects removed",
        x=expression(paste("",PM[2.5] ," Exposure deviation* [",mu,"g/",m^3,"]","")))+

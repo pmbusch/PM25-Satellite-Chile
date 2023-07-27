@@ -48,7 +48,7 @@ df.map.mortality.na %>%
     palette = "Oranges", trans = "reverse", # YlOrBr
     na.value = "white"
   ) +
-  guides(fill = guide_legend(title = "75+ mortality per 1000"))
+  guides(fill = guide_legend(title = "75+ mortality per 1,000"))
 
 # save plot
 ggsave("Scripts/Other_Analysis/Figures-Paulo/death_rate_75_2019_na.png", width = 10, height = 10, dpi = 300)
@@ -68,7 +68,7 @@ df.map.mortality.santiago %>%
     palette = "Oranges", trans = "reverse", # YlOrBr
     na.value = "white"
   ) +
-  guides(fill = guide_legend(title = "75+ mortality per 1000"))
+  guides(fill = guide_legend(title = "75+ mortality per 1,000"))
 
 # save plot
 ggsave("Scripts/Other_Analysis/Figures-Paulo/death_rate_75_santiago_2019.pdf", width = 10, height = 10, dpi = 300)
@@ -95,7 +95,9 @@ df.map.pm25 %>%
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = "Average PM 2.5 exposure"))
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
+
+
 
 # save plot
 ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_2019.png", width = 10, height = 10, dpi = 300)
@@ -109,7 +111,9 @@ df.map.pm25.santiago %>%
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = "Average PM 2.5 exposure"))
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
+
+
 
 ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_santiago_2019.pdf", width = 10, height = 10, dpi = 300)
 
@@ -171,7 +175,7 @@ df.map.temp %>%
   theme_void() +
   scale_fill_distiller(palette = "Blues",
                        na.value = "white") +
-  guides(fill = guide_legend(title = "Average Temperature (C)"))
+  guides(fill = guide_legend(title = "Mean Temperature [°C]"))
 
 # save plot
 ggsave("Scripts/Other_Analysis/Figures-Paulo/landTemp_2019.png", width = 10, height = 10, dpi = 300)
@@ -186,7 +190,7 @@ df.map.temp.santiago %>%
   theme_void() +
   scale_fill_distiller(palette = "Blues",
                        na.value = "white") +
-  guides(fill = guide_legend(title = "Average Temperature (C)"))
+  guides(fill = guide_legend(title = "Mean Temperature [°C]"))
 
 # save plot
 ggsave("Scripts/Other_Analysis/Figures-Paulo/landTemp_santiago_2019.pdf", width = 10, height = 10, dpi = 300)
@@ -206,7 +210,7 @@ df.monitor_site %>%
   ggplot() +
   geom_sf(data = df.map.pm25, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.05) +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = "Average PM 2.5 exposure")) +
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))+
   geom_point(aes(x = longitude, y = latitude, color="Monitor site"), alpha = 1, size = 1) +
   scale_color_manual("",values = c("Monitor site" = "black")) +
   theme_void() 
@@ -221,7 +225,7 @@ df.monitor_site.santiago %>%
   ggplot() +
   geom_sf(data = df.map.pm25.santiago, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.05) +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = "Average PM 2.5 exposure")) +
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))+
   geom_point(aes(x = longitude, y = latitude, color="Monitor site"), alpha = 1, size = 3) +
   scale_color_manual("",values = c("Monitor site" = "black")) +
   theme_void() 
@@ -262,6 +266,7 @@ df.map.pm25.region %>%
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = "Average PM 2.5 exposure"))
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
+
 
 ggsave("Scripts/Other_Analysis/Figures-Paulo/chile_region_pm25_map.png", width = 10, height = 10, dpi = 300)

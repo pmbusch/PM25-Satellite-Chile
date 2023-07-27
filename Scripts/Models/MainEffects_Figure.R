@@ -112,7 +112,7 @@ ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
-p1 <- last_plot()+labs(y="75+ MR All-Cause \n [per 1,000 habs]")
+p1 <- last_plot()+labs(y="75+ MR All-Cause \n [per 1,000]")
 p1
 ggsave(sprintf(fig_name,"Effect_se2"), ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -208,7 +208,7 @@ p2
 ggsave(sprintf(fig_name,"Effect_Met_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
-p2 <- p2+labs(y="75+ MR All-Cause \n [per 1,000 habs]")
+p2 <- p2+labs(y="75+ MR All-Cause \n [per 1,000]")
 
 ## Temperature Figure -----
 
@@ -433,7 +433,7 @@ p3
 ggsave(sprintf(fig_name,"Effect_Urban"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
-p3 <- p3+labs(y="75+ MR All-Cause \n [per 1,000 habs]")
+p3 <- p3+labs(y="75+ MR All-Cause \n [per 1,000]")
 
 ## Temperature Figure -----
 
