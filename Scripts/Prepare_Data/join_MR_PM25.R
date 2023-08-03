@@ -92,8 +92,6 @@ pop %>%
 # first filter to reduce computational burden
 names(pop)[7] <- "Sexo"
 pop <- pop %>% 
-  filter(Edad>74) %>%
-  # filter(Edad>64) %>% 
   mutate(sex=if_else(Sexo==1,"Hombre","Mujer"))
 
 pop_aux <- pop
@@ -103,9 +101,22 @@ rm(pop_aux)
 table(pop$sex)
 
 pop_75 <- pop %>% 
+  filter(Edad>74) %>%
+  # filter(Edad>64) %>% 
   group_by(Comuna,sex,year) %>% summarise(pop75=sum(pop,na.rm=T)) %>% ungroup() %>% 
   rename(codigo_comuna=Comuna)
 # rm(pop)
+
+# pop total
+pop_total <- pop %>% group_by(Comuna,sex,year) %>% 
+  summarise(pop=sum(pop,na.rm=T)) %>% ungroup() %>% 
+  rename(codigo_comuna=Comuna)
+
+pop_total %>% filter(year==2017,sex=="TOTAL") %>% pull(pop) %>% sum() 
+
+# 75+ share
+pop_75 <- pop_75 %>% left_join(pop_total) %>% 
+  mutate(pop75_share=pop75/pop)
 
 
 # library(ggforce)
@@ -152,7 +163,6 @@ names(death_75) <- names(death_75) %>%
   str_replace_all("mortality_Death_count","MR")
 
 
-
 # pm25 pollution data exposure ------
 pm25_exp <- read.delim("Data/pm25exposure_commune.csv",sep = ";")
 pm25_exp$codigo_comuna %>% unique() %>% length()
@@ -187,6 +197,7 @@ sum(is.na(df$landTemp))
 nrow(df)
 length(unique(df$codigo_comuna))*length(unique(df$sex))* # 211896 records
   length(unique(df$year))*length(unique(df$month))
+length(unique(df$codigo_comuna))
 # 327 communes for 75+, 332 for 65+
 
 
@@ -196,20 +207,18 @@ df <- df %>%
 df <- df %>% mutate(pm25Exp_10ug=pm25_exposure/10) %>% 
   mutate(commune=as.factor(codigo_comuna))
 
-# save results separetely, to avoid confusions
+# save results separately, to avoid confusions
 df_all <- df %>% filter(sex=="TOTAL")
 df_all$sex <- NULL
 
-write.table(df_all,"Data/panelData.csv",sep = ";",row.names = F)
-# write.table(df_all,"Data/panelData_65.csv",sep = ";",row.names = F)
-
-
+write.table(df_all,"Data/Panel Data/panelData.csv",sep = ";",row.names = F)
+# write.table(df_all,"Data/Panel Data/panelData_65.csv",sep = ";",row.names = F)
 
 df_sex <- df %>% filter(sex!="TOTAL")
 df_sex$sex %>% table()
 
-write.table(df_sex,"Data/panelData_Sex.csv",sep = ";",row.names = F)
-# write.table(df_sex,"Data/panelData_Sex_65.csv",sep = ";",row.names = F)
+write.table(df_sex,"Data/Panel Data/panelData_Sex.csv",sep = ";",row.names = F)
+# write.table(df_sex,"Data/Panel Data/panelData_Sex_65.csv",sep = ";",row.names = F)
 
 
 # Check communes

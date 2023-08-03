@@ -55,7 +55,8 @@ p_dem <- df %>%
   ggplot(aes(pm25_category,diff_mr))+
   # geom_point(alpha=0.5, aes(fill=met))+
   # geom_violin(aes(fill=met)) +
-  geom_boxplot(aes(fill=met),outlier.size = 0.1,linewidth=0.1)+
+  # geom_boxplot(aes(fill=met),outlier.size = 0.1,linewidth=0.1)+
+  geom_boxplot(outlier.size = 0.1,linewidth=0.1)+ # no met
   geom_hline(yintercept = 0,linetype="dashed")+
   scale_fill_manual(values = c("#9b59b680", "#2ecc7180")) +
   labs(y="75+ Mortality Rate All-Cause \n deviation* [per 1,000]",
@@ -70,7 +71,8 @@ p_dem <- df %>%
         axis.text.x = element_text(angle = 45, hjust = 1))
 p_dem
 
-ggsave("Figures/MR_PM25_met.png", 
+# ggsave("Figures/MR_PM25_met.png", 
+ggsave("Figures/MR_PM25.png",
        ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
