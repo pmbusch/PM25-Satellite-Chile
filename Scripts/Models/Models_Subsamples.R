@@ -13,9 +13,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 
 # Load required data -----
-df <- read.delim("Data/panelData.csv",sep=";")
+df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
 # df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
-
 
 # income data
 income <-  read.csv("Data/socioeconomic.csv")
@@ -56,8 +55,8 @@ df <- df %>%
     T ~ "Spring") %>% factor(levels=c("Fall","Spring","Winter","Summer")))
 
 # sex data
-df_sex <- read.delim("Data/panelData_sex.csv",sep=";")
-# df_sex <- read.delim("Data/panelData_sex_65.csv",sep=";") # 65+
+df_sex <- read.delim("Data/Panel Data/panelData_sex.csv",sep=";")
+# df_sex <- read.delim("Data/Panel Data/panelData_sex_65.csv",sep=";") # 65+
 
 df_sex <- df_sex %>% filter(!is.na(pm25Exp_10ug))
 
@@ -142,8 +141,12 @@ nrow(filter(com_rural,rural_share>0.5))/nrow(com_rural) # 28%
 nrow(filter(com_rural,rural_share>0.6))/nrow(com_rural) # 16%
 nrow(filter(com_rural,rural_share>0.7))/nrow(com_rural) # 8.5%
 nrow(filter(com_rural,rural_share>0.8))/nrow(com_rural) # 4%
-# Communes with more than 50% of rural habitants
-com_rural <- com_rural %>% filter(rural_share>0.5) %>% pull(commune) # 93 for 50%, 52 for 60%
+nrow(filter(com_rural,rural_share>0.4))/nrow(com_rural) # 40%
+nrow(filter(com_rural,rural_share>0.3))/nrow(com_rural) # 51%
+nrow(filter(com_rural,rural_share>0.2))/nrow(com_rural) # 63%
+
+# Communes with more than x% of rural habitants
+com_rural <- com_rural %>% filter(rural_share>0.3) %>% pull(commune) # 93 for 50%, 52 for 60%
 
 df <- df %>% mutate(comRural=(commune %in% com_rural))
 
@@ -240,7 +243,7 @@ results[[10]] <- runModel(data=filter(df,pm25_level=="PM2.5 Above 30"),name="PM2
 results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+: Above Median") 
 results[[12]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+: Below Median")
 results[[13]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
-results[[14]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>50% pop. rural)")
+results[[14]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
 results[[15]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
 results[[16]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
 results[[17]] <- runModel(data=filter(df,zone=="North"),name="Zone: North")
@@ -276,24 +279,23 @@ results[[36]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardi
 results[[37]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
                                       MR_all_cause=MR_respiratory),name="Respiratory cause")
 results[[38]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
-                                      MR_all_cause=MR_all_cause_NoCDP),name="All cause no Cardiorespiratory")
+                                      MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
 results[[39]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
 results[[40]] <- runModel(data=filter(df,centersouth_regions==T),name="Center-South Regions")
 
 # merge results
 res <- do.call("rbind",results)
-write.csv(res,"Data/modelResults.csv",row.names = F)
-# write.csv(res,"Data/modelResults_65.csv",row.names = F)
+write.csv(res,"Data/Models/modelResults.csv",row.names = F)
+# write.csv(res,"Data/Models/modelResults_65.csv",row.names = F)
 
-res <- read.csv("Data/modelResults.csv")
-# res <- read.csv("Data/modelResults_65.csv")
+res <- read.csv("Data/Models/modelResults.csv")
+# res <- read.csv("Data/Models/modelResults_65.csv")
 
 fig_name <- "Figures/Model/%s.png"
 fig_name <- sprintf(fig_name,"Models_Subsample")
 # fig_name <- sprintf(fig_name,"Models_Subsample65")
-# fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
-
+fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 
 # Summary Figure -----
 
@@ -369,7 +371,7 @@ ggplot(x,aes(reorder(var,rowname,decreasing=T),rr))+
         axis.text.y=element_blank(),
         axis.ticks.y = element_blank())
 
-ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
+ggsave("Figures/Model/AllModels.png", ggplot2::last_plot(),
 # ggsave("Figures//Model/AllModels_65.png", ggplot2::last_plot(),
 # ggsave("Figures//Model/AllModels_Temp.png", ggplot2::last_plot(),
 # ggsave("Figures//Model/AllModels_Temp_65.png", ggplot2::last_plot(),
@@ -383,24 +385,24 @@ ggsave("Figures//Model/AllModels.png", ggplot2::last_plot(),
 x$var %>% unique()
 
 # select relevant to show
-robustness <- c( "Full Sample","ROBUSTNESS",
+robustness <- c( "Full Sample","Robustness",
                  "Sex: Male","Sex: Female",
                    "Pop. 75+: Below Median","Pop. 75+: Above Median",
                    "Pop. 75+ Above 500","Excluding regions with low satellite accuracy")
-heterogen <- c("HETEROGENEITY",
+heterogen <- c("Heterogeneity",
                "Only Metropolitan region","Excluding Metropolitan region",
-               "Urban Commune","Rural Commune (>50% pop. rural)",
+               "Urban Commune","Rural Commune (>30% share poulation)",
                "Income less $3,352 (P30)","Income $3,352-$4,320 (P30-P65)",
                "Income $4,320-$6,990 (P65-P95)","Above $6,990 (P95)")
-other_causes <- c("OTHER MORTALITY CAUSES",
+other_causes <- c("Other Mortality Causes",
                   "Cardiorespiratory cause","Cardiovascular cause",
-                  "Respiratory cause","All cause no Cardiorespiratory",
+                  "Respiratory cause","All-cause excluding Cardiorespiratory",
                   "External cause")
 
 # add rows
-y <- rbind(x,c("ROBUSTNESS",rep(NA,ncol(x)-1)),
-           c("HETEROGENEITY",rep(NA,ncol(x)-1)),
-           c("OTHER MORTALITY CAUSES",rep(NA,ncol(x)-1)))
+y <- rbind(x,c("Robustness",rep(NA,ncol(x)-1)),
+           c("Heterogeneity",rep(NA,ncol(x)-1)),
+           c("Other Mortality Causes",rep(NA,ncol(x)-1)))
 
 y <- y %>% 
   filter(var %in% c(robustness,heterogen,other_causes)) %>% 
@@ -408,7 +410,7 @@ y <- y %>%
   mutate(rr=as.numeric(rr),
          rr_low=as.numeric(rr_low),
          rr_high=as.numeric(rr_high)) %>% 
-  mutate(title=var %in% c("ROBUSTNESS","HETEROGENEITY","OTHER MORTALITY CAUSES"))
+  mutate(title=var %in% c("Robustness","Heterogeneity","Other Mortality Causes"))
 rows <- y %>% nrow()
 
 # Figure
