@@ -13,7 +13,7 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 source("Scripts/Functions.R",encoding="UTF-8")
 
 # Load required data -----
-df <- read.delim("Data/panelData.csv",sep=";")
+df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
 
 # Change some parameters
 df <- df %>% 
@@ -48,23 +48,22 @@ for (x in regs){
   rm(out)
 }
 
-
-write.csv(all_mods,"Data/modelResults_region.csv",row.names = F)
-all_mods <- read.csv("Data/modelResults_region.csv")
+write.csv(all_mods,"Data/Models/modelResults_region.csv",row.names = F)
+all_mods <- read.csv("Data/Models/modelResults_region.csv")
 
 
 # Figure ------
 
+param_int <- "pm25Exp_10ug"
+# param_int <- "landTemp"  # temp
+
 df_fig <- all_mods %>% 
-  filter(param=="pm25Exp_10ug")
-  # filter(param=="landTemp") # temp
+  filter(param==param_int)
 
 rr_base <-  getModelInfo(mod_base,"Base") %>% 
-  filter(param=="pm25Exp_10ug") %>% pull(rr)
-
-# temp - uncomment
-# rr_base <-  getModelInfo(mod_base,"Base") %>% 
-#   filter(param=="landTemp") %>% pull(rr)
+  filter(param==param_int) %>% pull(rr)
+rr_ci <- getModelInfo(mod_base,"Base") %>% 
+  filter(param==param_int) %>% dplyr::select(rr_low,rr_high)
 
 region_levels <- c("15","1","2","3","4","5","M","6","7","16","8","9","14","10","11","12")
 region_levels2 <- c("XV","I","II","III","IV","V","M","VI","VII","XVI","VIII","IX","XIV","X","XI","XII")
@@ -79,15 +78,20 @@ df_fig <- df_fig %>%
 
 # Figure
 df_fig %>%
+  mutate(rr_base_low=rr_ci[1],rr_base_high=rr_ci[2]) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(x = region, y = rr)) +
+  # base model
+  geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
+  geom_rect(xmin=0,xmax=17,ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]), 
+            fill = "brown",alpha=0.01)+
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif)) +
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
   coord_flip()+
   # coord_flip(ylim = c(-8,10))+
   scale_y_continuous(breaks = seq(-10, 15, by = 5))+
+  # scale_y_continuous(breaks = seq(-3, 0, by = 1))+ #temp
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   # annotation
   annotate("text", x = 1, y = rr_base+7.5, label = "Pooled estimate",size=8*5/14 * 0.8) +
@@ -124,19 +128,25 @@ df_fig %>%
 
 # Average exposure by region
 df_stats <- df %>% 
-  mutate(region=factor(region,levels=region_levels)) %>% 
+  mutate(region=region %>% str_replace("13","M")) %>%
+  left_join(reg_codes, by=c("region"="name")) %>% 
+  mutate(region=factor(region,levels=rev(region_levels2))) %>% 
   mutate(pm25_pop=pop75*pm25_exposure) %>% 
-  group_by(region) %>% 
+  group_by(region.y) %>% 
   summarise(pm25=sum(pm25_pop),
             pop75=sum(pop75),
+            death=sum(death_count_all_cause),
             n=n()) %>% ungroup() %>% 
+  rename(region=region.y) %>% 
   mutate(pm25=pm25/pop75,
+         mr=death/pop75*1000,
          pop75=pop75/18/12) # pop in total
 
 ## IDEA: Create table as other sub samples
 
 df_fig %>%
-  rename(region=name) %>% 
+  # dplyr::select(-region) %>% 
+  # rename(region=name) %>% 
   left_join(df_stats) %>% 
   mutate(region=paste0("R",region)) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
@@ -162,3 +172,5 @@ df_fig %>%
 ggsave("Figures/Model/RegionModelsPM25.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+
+# EoF

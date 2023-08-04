@@ -10,7 +10,7 @@ library(sandwich) # for robust and clustered standard errors
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 # Load Panel Data ----
-df <- read.delim("Data/panelData.csv",sep=";")
+df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
 # df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
 
 df <- df %>% 
@@ -136,7 +136,7 @@ df$met <- df$met*df$pm25Exp_10ug
 
 model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+
                      landTemp+
-                     year_quarter
+                     year_quarter+
                      commune+
                      # met+ # interaction for met
                      # I(landTemp^2)+
@@ -189,10 +189,6 @@ ci_upper <- coef_est + t_crit * coef_se
 coef_est[1:8] %>% exp()
 cbind(ci_lower, ci_upper)[1:8,] %>% exp()
 
-coef_est[340:352] %>% exp()
-cbind(ci_lower, ci_upper)[340:352,] %>% exp()
-
-
 # new p-value
 # calculate the z-statistics and p-values for the coefficients
 # assume asymptotic normality
@@ -219,9 +215,9 @@ testDispersion(model_nb)
 testZeroInflation(model_nb)
 
 # testTemporalAutocorrelation() - tests for temporal autocorrelation in the residuals
-simulationOutput <- simulateResiduals(fittedModel = model_nb)
-testTemporalAutocorrelation(simulationOutput,
-                            df$)
+# simulationOutput <- simulateResiduals(fittedModel = model_nb)
+# testTemporalAutocorrelation(simulationOutput,
+#                             df)
 
 # Figure - Residuals -----
 df$predDeathCount <- predict(model_nb,type = "response")
@@ -254,7 +250,7 @@ df %>%
 ## Figure - Year Effects ----
 mod_est %>% 
   filter(param %>% str_detect("year")) %>% 
-  mutate(param=str_remove(param,"year")) %>% 
+  mutate(param=str_remove(param,"year_quarter")) %>% 
   ggplot(aes(param,coef))+
   geom_point(size=1)+
   geom_linerange(aes(ymin=ci_low,ymax=ci_high))+
@@ -308,8 +304,6 @@ ggplot(est_commune) +
 ggsave("Figures/Model/CommuneEffects.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7*2)
-
-
 
 
 # Comparison of Models ---------
@@ -379,12 +373,12 @@ br <- weighted.mean(df$MR_all_cause,df$pop75,na.rm=T)
 models_nb_res <- getModelInfo(model_nb,"Negative \n Binomial")
 models_nb_res <- rbind(models_nb_res,getModelInfo(model_poi,"Poisson"))
 models_nb_res <- rbind(models_nb_res,getModelInfo(model_ols,"OLS",ols=T,baseRate = br))
-models_nb_res <- rbind(models_nb_res,getModelInfo(model_nb2,"NB glmmTMB 1",robustSE = F))
-models_nb_res <- rbind(models_nb_res,getModelInfo(model_nb3,"NB glmmTMB 2",robustSE = F))
+# models_nb_res <- rbind(models_nb_res,getModelInfo(model_nb2,"NB glmmTMB 1",robustSE = F))
+# models_nb_res <- rbind(models_nb_res,getModelInfo(model_nb3,"NB glmmTMB 2",robustSE = F))
 
 # save results
-write.csv(models_nb_res,"Data/modelMethodsResults.csv",row.names = F)
-models_nb_res <- read.csv("Data/modelMethodsResults.csv")
+write.csv(models_nb_res,"Data/Models/modelMethodsResults.csv",row.names = F)
+models_nb_res <- read.csv("Data/Models/modelMethodsResults.csv")
 
 # Figure 
 models_nb_res %>% 
@@ -413,7 +407,7 @@ models_nb_res %>%
         legend.position = "none")
 
 ggsave("Figures/Model/Model_Method.png", ggplot2::last_plot(),
-       # ggsave("Figures//Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
+       # ggsave("Figures/Model/Model_Method_Temp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 

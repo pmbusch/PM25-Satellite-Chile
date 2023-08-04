@@ -13,7 +13,7 @@ source("Scripts/Functions.R",encoding="UTF-8")
 
 
 # Load required data -----
-df <- read.delim("Data/panelData.csv",sep=";")
+df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
 
 df <- df %>% filter(!is.na(pm25Exp_10ug))
 
@@ -81,25 +81,32 @@ mod_nb7b <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+month+regi
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb7b,"Region*Quarter+Year+Month"))
 
 
-# region*year
-mod_nb8 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+region*year+commune+
-                         offset(log(pop75)), data = df,na.action=na.omit)
-models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb8,"Region*Year"))
+# region*year+quarter
+mod_nb8 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+region*year+quarter+commune+
+                    offset(log(pop75)), data = df,na.action=na.omit)
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb8,"Region*Year+Quarter"))
+
 
 # year + quarter -landTemp
-mod_nb9 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+region*year+commune+
+mod_nb9 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+year_quarter+commune+
                     offset(log(pop75)), data = df,na.action=na.omit)
-models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb9,"No Temperature (Year+Quarter)"))
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb9,"No Temperature+Year+Quarter"))
 
 # Land Temp Squared year +quarter
-mod_nb10 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+I(landTemp^2)+region*year+commune+
+mod_nb10 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+I(landTemp^2)+year_quarter+commune+
                     offset(log(pop75)), data = df,na.action=na.omit)
-models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb10,"T + T^2 (Year+Quarter)"))
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb10,"T + T^2+Year+Quarter"))
+
+# Temp spline
+library(splines)
+mod_nb11 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+ns(landTemp, df = 3)+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb11,"Spline Temperature+Year+Quarter"))
 
 
 # save results
-write.csv(models_nb_res,"Data/modelSpecResults.csv",row.names = F)
-models_nb_res <- read.csv("Data/modelSpecResults.csv")
+write.csv(models_nb_res,"Data/Models/modelSpecResults.csv",row.names = F)
+models_nb_res <- read.csv("Data/Models/modelSpecResults.csv")
 
 # Figure 
 models_nb_res %>% 
@@ -110,9 +117,10 @@ models_nb_res %>%
 ggplot(aes(reorder(name,rowname,decreasing=T),rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
   geom_point(size=1,aes(col=signif))+
+  # geom_point(size=1,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
-  geom_vline(xintercept = 2.5, linetype="dashed",col="grey",linewidth=0.1)+
+  geom_vline(xintercept = 3.5, linetype="dashed",col="grey",linewidth=0.1)+
   coord_flip()+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   labs(title=expression(paste("Base Model: MR ~ ",PM[2.5],"+T°+Commune+...","")),
@@ -127,7 +135,7 @@ ggplot(aes(reorder(name,rowname,decreasing=T),rr))+
         legend.position = "none")
 
 ggsave("Figures/Model/Model_Specifications.png", ggplot2::last_plot(),
-# ggsave("Figures//Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
+# ggsave("Figures/Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
        # height = 664/3.7795275591)
@@ -135,21 +143,21 @@ ggsave("Figures/Model/Model_Specifications.png", ggplot2::last_plot(),
 
 
 # Month coefficients
-month_levels <- paste0("month",12:2)
+month_levels <- paste0("",12:2)
 models_nb_res %>% 
   mutate(rowname=1:nrow(models_nb_res)) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   filter(str_detect(param,"month"),!str_detect(param,":")) %>% 
-  mutate(param=factor(param,levels=month_levels)) %>% 
+  mutate(param=factor(str_remove(param,"month"),levels=month_levels)) %>% 
   ggplot(aes(param,rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
   geom_point(size=1,aes(col=signif))+
   # add separating lines
-  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.4)+
   coord_flip()+
   facet_wrap(~name)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
-  labs(x="",y=expression(paste("Percentage increase in Mortality w.r.t. Month 1")))+
+  labs(x="Month Fixed Effect",y=expression(paste("Percentage increase in Mortality w.r.t. Month 1")))+
   # Modify theme to look good
   theme_bw(12)+
   theme(panel.grid.major = element_blank(),
@@ -207,7 +215,7 @@ x[c(2,4:10),] %>%
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures//Model/Model_Lags.png", ggplot2::last_plot(),
+ggsave("Figures/Model/Model_Lags.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7*2,height=8.7)
 
@@ -312,7 +320,7 @@ xx %>%
         legend.position = "none",
         axis.text.x = element_text(angle = 90,hjust = 0.5, vjust = 0.5))
 
-ggsave("Figures//Model/Model_AllLags.png", ggplot2::last_plot(),
+ggsave("Figures/Model/Model_AllLags.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7*2,height=8.7)
 
@@ -370,8 +378,6 @@ nobs(model_random_com)
 BIC(model_random_com)
 fixef(model_random_com) %>% exp()
 confint(model_random_com, method="Wald") %>% exp()
-
-
 
 
 
