@@ -40,7 +40,7 @@ rr_rm <-  getModelInfo(mod_rm,"RM",data_df =  filter(df,REGION==13)) %>%
 
 
 # Estimate avoided deaths in the whole period -----
-limit <- 12
+limit <- 5
 # limit <- 20
 
 ## Estimate annual proportional reduction needed per commune and year -----
@@ -65,14 +65,15 @@ df_avoided %>%
 
 # rr to use
 
-# rr_all <- rr_base
-rr_all <- rr_rm
+rr_all <- rr_base
+# rr_all <- rr_rm
+# SELECT one at the time
 (rr <- rr_all$rr/100)
 (rr <- rr_all$rr_low/100) 
 (rr <- rr_all$rr_high/100)
 
 df_avoided %>% ungroup() %>% 
-  filter(REGION==13) %>% 
+  # filter(REGION==13) %>% 
   dplyr::select(-codigo_comuna,-REGION,-PROVINCIA,
                 -quarter,-commune,-year,-month,-total_pop) %>% 
   mutate(reduction=(pm25_exposure-new_pm25)/10) %>% # get reduction in terms of 10 ug/m2
@@ -82,7 +83,6 @@ df_avoided %>% ungroup() %>%
          avoided_deaths=death_count_all_cause-new_death_counts) %>% 
   # head() %>% 
   pull(avoided_deaths) %>% sum()/18/12 # per month
-
 
 
 sum(df$death_count_all_cause)

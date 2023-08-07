@@ -78,5 +78,12 @@ ggsave(sprintf("Figures/Timeseries_2.png"),p,
        width = 14.8, # full width
        height = 12.2)
 
+p3 <- p3 +   ggtitle("Land Temperature") +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+ggsave(sprintf("Figures/Timeseries_3.png"),p3,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height = 8.7)
+
 
 # EoF

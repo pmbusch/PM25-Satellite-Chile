@@ -85,7 +85,7 @@ df_fig %>%
   annotate("text", x = 2017.5, y = rr_base+1.5, label = "Pooled estimate",size=8*5/14 * 0.8) +
   geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
-  annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
+  # annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
   # temp - uncomment
   # annotate("text", x = 2017.5, y = rr_base+0.7, label = "Pooled estimate",size=8*5/14 * 0.8) +
   # geom_segment(aes(x = 2018, y = rr_base+0.6, xend = 2018, yend = rr_base+0.05),

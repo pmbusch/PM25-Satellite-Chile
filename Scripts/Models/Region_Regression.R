@@ -97,7 +97,7 @@ df_fig %>%
   annotate("text", x = 1, y = rr_base+7.5, label = "Pooled estimate",size=8*5/14 * 0.8) +
   geom_segment(aes(x = 1, y = rr_base+3.2, xend = 1, yend = rr_base+1.3),
                arrow = arrow(length = unit(0.3, "cm"))) +
-  annotate("text", x = 16, y = -12, size=14*5/14 * 0.8,label = "B")+
+  # annotate("text", x = 16, y = -12, size=14*5/14 * 0.8,label = "B")+
   # temp - uncomment
   # annotate("text", x = 5, y = rr_base-1, label = "Pooled \n estimate",size=8*5/14 * 0.8) +
   # geom_segment(aes(x = 5, y = rr_base-1.2, xend = 5, yend = rr_base-0.3),
@@ -122,6 +122,7 @@ ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
 # Average effect of sign. regions
 df_fig %>%
   mutate(signif=sign(rr_low)==sign(rr_high)) %>% 
+  filter(region !="XII") %>% 
   group_by(signif) %>% 
   summarise(rr=mean(rr)) #4.8%
 

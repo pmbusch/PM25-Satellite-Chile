@@ -131,6 +131,10 @@ nrow(filter(com_rural,rural_share>0.3))/nrow(com_rural) #
 com_rural <- com_rural %>% filter(rural_share>0.3) %>% pull(commune) # 
 df <- df %>% mutate(comRural=(commune %in% com_rural))
 df %>% group_by(comRural) %>% summarise(mean(pm25_exposure))
+df  %>% group_by(comRural,REGION) %>% summarise(n=n()/12/18) %>% 
+  pivot_wider(names_from = comRural, values_from = n)
+
+
 
 rm(model_nb1,model_nb2)
 # Urban
