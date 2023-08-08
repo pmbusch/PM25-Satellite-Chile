@@ -102,7 +102,7 @@ table(pop$sex)
 
 pop_75 <- pop %>% 
   filter(Edad>74) %>%
-  # filter(Edad>64) %>% 
+  # filter(Edad>64) %>%
   group_by(Comuna,sex,year) %>% summarise(pop75=sum(pop,na.rm=T)) %>% ungroup() %>% 
   rename(codigo_comuna=Comuna)
 # rm(pop)
@@ -117,6 +117,7 @@ pop_total %>% filter(year==2017,sex=="TOTAL") %>% pull(pop) %>% sum()
 # 75+ share
 pop_75 <- pop_75 %>% left_join(pop_total) %>% 
   mutate(pop75_share=pop75/pop)
+  # mutate(pop65_share=pop75/pop)
 
 
 # library(ggforce)

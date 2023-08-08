@@ -217,6 +217,7 @@ comunes_burning <- df %>%
   arrange(desc(relative_diff)) %>% 
   filter(relative_diff>100) %>%  # at least PM2.5 doubled in January
   pull(commune)
+length(comunes_burning) #141
 
 df %>% 
   filter(month %in% c(1)) %>% # January
@@ -229,7 +230,6 @@ df %>%
   ggplot(aes(relative_diff))+stat_ecdf(aes(y = ..y..*327)) +
   labs(x="Relative difference % of January 2017 w.t.r other Januaries",
        y="Number of communes")
-
 
 
 # which regions got more communes?
@@ -270,9 +270,13 @@ out <- getModelInfo(mod,"Rest of Country",
                     data_df =filter(df,year!=2017,!(commune %in% comunes_burning)))
 mods_2017 <- rbind(mods_2017,out)
 
+
+
 df_fig <- mods_2017 %>% 
   mutate(name=str_replace(name,"Communes affected","Communes \n affected")) %>% 
   filter(param=="pm25Exp_10ug")
+
+df_fig
 
 df_fig %>%
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%

@@ -14,7 +14,7 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 # Load required data -----
 df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
-# df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
+# df <- read.delim("Data/Panel Data/panelData_65.csv",sep=";") # 65+ deaths
 
 # income data
 income <-  read.csv("Data/socioeconomic.csv")
@@ -190,6 +190,14 @@ df <- df %>% mutate(income_group=case_when(
   T ~ "Above P95 (more than $6,990)"))
 # df %>% group_by(commune,income_group) %>% tally() %>% view()
 
+# share of 75 plus per commune
+df %>% 
+  group_by(income_group) %>% 
+  reframe(n=n(),
+          pop75=sum(pop75)/12,pop=sum(pop)/12) %>% ungroup() %>% 
+  mutate(share_75=pop75/pop*100)
+
+
 # see communes by incom
 df %>% group_by(income_group,region) %>% tally() %>% 
   mutate(n=n/18/12) %>% 
@@ -295,7 +303,7 @@ res <- read.csv("Data/Models/modelResults.csv")
 fig_name <- "Figures/Model/%s.png"
 fig_name <- sprintf(fig_name,"Models_Subsample")
 # fig_name <- sprintf(fig_name,"Models_Subsample65")
-fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
+# fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 
 # Summary Figure -----
 
@@ -422,8 +430,8 @@ temp_adj <- 0
 # temp_adj <- 2 # for temp
 ggplot(y,aes(var,rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
-  geom_point(size=0.6,aes(col=signif))+
-  # geom_point(size=0.6,col="red")+ # all T are significant
+  # geom_point(size=0.6,aes(col=signif))+
+  geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   geom_vline(xintercept = c(6.5,15.5,23.5),
