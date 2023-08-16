@@ -94,14 +94,14 @@ df_fig %>%
   # scale_y_continuous(breaks = seq(-3, 0, by = 1))+ #temp
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   # annotation
-  annotate("text", x = 1, y = rr_base+7.5, label = "Pooled estimate",size=8*5/14 * 0.8) +
-  geom_segment(aes(x = 1, y = rr_base+3.2, xend = 1, yend = rr_base+1.3),
-               arrow = arrow(length = unit(0.3, "cm"))) +
+  annotate("text", x = 1, y = rr_base+9.5, label = "Full model estimate",size=8*5/14 * 0.8) +
+  geom_segment(aes(x = 1, y = rr_base+4.2, xend = 1, yend = rr_base+1.3),
+               arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 16, y = -12, size=14*5/14 * 0.8,label = "B")+
   # temp - uncomment
-  # annotate("text", x = 5, y = rr_base-1, label = "Pooled \n estimate",size=8*5/14 * 0.8) +
-  # geom_segment(aes(x = 5, y = rr_base-1.2, xend = 5, yend = rr_base-0.3),
-  #              arrow = arrow(length = unit(0.3, "cm"))) +
+  # annotate("text", x = 5, y = rr_base-1, label = "Full model \n estimate",size=8*5/14 * 0.8) +
+  # geom_segment(aes(x = 5, y = rr_base-1.2, xend = 5, yend = rr_base-0.2),
+  #              arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 16, y = -3, size=14*5/14 * 0.8,label = "B")+
   labs(x = "Region",y =lab_rr)+
   # labs(x="Region",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
@@ -159,7 +159,7 @@ df_fig %>%
   geom_hline(yintercept = rr_base, linetype="dashed",col="red",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   # annotation
-  annotate("text", x = 8, y = rr_base+7, label = "Pooled estimate",size=8*5/14 * 0.8, hjust=0) +
+  annotate("text", x = 8, y = rr_base+7, label = "Full model estimate",size=8*5/14 * 0.8, hjust=0) +
   geom_segment(aes(x = 10, y = rr_base+5.2, xend = 10, yend = rr_base+1.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
   labs(x =lab_pm25,

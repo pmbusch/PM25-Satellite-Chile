@@ -7,7 +7,6 @@ library(MASS)
 library(lme4)
 library(sandwich)
 
-
 theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 source("Scripts/Functions.R",encoding="UTF-8")
@@ -82,17 +81,17 @@ df_fig %>%
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
   # annotation
-  annotate("text", x = 2017.5, y = rr_base+1.5, label = "Pooled estimate",size=8*5/14 * 0.8) +
+  annotate("text", x = 2017.1, y = rr_base+1.5, label = "Full model estimate",size=8*5/14 * 0.8) +
   geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
-               arrow = arrow(length = unit(0.3, "cm"))) +
+               arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
   # temp - uncomment
-  # annotate("text", x = 2017.5, y = rr_base+0.7, label = "Pooled estimate",size=8*5/14 * 0.8) +
+  # annotate("text", x = 2017.1, y = rr_base+0.7, label = "Full model estimate",size=8*5/14 * 0.8) +
   # geom_segment(aes(x = 2018, y = rr_base+0.6, xend = 2018, yend = rr_base+0.05),
-  #              arrow = arrow(length = unit(0.3, "cm"))) +
+  #              arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 0.3, size=14*5/14 * 0.8,label = "A")+
-  labs(x = "Year",y = lab_rr)+
-  # labs(x="Year",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  labs(x = "",y = lab_rr)+
+  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
   theme_bw(10)+
   theme(legend.position = "none",
         axis.title.y = element_text(size = 8),

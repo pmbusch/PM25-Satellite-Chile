@@ -22,7 +22,8 @@ p2 <- df %>%
   mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% # order by month
   arrange(count_month) %>% arrange(codigo_comuna) %>% 
   ggplot(aes(date,pm25_exposure,group=commune))+
-  geom_line(alpha=.2,linewidth=.1,col="#DE2D26")+ 
+  geom_line(alpha=.2,linewidth=.1,col="#DE2D26")+
+  # geom_boxplot(aes(group=date),alpha=.3,col="#DE2D26")+
   coord_cartesian(expand = F)+
   labs(x="",y=lab_pm25)+
   scale_x_date(date_breaks = "2 year",date_labels = "%Y")+
@@ -31,7 +32,8 @@ p2 <- df %>%
   theme(panel.grid.major = element_blank())
 # p2
 brewer.pal(n=3,"Blues") 
-p3 <- p2+aes(y=landTemp)+labs(y=lab_temp)+geom_line(alpha=.2,linewidth=.1,col="#3182BD")
+p3 <- p2+aes(y=landTemp)+labs(y=lab_temp)+
+  geom_line(alpha=.2,linewidth=.1,col="#3182BD")
 # p3
 brewer.pal(n=3,"Oranges") 
 p1 <- p2+aes(y=MR_all_cause)+labs(y=lab_mr)+
