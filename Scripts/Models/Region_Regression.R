@@ -174,4 +174,36 @@ ggsave("Figures/Model/RegionModelsPM25.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+# Scatter plot PM2.5 and T ----
+
+# test figure
+df_fig <- all_mods %>% 
+  mutate(name=name %>% str_replace("13","M")) %>% 
+  left_join(reg_codes, by="name") %>% 
+  mutate(region=factor(region,levels=rev(region_levels2))) %>% 
+  # mutate(rr=est) %>% # to compute correlation easily
+  dplyr::select(region,param,rr,rr_low,rr_high) %>% 
+  filter(param %in% c("pm25Exp_10ug","landTemp")) %>% 
+  # pivot_longer(c(rr,rr_low,rr_high), names_to = "level", values_to = "value") %>% 
+  pivot_wider(names_from = param, values_from = c(rr,rr_low,rr_high))
+
+names(df_fig)
+cor(df_fig$rr_pm25Exp_10ug,df_fig$rr_landTemp) # 0.29
+ggplot(df_fig,aes(rr_pm25Exp_10ug,rr_landTemp))+
+  geom_errorbar(aes(ymin = rr_low_landTemp, ymax = rr_high_landTemp)) +
+  geom_errorbarh(aes(xmin = rr_low_pm25Exp_10ug, xmax = rr_high_pm25Exp_10ug))+
+  # geom_smooth(method=lm,se=F)+
+  geom_point(col="red")+
+  ggrepel::geom_text_repel(aes(label=region))+
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  geom_vline(xintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  labs(x=lab_rr,y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  theme(panel.grid.minor = element_blank(),panel.grid.major = element_blank())
+
+ggsave("Figures/Model/Region_Scatter.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7*2,height=8.7*2)
+
+
+df %>% group_by(REGION) %>% summarise(temp=mean(landTemp))
 # EoF
