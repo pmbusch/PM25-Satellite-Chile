@@ -11,6 +11,12 @@ source("Scripts/Functions.R",encoding="UTF-8")
 # Load Panel Data ----
 df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
 
+# Some stats
+df %>% dplyr::select(pm25_exposure,landTemp) %>% skimr::skim()
+df$pm25_exposure %>% quantile(c(0.05,0.95))
+df$landTemp %>% quantile(c(0.05,0.95))
+
+
 # Figure ------
 names(df)
 # create 3 plots
@@ -44,7 +50,7 @@ p1 <- p2+aes(y=MR_all_cause)+labs(y=lab_mr)+
 library(gridExtra)
 
 # Add titles
-p1 <- p1 +   ggtitle("A: 75+ Mortality Rate All-Cause") +
+p1 <- p1 +   ggtitle("A: 75+ All-Cause Mortality Rate") +
   theme(plot.title = element_text(size = 12, hjust = 0.5))
 p2 <- p2 +   ggtitle(expression("B: PM"[2.5]~"Exposure")) +
   theme(plot.title = element_text(size = 12, hjust = 0.5))
@@ -68,7 +74,7 @@ df$codigo_comuna %>% unique() %>% length() # 327
 
 # Just PM2.5 and MR
 p2 <- p2 +   ggtitle(expression("PM"[2.5]~"Exposure"))
-p1 <- p1 +   ggtitle("75+ Mortality Rate All-Cause")
+p1 <- p1 +   ggtitle("75+ All-Cause Mortality Rate")
 
 p <- grid.arrange(arrangeGrob(p2),
                   arrangeGrob(p1),

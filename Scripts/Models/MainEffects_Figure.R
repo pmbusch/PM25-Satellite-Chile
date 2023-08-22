@@ -242,7 +242,7 @@ ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
-p1 <- last_plot()+labs(y="75+ MR All-Cause \n [per 1,000]")
+p1 <- last_plot()+labs(y="75+ All-Cause MR \n [per 1,000]")
 p1
 ggsave(sprintf(fig_name,"Effect_se2"), ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -328,7 +328,7 @@ p2 <- ggplot(response_pm,aes(x,group=met))+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-p2 <- p2+labs(y="75+ MR All-Cause [per 1,000]")
+p2 <- p2+labs(y="75+ All-Cause MR [per 1,000]")
 p2
 ggsave(sprintf(fig_name,"Effect_Met_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -559,7 +559,7 @@ p3 <- ggplot(response_pm,aes(x,group=comRural))+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-p3 <- p3+labs(y="75+ MR All-Cause [per 1,000]")
+p3 <- p3+labs(y="75+ All-Cause MR [per 1,000]")
 p3
 ggsave(sprintf(fig_name,"Effect_Urban"), ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -681,7 +681,7 @@ p4 <- ggplot(response_pm,aes(x,group=comPM25))+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-p4 <- p4+labs(y="75+ MR All-Cause [per 1,000]")
+p4 <- p4+labs(y="75+ All-Cause MR [per 1,000]")
 p4
 ggsave(sprintf(fig_name,"Effect_AbovePM25"), ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -803,7 +803,7 @@ p5 <- ggplot(response_pm,aes(x,group=com75))+
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-p5 <- p5+labs(y="75+ MR All-Cause [per 1,000]")
+p5 <- p5+labs(y="75+ All-Cause MR [per 1,000]")
 p5
 ggsave(sprintf(fig_name,"Effect_AbovePop75"), ggplot2::last_plot(),
        units="cm",dpi=500,

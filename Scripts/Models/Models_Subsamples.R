@@ -69,12 +69,24 @@ df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12"),1,0))
 
 ## HETEROGENEITY -----
 
+
+### PM2.5 above 20 ----------
+# Average over the whole period
+com_pm25 <- df %>% group_by(commune) %>% 
+  summarise(pm25=mean(pm25_exposure), n=n()) %>% ungroup() %>% 
+  arrange(desc(pm25))
+# Cut-off - 20ug/m3 above and below
+nrow(filter(com_pm25,pm25>20))/nrow(com_pm25) # 50.46%
+com_pm25 <- com_pm25 %>% filter(pm25>20) %>% pull(commune) # 165
+df <- df %>% mutate(comPM25=(commune %in% com_pm25))
+
+
 ### Pop 75 share above median -------
 # Above and below median Pop 75 - Need to sample communes
 commune_pop <- df %>% group_by(commune) %>% summarise(pop75_share=mean(pop75_share))
 median_pop <-  median(commune_pop$pop75_share) # 0.04496193
-# commune_pop <- commune_pop %>% filter(pop75_share>0.045) %>% pull(commune) # 163
-commune_pop <- commune_pop %>% filter(pop75_share>0.108) %>% pull(commune) # for 65+
+commune_pop <- commune_pop %>% filter(pop75_share>0.045) %>% pull(commune) # 163
+# commune_pop <- commune_pop %>% filter(pop75_share>0.108) %>% pull(commune) # for 65+
 df <- df %>% mutate(pop_case=if_else(commune %in% commune_pop,"Above Median","Below Median"))
 rm(commune_pop)
 
@@ -137,7 +149,9 @@ df %>%
 # see communes by incom
 df %>% group_by(income_group,region) %>% tally() %>% 
   mutate(n=n/18/12) %>% 
-  pivot_wider(names_from = income_group, values_from = n)
+  group_by(region) %>% 
+  mutate(n=n/sum(n)) %>% #share 
+  pivot_wider(names_from = income_group, values_from = n) %>% arrange(region)
 # RM: 11 communes of 23
 df %>% dplyr::select(region,NOM_COMUNA,income_group) %>% 
   filter(income_group=="Above P95 (more than $6,990)") %>% 
@@ -242,30 +256,32 @@ results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
 results[[5]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
 results[[6]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
 results[[7]] <- runModel(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
-results[[8]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+ share below median (<4.5%)")
-results[[9]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+ share above median (>4.5%)")
+results[[8]] <- runModel(data=filter(df,comPM25==F),name="PM2.5 below 20 ug/m3")
+results[[9]] <- runModel(data=filter(df,comPM25==T),name="PM2.5 above 20 ug/m3")
+results[[10]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+ share below median (<4.5%)")
+results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+ share above median (>4.5%)")
 # 65+ case
-# results[[8]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 65+ share below median (<10.8%)")
-# results[[9]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)") 
-results[[10]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
-results[[11]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
-results[[12]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
+# results[[10]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 65+ share below median (<10.8%)")
+# results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)") 
+results[[12]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
+results[[13]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
+results[[14]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
                          name="Income less $3,352 (P30)")
-results[[13]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($3,352 to $4,320)"),
+results[[15]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($3,352 to $4,320)"),
                          name="Income $3,352-$4,320 (P30-P65)")
-results[[14]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($4,320 to $6,990)"),
+results[[16]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($4,320 to $6,990)"),
                          name="Income $4,320-$6,990 (P65-P95)")
-results[[15]] <- runModel(data=filter(df,income_group =="Above P95 (more than $6,990)"),
+results[[17]] <- runModel(data=filter(df,income_group =="Above P95 (more than $6,990)"),
                          name="Above $6,990 (P95)")
-results[[16]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
+results[[18]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
                                       MR_all_cause=MR_cardioRespiratory),name="Cardiorespiratory cause")
-results[[17]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
+results[[19]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
                                       MR_all_cause=MR_cardio),name="Cardiovascular cause")
-results[[18]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
+results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
                                       MR_all_cause=MR_respiratory),name="Respiratory cause")
-results[[19]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
+results[[21]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
                                       MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
-results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
+results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
 #Others
 # results[[4]] <- runModel(data=filter(df,pm25_case=="Above Median"),name="PM2.5: Above Median") 
@@ -339,6 +355,7 @@ robustness <- c( "Full Sample","Robustness",
                  "Excluding regions with low satellite accuracy")
 heterogen <- c("Heterogeneity",
                "Only Metropolitan region","Excluding Metropolitan region",
+               "PM2.5 below 20 ug/m3","PM2.5 above 20 ug/m3",
                "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)",
                # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)", #65+ case
                "Urban Commune","Rural Commune (>30% share poulation)",
@@ -360,8 +377,10 @@ y <- y %>%
   mutate(rr=as.numeric(rr),
          rr_low=as.numeric(rr_low),
          rr_high=as.numeric(rr_high)) %>% 
-  mutate(title=var %in% c("Robustness","Heterogeneity","Other Mortality Causes"))
+  mutate(title=var %in% c("Robustness","Heterogeneity","Other Mortality Causes")) %>% 
+  mutate(pm25_var=str_detect(var,"PM2.5")) # special text for this
 rows <- y %>% nrow()
+
 
 # Figure
 # Draw figure with Table Incorporated
@@ -379,9 +398,9 @@ ggplot(y,aes(var,rr))+
   # geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_vline(xintercept = c(6.5,17.5,22.5,23.5),
+  geom_vline(xintercept = c(6.5,19.5,24.5,25.5),
              col="grey",linewidth=0.3)+
-  geom_vline(xintercept = c(10.5,12.5,14.5,19.5),
+  geom_vline(xintercept = c(10.5,12.5,14.5,16.5,21.5),
              col="grey",linewidth=0.15,linetype="dashed")+
   labs(x="",y=lab_rr)+
   # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
@@ -401,16 +420,22 @@ ggplot(y,aes(var,rr))+
   theme_bw(font_size)+
   # add text data
   geom_text(y=-14-temp_adj,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8)+
-  geom_text(data=filter(y,!title),y=-14-temp_adj,aes(label=var),
+  geom_text(data=filter(y,!title,!pm25_var),y=-14-temp_adj,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8)+
+  # special rows for pm2.5
+  geom_text(data=filter(y,pm25_var,str_detect(var,"above")),y=-14-temp_adj,hjust = 0,
+            size=font_size*5/14 * 0.8,label=expression(paste("PM"[2.5], " above 20 ", mu, "g/m"^3, "")))+
+  geom_text(data=filter(y,pm25_var,str_detect(var,"below")),y=-14-temp_adj,hjust = 0,
+            size=font_size*5/14 * 0.8,label=expression(paste("PM"[2.5], " below 20 ", mu, "g/m"^3, "")))+
+  # titles in bold
   geom_text(data=filter(y,title),y=-14-temp_adj,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(y=-7-temp_adj,x=rows+1,label="n",size=font_size*5/14 * 0.8)+
   geom_text(y=-7-temp_adj,aes(label=N),size=font_size*5/14 * 0.8)+
-  geom_text(y=-5-temp_adj,x=rows+1,label="Base rate",size=font_size*5/14 * 0.8)+
+  geom_text(y=-5-temp_adj,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8)+
   geom_text(y=-5-temp_adj,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
   geom_text(y=-2.5,x=rows+1,size=font_size*5/14 * 0.8,
-            label=expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]")))+
+  label=expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]")))+
   geom_text(y=-2.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
   # geom_text(y=-4.5,x=rows+1,label="Mean T [°C]",size=font_size*5/14 * 0.8)+
   # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
