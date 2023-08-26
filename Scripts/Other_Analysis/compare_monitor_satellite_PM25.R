@@ -229,7 +229,10 @@ df <- df %>%
 # same scale
 df$value %>% range()
 
-p_year <- ggplot(df,aes(value,pm25_satellite,col=factor(year_cor)))+
+set.seed(1)
+p_year <- df %>% 
+  sample_n(size = nrow(.), replace = FALSE) %>% # randomly reshuffle
+  ggplot(aes(value,pm25_satellite,col=factor(year_cor)))+
   geom_point(alpha=.8)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
@@ -307,15 +310,18 @@ set.seed(123)
 # Randomly order the dataframe for appareance
 df <- df[sample(nrow(df)), ]
 
+# see colors: https://stackoverflow.com/questions/9563711/r-color-palettes-for-many-data-classes
 p_region <- ggplot(df,aes(value,pm25_satellite,col=region_cor))+
-  geom_point(alpha=.5)+
+  geom_point(alpha=.6)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
   labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
        y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
        color="Region (correlation)")+
   theme_bw(9)+
-  scale_color_viridis_d(option = "turbo")+
+  # scale_color_viridis_d(option = "turbo")+
+  # ggsci::scale_color_lancet()+
+  scale_color_manual(values=as.vector(pals::glasbey(16)))+
   xlim(0,205)+ylim(0,205)+
   guides(col=guide_legend(ncol=2))+
   theme(legend.position = c(0.3,0.8),
