@@ -217,6 +217,38 @@ df <- df %>%
     quarter==3 ~ "Winter",
     T ~ "Spring") %>% factor(levels=c("Fall","Spring","Winter","Summer")))
 
+### Temperature quartiles -----
+commune_temp <- df %>% group_by(commune) %>% summarise(landTemp=mean(landTemp))
+temp_qt <- quantile(commune_temp$landTemp,c(0.25,0.5,0.75))
+
+commune_temp <- commune_temp %>% mutate(temp_qt=case_when(
+  landTemp<temp_qt[1] ~ "Temp Q I",
+  landTemp<temp_qt[2] ~ "Temp Q II",
+  landTemp<temp_qt[3] ~ "Temp Q III",
+  T ~ "Temp Q IV"))
+commune_temp %>% group_by(temp_qt) %>% tally()
+commune_temp$landTemp <- NULL
+
+df <- df %>% left_join(commune_temp)
+
+### Income quantiles -----
+
+commune_income <- df %>% group_by(commune) %>% summarise(income_mean=mean(income_mean)) %>% na.omit()
+income_qt <- quantile(commune_income$income_mean,c(0.2,0.4,0.6,0.8))
+
+commune_income <- commune_income %>% mutate(income_qt=case_when(
+  income_mean<income_qt[1] ~ "Income Q I",
+  income_mean<income_qt[2] ~ "Income Q II",
+  income_mean<income_qt[3] ~ "Income Q III",
+  income_mean<income_qt[4] ~ "Income Q IV",
+  income_mean<1e6 ~ "Income Q V",
+  T ~ "NA"))
+commune_income %>% group_by(income_qt) %>% tally()
+commune_income$income_mean <- NULL
+
+df <- df %>% left_join(commune_income)
+df %>% group_by(income_qt) %>% tally()
+
 
 # Function to run Negative Binomial Model ----- 
 # for offset, see https://stats.stackexchange.com/questions/66791/where-does-the-offset-go-in-poisson-negative-binomial-regression
@@ -306,6 +338,18 @@ results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_exter
 # results[[33]] <- runModel(data=filter(df,year %in% c("2011","2012","2013","2014","2015")),name="Period: 2011-2015")
 # results[[34]] <- runModel(data=filter(df,year %in% c("2016","2017","20018","2019")),name="Period: 2016-2019")
 # results[[40]] <- runModel(data=filter(df,centersouth_regions==T),name="Center-South Regions")
+# temperature quantiles
+# results[[1]] <- runModel(data=filter(df,temp_qt=="Temp Q I"),name="Quantile T° I (below 17.8)") 
+# results[[2]] <- runModel(data=filter(df,temp_qt=="Temp Q II"),name="Quantile T° II (17.8-22.0)") 
+# results[[3]] <- runModel(data=filter(df,temp_qt=="Temp Q III"),name="Quantile T° III (22.0-26.1)") 
+# results[[4]] <- runModel(data=filter(df,temp_qt=="Temp Q IV"),name="Quantile T° IV (above 26.1)") 
+# temperature quintiles
+results[[1]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="Quantile Income I (below $3,182)")
+results[[2]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="Quantile Income II ($3,182-3,577$)")
+results[[3]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="Quantile Income III ($3,577-$4,138)")
+results[[4]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="Quantile Income IV ($4,138-$4,961)")
+results[[5]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="Quantile Income V (above $4,961)")
+
 
 
 # merge results
@@ -372,7 +416,7 @@ y <- rbind(x,c("Robustness",rep(NA,ncol(x)-1)),
            c("Other Mortality Causes",rep(NA,ncol(x)-1)))
 
 y <- y %>% 
-  filter(var %in% c(robustness,heterogen,other_causes)) %>% 
+  filter(var %in% c(robustness,heterogen,other_causes)) %>%
   mutate(var=factor(var,levels=rev(c(robustness,heterogen,other_causes)))) %>%
   mutate(rr=as.numeric(rr),
          rr_low=as.numeric(rr_low),
@@ -403,7 +447,7 @@ ggplot(y,aes(var,rr))+
   geom_vline(xintercept = c(10.5,12.5,14.5,16.5,21.5),
              col="grey",linewidth=0.15,linetype="dashed")+
   labs(x="",y=lab_rr)+
-  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  # labs(x="",y=lab_rr_temp)+
   # add bottom bar
   geom_segment(x = 0.01, xend = 0.01, yend = max_value,
                y=-1,

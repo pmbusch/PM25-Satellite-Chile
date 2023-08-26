@@ -103,13 +103,14 @@ df_fig %>%
   # geom_segment(aes(x = 5, y = rr_base-1.2, xend = 5, yend = rr_base-0.2),
   #              arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 16, y = -3, size=14*5/14 * 0.8,label = "B")+
-  labs(x = "Region",y =lab_rr)+
-  # labs(x="Region",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  # labs(x = "Region",y =lab_rr)+
+  labs(x="Region",y=lab_rr_temp)+
   theme_bw(8.3)+
   theme(legend.position = "none",
-        # axis.title.y = element_text(size = 1),
-        axis.title.y=element_text(angle=0,vjust = -0.05,hjust=1),
+        # axis.title.y=element_text(angle=0,vjust = -0.05,hjust=1),
+        axis.title.y=element_text(angle=0,vjust=1.015,margin=margin(r=-14)),
         panel.grid.major = element_blank(),
+        axis.title.x = element_text(size=7,hjust=1),
         panel.grid.minor = element_blank())
 
 fig_name <- "RegionModels"

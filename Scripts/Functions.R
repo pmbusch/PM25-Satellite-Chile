@@ -4,12 +4,13 @@
 
 
 # Label for PM2.5 and for temperature ----
-lab_pm25 <- expression(paste("",PM[2.5]," Exposure [",mu,"g/",m^3,"]",""))
-lab_temp <- "Land Temperature [°C]"
-lab_mr <- "75+ All-Cause \n Mortality Rate [per 1,000]"
-lab_mr2 <- "75+ All-Cause Mortality Rate [per 1,000]"
-lab_rr <- expression(paste("Percentage change in Mortality rate by 10 ",mu,"g/",m^3," ",PM[2.5],""))
-
+lab_pm25 <- expression(paste("",PM[2.5]," exposure [",mu,"g/",m^3,"]",""))
+lab_temp <- "Land temperature [°C]"
+lab_mr <- "75+ all-cause monthly \n mortality rate [per 1,000]"
+lab_mr2 <- "75+ all-cause monthly mortality rate [per 1,000]"
+lab_rr <- expression(paste("Percentage change in monthly mortality rate for a 10 ",mu,"g/",m^3," increase in ",PM[2.5],""))
+lab_rr_temp <- expression(paste("Percentage change in monthly mortality rate for a 1° increase in Celsius"))
+  
 
 # Function to get data from fitted models ----
 getModelInfo <- function(mod,name,ols=F,baseRate=0, robustSE=T, data_df=df){

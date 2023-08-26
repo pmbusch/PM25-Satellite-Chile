@@ -225,16 +225,16 @@ p1 <- ggplot(response_pm,aes(x))+
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#8B4513",col="white")+
   annotate("text", x = 40, y = 1.2, size=10*5/14 * 0.8,
-           label = "PM"[2.5] ~ " Exposure distribution", color = "#8B4513")+
+           label = "PM"[2.5] ~ " exposure distribution", color = "#8B4513")+
   # guidelines
   annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=3.6, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=nat+1,y=3,label="Chile Annual Standard",angle = 90,size=9*5/14 * 0.8)+
+  annotate("text",x=nat+1,y=3,label="Chile annual standard",angle = 90,size=9*5/14 * 0.8)+
   annotate("rect", xmin=who, xmax=who, ymin=0, ymax=3.6, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=who+1,y=3,label="WHO Guidelines",angle = 90,size=9*5/14 * 0.8)+
+  annotate("text",x=who+1,y=3,label="WHO guidelines",angle = 90,size=9*5/14 * 0.8)+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   labs(x=lab_pm25,y=lab_mr2)+
-  theme_bw(11)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 p1
@@ -242,7 +242,7 @@ ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
-p1 <- last_plot()+labs(y="75+ All-Cause MR \n [per 1,000]")
+p1 <- last_plot()+labs(y="75+ all-cause monthly MR [per 1,000]")
 p1
 ggsave(sprintf(fig_name,"Effect_se2"), ggplot2::last_plot(),
        units="cm",dpi=500,
@@ -266,11 +266,11 @@ ggplot(response_pm,aes(x))+
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#00008B",col="white")+
   annotate("text", x = 30, y = 2.2, size=10*5/14 * 0.8,
-           label = "Land Temperature distribution", color = "#00008B")+
+           label = "Land temperature distribution", color = "#00008B")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,9,2)),limits = c(0,9)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   labs(x=lab_temp,y=lab_mr2)+
-  theme_bw(11)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
@@ -316,9 +316,9 @@ p2 <- ggplot(response_pm,aes(x,group=met))+
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#9b59b6",col="white")+
   annotate("text", x = 35, y = 1.2, size=fig_fontsize*5/14 * 0.8,
-           label = "Rest of Country", color = "#2ecc71")+
+           label = "Rest of country", color = "#2ecc71")+
   annotate("text", x = 35, y = 3.2, size=fig_fontsize*5/14 * 0.8,
-           label = "Metropolitan Region", color = "#9b59b6")+
+           label = "Metropolitan region", color = "#9b59b6")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#9b59b6", "FALSE" = "#2ecc71"))+
@@ -328,16 +328,16 @@ p2 <- ggplot(response_pm,aes(x,group=met))+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-p2 <- p2+labs(y="75+ All-Cause MR [per 1,000]")
+p2 <- p2+labs(y="75+ all-cause monthly MR [per 1,000]")
 p2
 ggsave(sprintf(fig_name,"Effect_Met_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 p2+
   annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=nat+1,y=3.5,label="Chile Annual Standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
+  annotate("text",x=nat+1,y=3.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
   annotate("rect", xmin=who, xmax=who, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=who+1,y=3.5,label="WHO Guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
+  annotate("text",x=who+1,y=3.5,label="WHO guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
 ggsave(sprintf(fig_name,"Effect_Met_se_guide"), ggplot2::last_plot(),
          units="cm",dpi=500,
          width=8.7,height=8.7)
@@ -371,9 +371,9 @@ ggplot(response_pm,aes(x,group=met))+
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#114477",col="white")+
   annotate("text", x = 30, y = 1.2,size=fig_fontsize*5/14 * 0.8, 
-           label = "Rest of Country", color = "#117744")+
+           label = "Rest of country", color = "#117744")+
   annotate("text", x = 30, y = 3.2,size=fig_fontsize*5/14 * 0.8, 
-           label = "Metropolitan Region", color = "#114477")+
+           label = "Metropolitan region", color = "#114477")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   scale_color_manual(values = c("TRUE" = "#114477", "FALSE" = "#117744"))+
@@ -447,9 +447,9 @@ ggsave(sprintf(fig_name,"Effect_Season_se"), ggplot2::last_plot(),
        width=8.7,height=8.7)
 
 p_season+annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=nat+1,y=1.4,label="Chile Annual Standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
+  annotate("text",x=nat+1,y=1.4,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
   annotate("rect", xmin=who, xmax=who, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=who+1,y=1.4,label="WHO Guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
+  annotate("text",x=who+1,y=1.4,label="WHO guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
 ggsave(sprintf(fig_name,"Effect_Season_se_guide"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
@@ -546,10 +546,10 @@ p3 <- ggplot(response_pm,aes(x,group=comRural))+
                  data=filter(df,comRural==T),binwidth = 0.5,
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#F4A460",col="white")+
-  annotate("text", x = 30, y = 1.2,size=fig_fontsize*5/14 * 0.8, 
-           label = "Urban communes", color = "#333333")+
-  annotate("text", x = 35, y = 3.6, size=fig_fontsize*5/14 * 0.8,
-           label = "Rural communes \n (above 30% population share)", color = "#F4A460")+
+  annotate("text", x = 26, y = 1.2,size=fig_fontsize*5/14 * 0.8, 
+           label = "Urban", color = "#333333")+
+  annotate("text", x = 26, y = 3.6, size=fig_fontsize*5/14 * 0.8,
+           label = "Rural", color = "#F4A460")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
@@ -559,16 +559,16 @@ p3 <- ggplot(response_pm,aes(x,group=comRural))+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-p3 <- p3+labs(y="75+ All-Cause MR [per 1,000]")
+p3 <- p3+labs(y="75+ all-cause monthly MR [per 1,000]")
 p3
 ggsave(sprintf(fig_name,"Effect_Urban"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
 p3+annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=3.5, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=nat+1,y=1.5,label="Chile Annual Standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
+  annotate("text",x=nat+1,y=1.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
   annotate("rect", xmin=who, xmax=who, ymin=0, ymax=3.5, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=who+1,y=1.5,label="WHO Guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
+  annotate("text",x=who+1,y=1.5,label="WHO guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
 ggsave(sprintf(fig_name,"Effect_Urban_guide"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
@@ -604,7 +604,7 @@ ggplot(response_pm,aes(x,group=comRural))+
   annotate("text", x = 20, y = 1.2,size=fig_fontsize*5/14 * 0.8, 
            label = "Urban", color = "#333333")+
   annotate("text", x = 20, y = 3.6, size=fig_fontsize*5/14 * 0.8,
-           label = "Rural communes \n (above 30% population share)", color = "#F4A460")+
+           label = "Rural", color = "#F4A460")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
@@ -660,16 +660,16 @@ p4 <- ggplot(response_pm,aes(x,group=comPM25))+
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#A80000",col="white")+
   # had to divide to get the two lines
-  annotate("text", x = 36, y = 1.2,size=fig_fontsize*5/14 * 0.8, 
-           label =expression(paste("Communes with a mean ")), 
-           color = "#CC9900")+
-  annotate("text", x = 36, y = 0.7,size=fig_fontsize*5/14 * 0.8, 
+  # annotate("text", x = 36, y = 1.2,size=fig_fontsize*5/14 * 0.8, 
+  #          label =expression(paste("Communes with a mean ")), 
+  #          color = "#CC9900")+
+  annotate("text", x = 36, y = 1,size=fig_fontsize*5/14 * 0.8, 
            label =expression(paste(PM[2.5]," below 20 ",mu,"g/",m^3,"","")), 
            color = "#CC9900")+
-  annotate("text", x = 36, y = 3.7, size=fig_fontsize*5/14 * 0.8,
-           label = expression(paste("Communes with a mean ")),
-           color = "#A80000")+
-  annotate("text", x = 36, y = 3.2, size=fig_fontsize*5/14 * 0.8,
+  # annotate("text", x = 36, y = 3.7, size=fig_fontsize*5/14 * 0.8,
+  #          label = expression(paste("Communes with a mean ")),
+  #          color = "#A80000")+
+  annotate("text", x = 36, y = 3.5, size=fig_fontsize*5/14 * 0.8,
            label = expression(paste(PM[2.5]," above 20 ",mu,"g/",m^3,"","")),
            color = "#A80000")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
@@ -681,16 +681,16 @@ p4 <- ggplot(response_pm,aes(x,group=comPM25))+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
-p4 <- p4+labs(y="75+ All-Cause MR [per 1,000]")
+p4 <- p4+labs(y="75+ all-cause monthly MR [per 1,000]")
 p4
 ggsave(sprintf(fig_name,"Effect_AbovePM25"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
 p4+annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=nat+1,y=1.5,label="Chile Annual Standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
+  annotate("text",x=nat+1,y=1.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
   annotate("rect", xmin=who, xmax=who, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=who+1,y=1.5,label="WHO Guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
+  annotate("text",x=who+1,y=1.5,label="WHO guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
 ggsave(sprintf(fig_name,"Effect_AbovePM25_guide"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
@@ -724,10 +724,10 @@ ggplot(response_pm,aes(x,group=comPM25))+
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#A80000",col="white")+
   annotate("text", x = 20, y = 1.2,size=(fig_fontsize-1)*5/14 * 0.8, 
-           label = expression(paste("Communes with a mean ",PM[2.5]," below 20 ",mu,"g/",m^3,"","")), 
+           label = expression(paste("",PM[2.5]," below 20 ",mu,"g/",m^3,"","")), 
            color = "#CC9900")+
   annotate("text", x = 20, y = 3.6, size=(fig_fontsize-1)*5/14 * 0.8,
-           label = expression(paste("Communes with a mean ",PM[2.5]," above 20 ",mu,"g/",m^3,"","")), 
+           label = expression(paste("",PM[2.5]," above 20 ",mu,"g/",m^3,"","")), 
            color = "#A80000")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
@@ -787,11 +787,11 @@ p5 <- ggplot(response_pm,aes(x,group=com75))+
                  data=filter(df,com75==T),binwidth = 0.5,
                  linewidth=0.1,center=0,
                  alpha=0.4,fill="#FF6B6B",col="white")+
-  annotate("text", x = 36, y = 1,size=fig_fontsize*5/14 * 0.8, 
-           label ="Below 4.5% (median) \n 75+ population share", 
+  annotate("text", x = 37, y = 1,size=fig_fontsize*5/14 * 0.8, 
+           label ="75+ pop. share below 4.5%", 
            color = "#004E7A")+
-  annotate("text", x = 36, y = 3.4, size=fig_fontsize*5/14 * 0.8,
-           label = "Above 4.5% (median) \n 75+ population share", 
+  annotate("text", x = 37, y = 3.4, size=fig_fontsize*5/14 * 0.8,
+           label = "75+ pop. share above 4.5%", 
            color = "#FF6B6B")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
@@ -803,16 +803,16 @@ p5 <- ggplot(response_pm,aes(x,group=com75))+
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-p5 <- p5+labs(y="75+ All-Cause MR [per 1,000]")
+p5 <- p5+labs(y="75+ all-cause monthly MR [per 1,000]")
 p5
 ggsave(sprintf(fig_name,"Effect_AbovePop75"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
 p5+annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=nat+1,y=1.5,label="Chile Annual Standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
+  annotate("text",x=nat+1,y=1.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
   annotate("rect", xmin=who, xmax=who, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
-  annotate("text",x=who+1,y=1.5,label="WHO Guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
+  annotate("text",x=who+1,y=1.5,label="WHO guidelines",angle = 90,size=fig_fontsize*5/14 * 0.8)
 ggsave(sprintf(fig_name,"Effect_AbovePop75_guide"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)

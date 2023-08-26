@@ -75,30 +75,32 @@ df_fig %>%
             fill = "brown",alpha=0.01)+
   # by year
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
-  geom_point(size=1, aes(col=signif)) +
-  # geom_point(size=1,col="red")+ # all T are significant
+  # geom_point(size=1, aes(col=signif)) +
+  geom_point(size=1,col="red")+ # all T are significant
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
+  scale_y_continuous(breaks = seq(-2.5, 0, by = 0.5),
+                     limits = c(-2.6,0.45))+ # temp
   # annotation
-  annotate("text", x = 2017.1, y = rr_base+1.5, label = "Full model estimate",size=8*5/14 * 0.8) +
-  geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
-               arrow = arrow(length = unit(0.15, "cm"))) +
+  # annotate("text", x = 2017.1, y = rr_base+1.5, label = "Full model estimate",size=8*5/14 * 0.8) +
+  # geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
+  #              arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
   # temp - uncomment
-  # annotate("text", x = 2017.1, y = rr_base+0.7, label = "Full model estimate",size=8*5/14 * 0.8) +
-  # geom_segment(aes(x = 2018, y = rr_base+0.6, xend = 2018, yend = rr_base+0.05),
-  #              arrow = arrow(length = unit(0.15, "cm"))) +
+  annotate("text", x = 2017.1, y = rr_base+0.7, label = "Full model estimate",size=8*5/14 * 0.8) +
+  geom_segment(aes(x = 2018, y = rr_base+0.6, xend = 2018, yend = rr_base+0.05),
+               arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 0.3, size=14*5/14 * 0.8,label = "A")+
-  labs(x = "",y = lab_rr)+
-  # labs(x="",y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  # labs(x = "",y = lab_rr)+
+  labs(x="",y=lab_rr_temp)+
   theme_bw(10)+
   theme(legend.position = "none",
-        axis.title.y = element_text(size = 8),
+        axis.title.y = element_text(size = 7,hjust=1),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 fig_name <- "YearModels"
-# fig_name <- "YearModels_Temp"
+fig_name <- "YearModels_Temp"
 
 ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
        units="cm",dpi=500,
