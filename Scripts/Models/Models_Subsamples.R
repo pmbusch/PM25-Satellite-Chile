@@ -65,7 +65,8 @@ pop_commune <- pop_commune %>% filter(pop75>500) %>% pull(commune) # 246 for 75+
 df <- df %>% mutate(pop500=(commune %in% pop_commune))
 
 ### Bad regions identification ------
-df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12"),1,0))
+df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12","11"),1,0)) # XI for overprediction
+
 
 ## HETEROGENEITY -----
 
@@ -294,26 +295,23 @@ results[[10]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75
 results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+ share above median (>4.5%)")
 # 65+ case
 # results[[10]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 65+ share below median (<10.8%)")
-# results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)") 
+# results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)")
 results[[12]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
 results[[13]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
-results[[14]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
-                         name="Income less $3,352 (P30)")
-results[[15]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($3,352 to $4,320)"),
-                         name="Income $3,352-$4,320 (P30-P65)")
-results[[16]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($4,320 to $6,990)"),
-                         name="Income $4,320-$6,990 (P65-P95)")
-results[[17]] <- runModel(data=filter(df,income_group =="Above P95 (more than $6,990)"),
-                         name="Above $6,990 (P95)")
-results[[18]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
+results[[14]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="I Quantile Income (below $3,182)")
+results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="II Quantile Income ($3,182-3,577$)")
+results[[16]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="III Quantile Income ($3,577-$4,138)")
+results[[17]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="IV Quantile Income ($4,138-$4,961)")
+results[[18]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="V Quantile Income (above $4,961)")
+results[[19]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
                                       MR_all_cause=MR_cardioRespiratory),name="Cardiorespiratory cause")
-results[[19]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
+results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
                                       MR_all_cause=MR_cardio),name="Cardiovascular cause")
-results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
+results[[21]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
                                       MR_all_cause=MR_respiratory),name="Respiratory cause")
-results[[21]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
+results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
                                       MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
-results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
+results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
 #Others
 # results[[4]] <- runModel(data=filter(df,pm25_case=="Above Median"),name="PM2.5: Above Median") 
@@ -344,12 +342,14 @@ results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_exter
 # results[[3]] <- runModel(data=filter(df,temp_qt=="Temp Q III"),name="Quantile T° III (22.0-26.1)") 
 # results[[4]] <- runModel(data=filter(df,temp_qt=="Temp Q IV"),name="Quantile T° IV (above 26.1)") 
 # temperature quintiles
-results[[1]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="Quantile Income I (below $3,182)")
-results[[2]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="Quantile Income II ($3,182-3,577$)")
-results[[3]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="Quantile Income III ($3,577-$4,138)")
-results[[4]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="Quantile Income IV ($4,138-$4,961)")
-results[[5]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="Quantile Income V (above $4,961)")
-
+# results[[14]] <- runModel(data=filter(df,income_group =="Below P30 (less than $3,352)"),
+#                          name="Income less $3,352 (P30)")
+# results[[15]] <- runModel(data=filter(df,income_group =="Between P30-P65 ($3,352 to $4,320)"),
+#                          name="Income $3,352-$4,320 (P30-P65)")
+# results[[16]] <- runModel(data=filter(df,income_group =="Between P65-P95 ($4,320 to $6,990)"),
+#                          name="Income $4,320-$6,990 (P65-P95)")
+# results[[17]] <- runModel(data=filter(df,income_group =="Above P95 (more than $6,990)"),
+#                          name="Above $6,990 (P95)")
 
 
 # merge results
@@ -403,8 +403,9 @@ heterogen <- c("Heterogeneity",
                "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)",
                # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)", #65+ case
                "Urban Commune","Rural Commune (>30% share poulation)",
-               "Income less $3,352 (P30)","Income $3,352-$4,320 (P30-P65)",
-               "Income $4,320-$6,990 (P65-P95)","Above $6,990 (P95)")
+               "I Quantile Income (below $3,182)","II Quantile Income ($3,182-3,577$)",
+               "III Quantile Income ($3,577-$4,138)","IV Quantile Income ($4,138-$4,961)",
+               "V Quantile Income (above $4,961)")
 other_causes <- c("Other Mortality Causes",
                   "Cardiorespiratory cause","Cardiovascular cause",
                   "Respiratory cause","All-cause excluding Cardiorespiratory",
@@ -442,9 +443,9 @@ ggplot(y,aes(var,rr))+
   # geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_vline(xintercept = c(6.5,19.5,24.5,25.5),
+  geom_vline(xintercept = c(6.5,20.5,25.5),
              col="grey",linewidth=0.3)+
-  geom_vline(xintercept = c(10.5,12.5,14.5,16.5,21.5),
+  geom_vline(xintercept = c(11.5,13.5,15.5,17.5,22.5),
              col="grey",linewidth=0.15,linetype="dashed")+
   labs(x="",y=lab_rr)+
   # labs(x="",y=lab_rr_temp)+

@@ -8,6 +8,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 source("Scripts/Functions.R",encoding="UTF-8")
 
+fig_name <- "Figures/Time Series/%s.png"
+
 # Load Panel Data ----
 df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
 
@@ -17,7 +19,7 @@ df$pm25_exposure %>% quantile(c(0.05,0.95))
 df$landTemp %>% quantile(c(0.05,0.95))
 
 
-# Figure v1: Spaghietti ------
+# Figure v1: Spagetti ------
 names(df)
 # create 3 plots
 library(RColorBrewer)
@@ -64,7 +66,7 @@ p <- grid.arrange(arrangeGrob(p1),
                   ncol=1)
 p
 # 
-ggsave(sprintf("Figures/Timeseries.png"),p,
+ggsave(sprintf(fig_name,"Timeseries"),p,
        units="cm",dpi=500,
        width = 14.8, # full width
        height = 12.2)
@@ -81,14 +83,14 @@ p <- grid.arrange(arrangeGrob(p2),
                   ncol=1)
 p
 # 
-ggsave(sprintf("Figures/Timeseries_2.png"),p,
+ggsave(sprintf(fig_name,"Timeseries2"),p,
        units="cm",dpi=500,
        width = 14.8, # full width
        height = 12.2)
 
 p3 <- p3 +   ggtitle("Land temperature") +
   theme(plot.title = element_text(size = 12, hjust = 0.5))
-ggsave(sprintf("Figures/Timeseries_3.png"),p3,
+ggsave(sprintf(fig_name,"Timeseries3"),p3,
        units="cm",dpi=500,
        width = 14.8, # full width
        height = 8.7)
@@ -105,12 +107,19 @@ df_fig <- df %>%
 
 # get national mean
 df_mean <- df_fig %>% 
-  mutate(pm_pop=pm25_exposure*pop75) %>% 
+  mutate(pm_pop=pm25_exposure*pop75,
+         mr_pop=MR_all_cause*pop75,
+         temp_pop=landTemp*pop75) %>% 
   group_by(date) %>% 
-  reframe(pm_pop=sum(pm_pop),pop75=sum(pop75)) %>% 
-  mutate(pm25_exposure=pm_pop/pop75, nombre="Chile mean",
+  reframe(pm_pop=sum(pm_pop),pop75=sum(pop75),
+          mr_pop=sum(mr_pop),temp_pop=sum(temp_pop)) %>% 
+  mutate(pm25_exposure=pm_pop/pop75, 
+         MR_all_cause=mr_pop/pop75,
+         landTemp=temp_pop/pop75,
+         nombre="Chile mean",
          commune=999,
-         pm_pop=NULL,pop75=NULL) %>% ungroup()
+         pm_pop=NULL,pop75=NULL,mr_pop=NULL,temp_pop=NULL) %>% ungroup()
+
 
 # highlight communes
 selected_coms <- c(
@@ -119,37 +128,36 @@ selected_coms <- c(
   13101, # Santiago
   9101, # Temuco
   8101, # Concepcion
+  11101, # Coyhaique
   12101 # Punta Areas
 )
 
-category_colors <- c("Other communes" = "#CCCCCC",
+category_colors <- c("Other communes" = "#808080",
                      "Chile mean" = "#DE2D26",
                      "Antofagasta" = "#e377c2", 
                      "Santiago" = "#2ca02c",
                      "Valparaiso" = "#9467bd",
                      "Temuco" = "#ff7f0e",
                      "Concepcion" = "#8c564b",
+                     "Coyhaique" = "#17becf",
                      "Punta Arenas"="#1f77b4")
-legend_order <- c("Other communes",
+
+legend_order <- c("Chile mean",
                   "Antofagasta", 
-                  "Santiago",
                   "Valparaiso",
-                  "Temuco",
+                  "Santiago",
                   "Concepcion",
-                  "Punta Arena",
-                  "Chile mean")
+                  "Temuco",
+                  "Coyhaique",
+                  "Punta Arenas",
+                  "Other communes")
 
-
-brewer.pal(n=3,"Reds") # color same as map
-df_fig %>% 
+p <- df_fig %>% 
   mutate(nombre="Other communes") %>% 
-  ggplot(aes(date,pm25_exposure,group=commune))+
-  geom_line(alpha=.25,linewidth=.05,
-            aes(col=nombre)
-            )+
-  geom_line(data=filter(df_fig, commune %in% selected_coms),
-            aes(col=nombre),linewidth=0.15)+
-  geom_line(data=df_mean,linewidth=0.4,aes(col=nombre))+
+  ggplot(aes(date,pm25_exposure,group=commune,col=nombre))+
+  geom_line(alpha=.25,linewidth=0.1)+
+  geom_line(data=filter(df_fig, commune %in% selected_coms),linewidth=0.2)+
+  geom_line(data=df_mean,linewidth=0.4)+
   coord_cartesian(expand = F)+
   labs(x="",y=lab_pm25,col="")+
   scale_x_date(date_labels = "%Y",
@@ -166,95 +174,37 @@ df_fig %>%
   guides(col=guide_legend(
     keywidth=0.1,
     keyheight=0.1,
-    default.unit="cm")
+    default.unit="cm",
+    override.aes = list(alpha=1, linewidth=c(0.6,rep(0.35,7),0.25))) # linewidth for legend
   )
-
-ggsave(sprintf("Figures/Timeseries_highlight_2.png"),
-       last_plot(),
+p
+ggsave(sprintf(fig_name,"highlight_pm"),p,
        units="cm",dpi=500,
        width = 14.8, # full width
        height =6.1)
 
-## Same but for MR -----
+## Same but for MR and temp-----
 
-df_fig <- df %>% 
-  mutate(pm25_exposure=MR_all_cause) %>% 
-  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
-  mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% # order by month
-  arrange(count_month) %>% arrange(codigo_comuna) %>% 
-  mutate(nombre=str_to_title(NOM_COMUNA) %>% 
-           str_replace("í","i") %>% str_replace("ó","o"))
-
-# get national mean
-df_mean <- df_fig %>% 
-  mutate(pm_pop=pm25_exposure*pop75) %>% 
-  group_by(date) %>% 
-  reframe(pm_pop=sum(pm_pop),pop75=sum(pop75)) %>% 
-  mutate(pm25_exposure=pm_pop/pop75, nombre="Chile mean",
-         commune=999,
-         pm_pop=NULL,pop75=NULL) %>% ungroup()
-
-# highlight communes
-selected_coms <- c(
-  2101, # Antofagasta
-  5101, # Valparaiso
-  13101, # Santiago
-  9101, # Temuco
-  8101, # Concepcion
-  12101 # Punta Areas
-)
-
-category_colors <- c("Other communes" = "#CCCCCC",
-                     "Chile mean" = "#DE2D26",
-                     "Antofagasta" = "#e377c2", 
-                     "Santiago" = "#2ca02c",
-                     "Valparaiso" = "#9467bd",
-                     "Temuco" = "#ff7f0e",
-                     "Concepcion" = "#8c564b",
-                     "Punta Arenas"="#1f77b4")
-legend_order <- c("Other communes",
-                  "Antofagasta", 
-                  "Santiago",
-                  "Valparaiso",
-                  "Temuco",
-                  "Concepcion",
-                  "Punta Arena",
-                  "Chile mean")
-
-
-df_fig %>% 
-  mutate(nombre="Other communes") %>% 
-  ggplot(aes(date,pm25_exposure,group=commune))+
-  geom_line(alpha=.25,linewidth=.05,
-            aes(col=nombre)
-  )+
-  geom_line(data=filter(df_fig, commune %in% selected_coms),
-            aes(col=nombre),linewidth=0.15)+
-  geom_line(data=df_mean,linewidth=0.4,aes(col=nombre))+
-  coord_cartesian(expand = F,ylim=c(0,20))+
-  labs(x="",y=lab_mr,col="")+
-  scale_x_date(date_labels = "%Y",
-               breaks = seq(ymd("2002-01-01"), ymd("2020-12-31"), by = "2 year"),  # Set desired date breaks
-               limits = c(ymd("2002-01-01"), ymd("2023-12-31")))+
-  # scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
-  scale_color_manual(values = category_colors,
-                     breaks = legend_order,
-                     labels = legend_order) + # Manually set colors
-  theme_bw(12)+
-  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
-        legend.position = c(0.9,0.3),
-        legend.text = element_text(size=6))+
-  guides(col=guide_legend(
-    keywidth=0.1,
-    keyheight=0.1,
-    default.unit="cm")
-  )
-
-ggsave(sprintf("Figures/Timeseries_highlight_mr.png"),
-       last_plot(),
+p_mr <- p+aes(y=MR_all_cause)+labs(y=lab_mr)
+p_mr
+ggsave(sprintf(fig_name,"highlight_mr"),p_mr,
        units="cm",dpi=500,
        width = 14.8, # full width
        height =6.1)
+
+p_mr2 <- p_mr+ylim(0,20)
+ggsave(sprintf(fig_name,"highlight_mr2"),p_mr2,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height =6.1)
+
+p_temp <- p+aes(y=landTemp)+labs(y=lab_temp)
+p_temp
+ggsave(sprintf(fig_name,"highlight_temp"),p_temp,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height =6.1)
+
 
 
 
