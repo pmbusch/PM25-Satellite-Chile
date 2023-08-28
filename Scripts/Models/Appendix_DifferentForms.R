@@ -12,8 +12,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 source("Scripts/Functions.R",encoding="UTF-8")
 
 # Load Panel Data ----
-df <- read.delim("Data/panelData.csv",sep=";")
-# df <- read.delim("Data/panelData_65.csv",sep=";") # 65+ deaths
+df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
+# df <- read.delim("Data/Panel Data/panelData_65.csv",sep=";") # 65+ deaths
 
 df <- df %>% 
   mutate(year_quarter=paste0(year,"-",quarter)) %>% 
@@ -99,17 +99,17 @@ models_nb_res %>%
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
   # scale_color_manual(values = c("black", "red"), labels = c(F, T))+
-  labs(caption="Model: MR ~ PM2.5+T°+Commune+Year:Quarter",x="",
-       y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
-  # y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+  labs(x="",
+       y=lab_rr)+
   # Modify theme to look good
-  theme_bw(8)+
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        axis.title.x = element_text(size=7,hjust=1),
         legend.position = "none")
 
 ggsave("Figures/Model/Model_Method.png", ggplot2::last_plot(),
-       # ggsave("Figures//Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
+       # ggsave("Figures/Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 

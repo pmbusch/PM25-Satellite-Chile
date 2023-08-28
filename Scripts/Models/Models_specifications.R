@@ -90,52 +90,120 @@ models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb8,"Region*Year+Quarter")
 # year + quarter -landTemp
 mod_nb9 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+year_quarter+commune+
                     offset(log(pop75)), data = df,na.action=na.omit)
-models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb9,"No Temperature+Year+Quarter"))
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb9,"No Temperature+Year-Quarter"))
 
 # Land Temp Squared year +quarter
 mod_nb10 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+I(landTemp^2)+year_quarter+commune+
                     offset(log(pop75)), data = df,na.action=na.omit)
-models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb10,"T + T^2+Year+Quarter"))
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb10,"T + T^2+Year-Quarter"))
 
 # Temp spline
 library(splines)
 mod_nb11 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+ns(landTemp, df = 3)+year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
-models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb11,"Spline Temperature+Year+Quarter"))
+models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb11,"Spline Temperature+Year-Quarter"))
 
 
 # save results
 write.csv(models_nb_res,"Data/Models/modelSpecResults.csv",row.names = F)
 models_nb_res <- read.csv("Data/Models/modelSpecResults.csv")
 
+models_nb_res$name %>% unique()
+cat_levels <- c("Time fixed effects",
+                "Region interaction",
+                "Temperature term")
+
+order_models <- tibble(name=c(
+  "Year*Month",
+  "Year+Month",
+  "Year*Quarter",
+  "Year*Quarter+Month",
+  "Year+Quarter",
+  "Year+Quarter+Month",
+  "Region*Quarter",
+  "Region*Quarter+Year*Month",
+  "Region*Quarter+Year+Month",
+  "Region*Year+Quarter",
+  "No Temperature+Year-Quarter",
+  "T + T^2+Year-Quarter",
+  "Spline Temperature+Year-Quarter"),
+  category=c(rep(cat_levels[1],6),
+             rep(cat_levels[2],4),
+             rep(cat_levels[3],3)))
+order_models$order_n <- 1:nrow(order_models)
+
+
+# put title top
+# https://stackoverflow.com/questions/70369558/two-column-facet-grid-with-strip-labels-on-top
+library(gtable)
+library(grid)
+library(gridExtra)
+f.TitleTop <- function(ggObject){
+  
+  gt <- ggplotGrob(ggObject)
+  panels <-c(subset(gt$layout, grepl("panel", gt$layout$name), se=t:r))
+  for(i in rev(panels$t-1)) {
+    gt = gtable_add_rows(gt, unit(1.2, "lines"), i)
+  }
+  panels <-c(subset(gt$layout, grepl("panel", gt$layout$name), se=t:r))
+  strips <- c(subset(gt$layout, grepl("strip-r", gt$layout$name), se=t:r))
+  stripText = gtable_filter(gt, "strip-r")
+  for(i in 1:length(strips$t)) {
+    gt = gtable_add_grob(gt, stripText$grobs[[i]]$grobs[[1]], t=panels$t[i]-1, l=5)
+  }
+  gt = gt[,-6]
+  # for(i in panels$t) { # remove for the all figure for the article, for some reason it interfer with the sec. axis
+  #   gt$heights[i-1] = unit(1.2, "lines")
+  #   gt$heights[i-2] = unit(0.2, "lines")
+  # }
+  return(gt)
+}
+
+
 # Figure 
-models_nb_res %>% 
-  mutate(rowname=1:nrow(models_nb_res)) %>%
-  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
+p <- models_nb_res %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>% 
+  left_join(order_models) %>% 
+  mutate(category=factor(category,levels=cat_levels)) %>% 
+  # name modification
+  mutate(name=name %>% 
+           str_replace_all("Year\\*Month","Year-Month") %>% 
+           str_replace_all("Year\\*Quarter","Year-Quarter") %>% 
+           str_replace("T \\+ T\\^2","T°+T° squared") %>% 
+           str_replace_all("\\+"," + ")) %>% 
+  # mutate(rowname=1:nrow(models_nb_res)) %>%
   filter(param=="pm25Exp_10ug") %>%
   # filter(param=="landTemp") %>%
-ggplot(aes(reorder(name,rowname,decreasing=T),rr))+
+ggplot(aes(reorder(name,order_n,decreasing=T),rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
   geom_point(size=1,aes(col=signif))+
   # geom_point(size=1,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
-  geom_vline(xintercept = 3.5, linetype="dashed",col="grey",linewidth=0.1)+
+  # geom_vline(xintercept = c(3.5,7.5), linetype="dashed",col="grey",linewidth=0.3)+
   coord_flip()+
+  # facet_wrap(~category,ncol=1,scales = "free_y")+
+  facet_grid(category~.,scales = "free_y",space = "free")+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   labs(title=expression(paste("Base Model: MR ~ ",PM[2.5],"+T°+Commune+...","")),
        x="Additional term",
        y=lab_rr)+
-       # y=expression(paste("Percentage change in Mortality rate by 1° Celsius")))+
+       # y=lab_rr_temp)+
   # Modify theme to look good
   theme_bw(12)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        axis.title.y=element_text(angle=0,margin=margin(r=-60)),
+        axis.title.y=element_text(angle=0,vjust=1.025,margin=margin(r=-80)),
+        axis.title.x = element_text(size=10,hjust=1),
+        # strip.text = element_text(size = 8,angle=90),
+        strip.text.y = element_text(angle = 0),
         legend.position = "none")
 
-ggsave("Figures/Model/Model_Specifications.png", ggplot2::last_plot(),
-# ggsave("Figures/Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
+gt <- f.TitleTop(p)
+grid.newpage();grid.draw(gt)
+
+ggsave("Figures/Model/Model_Specifications.png",gt,
+# ggsave("Figures/Model/Model_Specifications_Temp.png",gt,
        units="cm",dpi=500,
        # width = 1068/3.7795275591, # pixel to mm under dpi=300
        # height = 664/3.7795275591)

@@ -132,7 +132,7 @@ selected_coms <- c(
   12101 # Punta Areas
 )
 
-category_colors <- c("Other communes" = "#808080",
+category_colors <- c("Other communes" = "#B0B0B0",
                      "Chile mean" = "#DE2D26",
                      "Antofagasta" = "#e377c2", 
                      "Santiago" = "#2ca02c",
@@ -141,6 +141,18 @@ category_colors <- c("Other communes" = "#808080",
                      "Concepcion" = "#8c564b",
                      "Coyhaique" = "#17becf",
                      "Punta Arenas"="#1f77b4")
+
+# reds <- brewer.pal(n=7,"Reds")
+# category_colors <- c("Other communes" = "#B0B0B0",
+#                      "Chile mean" = "#DE2D26",
+#                      "Antofagasta" = reds[1], 
+#                      "Santiago" = reds[2],
+#                      "Valparaiso" = reds[3],
+#                      "Temuco" = reds[4],
+#                      "Concepcion" = reds[5],
+#                      "Coyhaique" = reds[6],
+#                      "Punta Arenas"=reds[7])
+
 
 legend_order <- c("Chile mean",
                   "Antofagasta", 
@@ -168,9 +180,12 @@ p <- df_fig %>%
                      breaks = legend_order,
                      labels = legend_order) + # Manually set colors
   theme_bw(12)+
-  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
-        legend.position = c(0.9,0.3),
-        legend.text = element_text(size=6))+
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        legend.position = c(0.92,0.3),
+        legend.text = element_text(size=7))+
   guides(col=guide_legend(
     keywidth=0.1,
     keyheight=0.1,
