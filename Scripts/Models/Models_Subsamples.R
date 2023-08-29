@@ -298,11 +298,11 @@ results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75
 # results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)")
 results[[12]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
 results[[13]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
-results[[14]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="I Quantile Income (below $3,182)")
-results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="II Quantile Income ($3,182-3,577$)")
-results[[16]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="III Quantile Income ($3,577-$4,138)")
-results[[17]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="IV Quantile Income ($4,138-$4,961)")
-results[[18]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="V Quantile Income (above $4,961)")
+results[[14]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="I Quintile Income (below $3,182)")
+results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="II Quintile Income ($3,182-3,577$)")
+results[[16]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="III Quintile Income ($3,577-$4,138)")
+results[[17]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="IV Quintile Income ($4,138-$4,961)")
+results[[18]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="V Quintile Income (above $4,961)")
 results[[19]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
                                       MR_all_cause=MR_cardioRespiratory),name="Cardiorespiratory cause")
 results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
@@ -363,16 +363,16 @@ res <- read.csv("Data/Models/modelResults.csv")
 # res <- read.csv("Data/Models/modelResults_65.csv")
 
 fig_name <- "Figures/Model/%s.png"
-fig_name <- sprintf(fig_name,"Models_Subsample")
+# fig_name <- sprintf(fig_name,"Models_Subsample")
 # fig_name <- sprintf(fig_name,"Models_Subsample65")
-# fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
+fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 # fig_name <- sprintf(fig_name,"Models_Subsample65_Temp")
 
 # Calculate RR and C.I. -----
 rows <- res %>% filter(param=="pm25Exp_10ug") %>% nrow()
 x <- res %>% 
-  filter(param=="pm25Exp_10ug") %>%
-  # filter(param=="landTemp") %>%
+  # filter(param=="pm25Exp_10ug") %>%
+  filter(param=="landTemp") %>%
   mutate(rr=exp(est)*100-100,
          rr_low=exp(est-1.96*se)*100-100, # by the huge number of n, the t-stat converges to 1.96 for 5%
          rr_high=exp(est+1.96*se)*100-100) %>% 
@@ -403,9 +403,9 @@ heterogen <- c("Heterogeneity",
                "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)",
                # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)", #65+ case
                "Urban Commune","Rural Commune (>30% share poulation)",
-               "I Quantile Income (below $3,182)","II Quantile Income ($3,182-3,577$)",
-               "III Quantile Income ($3,577-$4,138)","IV Quantile Income ($4,138-$4,961)",
-               "V Quantile Income (above $4,961)")
+               "I Quintile Income (below $3,182)","II Quintile Income ($3,182-3,577$)",
+               "III Quintile Income ($3,577-$4,138)","IV Quintile Income ($4,138-$4,961)",
+               "V Quintile Income (above $4,961)")
 other_causes <- c("Other Mortality Causes",
                   "Cardiorespiratory cause","Cardiovascular cause",
                   "Respiratory cause","All-cause excluding Cardiorespiratory",

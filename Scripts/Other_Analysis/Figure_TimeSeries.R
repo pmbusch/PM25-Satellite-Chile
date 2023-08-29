@@ -18,6 +18,8 @@ df %>% dplyr::select(pm25_exposure,landTemp) %>% skimr::skim()
 df$pm25_exposure %>% quantile(c(0.05,0.95))
 df$landTemp %>% quantile(c(0.05,0.95))
 
+# df %>% group_by(commune) %>% reframe(pm25=mean(pm25_exposure)) %>% view()
+
 
 # Figure v1: Spagetti ------
 names(df)
