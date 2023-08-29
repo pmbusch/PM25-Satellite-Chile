@@ -132,26 +132,22 @@ selected_coms <- c(
   12101 # Punta Areas
 )
 
-category_colors <- c("Other communes" = "#B0B0B0",
-                     "Chile mean" = "#DE2D26",
-                     "Antofagasta" = "#e377c2", 
-                     "Santiago" = "#2ca02c",
-                     "Valparaiso" = "#9467bd",
-                     "Temuco" = "#ff7f0e",
-                     "Concepcion" = "#8c564b",
-                     "Coyhaique" = "#17becf",
-                     "Punta Arenas"="#1f77b4")
 
-# reds <- brewer.pal(n=7,"Reds")
-# category_colors <- c("Other communes" = "#B0B0B0",
-#                      "Chile mean" = "#DE2D26",
-#                      "Antofagasta" = reds[1], 
-#                      "Santiago" = reds[2],
-#                      "Valparaiso" = reds[3],
-#                      "Temuco" = reds[4],
-#                      "Concepcion" = reds[5],
-#                      "Coyhaique" = reds[6],
-#                      "Punta Arenas"=reds[7])
+# colors_cat <- pals::glasbey(7)
+# colors_cat <- viridis::cividis(7)
+colors_cat <- viridis::turbo(7)
+# colors_cat <- viridis::magma(7)
+category_colors <- c("Other communes" = "#B0B0B0",
+                     "Chile mean" = "#1A1A1A",
+                     "Antofagasta" = colors_cat[1], 
+                     "Valparaiso" = colors_cat[2],
+                     "Santiago" = colors_cat[3],
+                     "Concepcion" = colors_cat[4],
+                     "Temuco" = colors_cat[5],
+                     "Coyhaique" = colors_cat[6],
+                     "Punta Arenas"=colors_cat[7])
+
+
 
 
 legend_order <- c("Chile mean",
@@ -171,10 +167,10 @@ p <- df_fig %>%
   geom_line(data=filter(df_fig, commune %in% selected_coms),linewidth=0.2)+
   geom_line(data=df_mean,linewidth=0.4)+
   coord_cartesian(expand = F)+
-  labs(x="",y=lab_pm25,col="")+
+  labs(x="",y=lab_pm25,col="  Communes (N to S)")+
   scale_x_date(date_labels = "%Y",
                breaks = seq(ymd("2002-01-01"), ymd("2020-12-31"), by = "2 year"),  # Set desired date breaks
-               limits = c(ymd("2002-01-01"), ymd("2023-12-31")))+
+               limits = c(ymd("2002-01-01"), ymd("2024-06-30")))+
   # scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
   scale_color_manual(values = category_colors,
                      breaks = legend_order,
@@ -184,13 +180,15 @@ p <- df_fig %>%
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
-        legend.position = c(0.92,0.3),
+        legend.position = c(0.92,0.5),
+        legend.title = element_text(size=7, vjust=-24,face = "bold"), # title pos
         legend.text = element_text(size=7))+
   guides(col=guide_legend(
     keywidth=0.1,
-    keyheight=0.1,
+    # keyheight=0.1,
+    keyheight = c(1.2,rep(0.1,7),0.6),
     default.unit="cm",
-    override.aes = list(alpha=1, linewidth=c(0.6,rep(0.35,7),0.25))) # linewidth for legend
+    override.aes = list(alpha=1, linewidth=c(0.8,rep(0.35,7),0.25))) # linewidth for legend
   )
 p
 ggsave(sprintf(fig_name,"highlight_pm"),p,
@@ -207,11 +205,11 @@ ggsave(sprintf(fig_name,"highlight_mr"),p_mr,
        width = 14.8, # full width
        height =6.1)
 
-p_mr2 <- p_mr+ylim(0,20)
-ggsave(sprintf(fig_name,"highlight_mr2"),p_mr2,
-       units="cm",dpi=500,
-       width = 14.8, # full width
-       height =6.1)
+# p_mr2 <- p_mr+ylim(0,20)
+# ggsave(sprintf(fig_name,"highlight_mr2"),p_mr2,
+#        units="cm",dpi=500,
+#        width = 14.8, # full width
+#        height =6.1)
 
 p_temp <- p+aes(y=landTemp)+labs(y=lab_temp)
 p_temp
