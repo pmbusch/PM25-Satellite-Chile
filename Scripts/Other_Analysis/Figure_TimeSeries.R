@@ -21,6 +21,7 @@ df$landTemp %>% quantile(c(0.05,0.95))
 # df %>% group_by(commune) %>% reframe(pm25=mean(pm25_exposure)) %>% view()
 
 
+
 # Figure v1: Spagetti ------
 names(df)
 # create 3 plots

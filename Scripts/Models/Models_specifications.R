@@ -199,6 +199,8 @@ ggplot(aes(reorder(name,order_n,decreasing=T),rr))+
         strip.text.y = element_text(angle = 0),
         legend.position = "none")
 
+
+
 gt <- f.TitleTop(p)
 grid.newpage();grid.draw(gt)
 

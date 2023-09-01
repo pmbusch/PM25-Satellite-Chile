@@ -298,11 +298,11 @@ results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75
 # results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)")
 results[[12]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
 results[[13]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
-results[[14]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="I Quintile Income (below $3,182)")
-results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="II Quintile Income ($3,182-3,577$)")
-results[[16]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="III Quintile Income ($3,577-$4,138)")
-results[[17]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="IV Quintile Income ($4,138-$4,961)")
-results[[18]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="V Quintile Income (above $4,961)")
+results[[14]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="Lowest income quintile (below $3,182)")
+results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="2nd income quintile ($3,182-3,577$)")
+results[[16]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="3rd income quintile ($3,577-$4,138)")
+results[[17]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="4th income quintile ($4,138-$4,961)")
+results[[18]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="Highest income quintile (above $4,961)")
 results[[19]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
                                       MR_all_cause=MR_cardioRespiratory),name="Cardiorespiratory cause")
 results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
@@ -363,16 +363,16 @@ res <- read.csv("Data/Models/modelResults.csv")
 # res <- read.csv("Data/Models/modelResults_65.csv")
 
 fig_name <- "Figures/Model/%s.png"
-# fig_name <- sprintf(fig_name,"Models_Subsample")
+fig_name <- sprintf(fig_name,"Models_Subsample")
 # fig_name <- sprintf(fig_name,"Models_Subsample65")
-fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
+# fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 # fig_name <- sprintf(fig_name,"Models_Subsample65_Temp")
 
 # Calculate RR and C.I. -----
 rows <- res %>% filter(param=="pm25Exp_10ug") %>% nrow()
 x <- res %>% 
-  # filter(param=="pm25Exp_10ug") %>%
-  filter(param=="landTemp") %>%
+  filter(param=="pm25Exp_10ug") %>%
+  # filter(param=="landTemp") %>%
   mutate(rr=exp(est)*100-100,
          rr_low=exp(est-1.96*se)*100-100, # by the huge number of n, the t-stat converges to 1.96 for 5%
          rr_high=exp(est+1.96*se)*100-100) %>% 
@@ -403,9 +403,9 @@ heterogen <- c("Heterogeneity",
                "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)",
                # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)", #65+ case
                "Urban Commune","Rural Commune (>30% share poulation)",
-               "I Quintile Income (below $3,182)","II Quintile Income ($3,182-3,577$)",
-               "III Quintile Income ($3,577-$4,138)","IV Quintile Income ($4,138-$4,961)",
-               "V Quintile Income (above $4,961)")
+               "Lowest income quintile (below $3,182)","2nd income quintile ($3,182-3,577$)",
+               "3rd income quintile ($3,577-$4,138)","4th income quintile ($4,138-$4,961)",
+               "Highest income quintile (above $4,961)")
 other_causes <- c("Other Mortality Causes",
                   "Cardiorespiratory cause","Cardiovascular cause",
                   "Respiratory cause","All-cause excluding Cardiorespiratory",
@@ -437,7 +437,7 @@ range(y$rr_low,na.rm=T);range(y$rr_high,na.rm=T)
 max_value <- ceiling(max(y$rr_high,na.rm=T))
 temp_adj <- 0
 # temp_adj <- 2 # for temp
-ggplot(y,aes(var,rr))+
+p <- ggplot(y,aes(var,rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
   geom_point(size=0.6,aes(col=signif))+
   # geom_point(size=0.6,col="red")+ # all T are significant
@@ -464,7 +464,7 @@ ggplot(y,aes(var,rr))+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   theme_bw(font_size)+
   # add text data
-  geom_text(y=-14-temp_adj,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8)+
+  geom_text(y=-14-temp_adj,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(data=filter(y,!title,!pm25_var),y=-14-temp_adj,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8)+
   # special rows for pm2.5
@@ -475,16 +475,16 @@ ggplot(y,aes(var,rr))+
   # titles in bold
   geom_text(data=filter(y,title),y=-14-temp_adj,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(y=-7-temp_adj,x=rows+1,label="n",size=font_size*5/14 * 0.8)+
+  geom_text(y=-7-temp_adj,x=rows+1,label="n",size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(y=-7-temp_adj,aes(label=N),size=font_size*5/14 * 0.8)+
-  geom_text(y=-5-temp_adj,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8)+
+  geom_text(y=-5-temp_adj,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(y=-5-temp_adj,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
-  geom_text(y=-2.5,x=rows+1,size=font_size*5/14 * 0.8,
-  label=expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]")))+
+  geom_text(y=-2.5,x=rows+1,size=font_size*5/14 * 0.8,fontface = "bold",
+  label=expression(bold(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))+
   geom_text(y=-2.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
-  # geom_text(y=-4.5,x=rows+1,label="Mean T [°C]",size=font_size*5/14 * 0.8)+
+  # geom_text(y=-4.5,x=rows+1,label="Mean T [°C]",size=font_size*5/14 * 0.8,fontface = "bold")+
   # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
-  geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8)+
+  geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(y=max_value+1,aes(label=ci),size=font_size*5/14 * 0.8)+
   # Modify theme to look good
   theme(panel.grid.major = element_blank(),
@@ -497,8 +497,14 @@ ggplot(y,aes(var,rr))+
         axis.title.x = element_text(hjust = 0.9),
         axis.ticks.y = element_blank())
 
+# Solution to draw x axis title in two lines
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, x = 0.7, y = 0.07,size = font_size)+
+  cowplot::draw_label(lab_rr_line2, x = 0.7, y = 0.035,size = font_size)
+  # cowplot::draw_label(lab_rr_line2_temp, x = 0.7, y = 0.035,size = font_size)
+
 ggsave(fig_name, ggplot2::last_plot(),
-       units="cm",dpi=500,
+       units="cm",dpi=600,
        width=8.7*2,height=8.7)
 
 # EoF

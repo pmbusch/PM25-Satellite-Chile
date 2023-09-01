@@ -9,8 +9,12 @@ lab_temp <- "Land temperature [°C]"
 lab_mr <- "75+ all-cause monthly \n mortality rate [per 1,000]"
 lab_mr2 <- "75+ all-cause monthly mortality rate [per 1,000]"
 lab_rr <- expression(paste("Percentage change in monthly mortality rate for a 10 ",mu,"g/",m^3," increase in ",PM[2.5],""))
-lab_rr_temp <- expression(paste("Percentage change in monthly mortality rate for a 1° increase in Celsius"))
-  
+lab_rr_temp <- expression(paste("Percentage change in monthly mortality rate for a 1°C increase in temperature"))
+
+lab_rr_line1 <- "Percentage change in monthly mortality"
+lab_rr_line2 <- expression(paste("rate for a 10 ",mu,"g/",m^3," increase in ",PM[2.5],""))
+lab_rr_line2_temp <- "rate for a 1°C increase in temperature"
+
 
 # Function to get data from fitted models ----
 getModelInfo <- function(mod,name,ols=F,baseRate=0, robustSE=T, data_df=df){

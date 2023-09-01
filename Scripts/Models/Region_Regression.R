@@ -77,7 +77,7 @@ df_fig <- df_fig %>%
   mutate(region=factor(region,levels=rev(region_levels2)))
 
 # Figure
-df_fig %>%
+p <- df_fig %>%
   mutate(rr_base_low=rr_ci[1],rr_base_high=rr_ci[2]) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(x = region, y = rr)) +
@@ -110,8 +110,14 @@ df_fig %>%
         # axis.title.y=element_text(angle=0,vjust = -0.05,hjust=1),
         axis.title.y=element_text(angle=0,vjust=1.015,margin=margin(r=-14)),
         panel.grid.major = element_blank(),
-        axis.title.x = element_text(size=7,hjust=1),
+        # axis.title.x = element_text(size=7,hjust=1),
         panel.grid.minor = element_blank())
+
+# Solution to draw x axis title in two lines
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, x = 0.5, y = 0.07,size = 8.3)+
+  cowplot::draw_label(lab_rr_line2, x = 0.5, y = 0.035,size = 8.3)
+# cowplot::draw_label(lab_rr_line2_temp, x = 0.5, y = 0.035,size = 8.3)
 
 fig_name <- "RegionModels"
 # fig_name <- "RegionModelsTemp"
@@ -128,7 +134,7 @@ df_fig %>%
   summarise(rr=mean(rr)) #4.8%
 
 
-# Average exposure by region
+## Average exposure by region ------
 df_stats <- df %>% 
   mutate(region=region %>% str_replace("13","M")) %>%
   left_join(reg_codes, by=c("region"="name")) %>% 
@@ -143,6 +149,40 @@ df_stats <- df %>%
   mutate(pm25=pm25/pop75,
          mr=death/pop75*1000,
          pop75=pop75/18/12) # pop in total
+
+
+## Mortality rate by region -----
+
+# Mortality rate
+a <- df %>% 
+  mutate(region=region %>% str_replace("13","M")) %>%
+  rename(region1=region) %>% 
+  left_join(reg_codes, by=c("region1"="name")) %>% 
+  mutate(region=factor(region,levels=rev(region_levels2))) %>% 
+  # group_by(region,commune) %>% 
+  # group_by(region,year) %>%
+  group_by(region) %>%
+  reframe(pop75=sum(pop75),death_count_all_cause=sum(death_count_all_cause)) %>% 
+  ungroup() %>% 
+  # mutate(date=as.Date(paste(year,"01","01",sep="-"),"%Y-%m-%d")) %>% 
+  mutate(MR_all_cause=death_count_all_cause/pop75*1e3) %>% 
+  arrange(desc(region))
+a
+a %>% 
+  mutate(labe=paste0(round(MR_all_cause,1),"")) %>% 
+  ggplot(aes(region,MR_all_cause,fill=region))+
+  geom_col()+
+  geom_text(aes(label=labe))+
+  # facet_wrap(~year)+
+  # facet_grid(region~.,scales = "free_y",space = "free")+
+  coord_flip()
+
+ggplot(a,aes(date,MR_all_cause,col=fct_rev(region),group=fct_rev(region)))+
+  geom_line()+
+  geom_text(data=filter(a,year==2019),aes(label=region),
+            nudge_x = 2)+
+  scale_color_viridis_d(option = "turbo")
+
 
 ## IDEA: Create table as other sub samples
 

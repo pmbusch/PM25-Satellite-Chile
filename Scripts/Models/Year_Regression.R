@@ -65,7 +65,7 @@ rr_ci <- getModelInfo(mod_base,"Base") %>%
   filter(param==param_int) %>% dplyr::select(rr_low,rr_high)
 
 # Figure
-df_fig %>%
+p <- df_fig %>%
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   mutate(year=as.numeric(name)) %>% 
   ggplot(aes(x = year, y = rr)) +
@@ -75,32 +75,40 @@ df_fig %>%
             fill = "brown",alpha=0.01)+
   # by year
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
-  # geom_point(size=1, aes(col=signif)) +
-  geom_point(size=1,col="red")+ # all T are significant
+  geom_point(size=1, aes(col=signif)) +
+  # geom_point(size=1,col="red")+ # all T are significant
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
-  scale_y_continuous(breaks = seq(-2.5, 0, by = 0.5),
-                     limits = c(-2.6,0.45))+ # temp
+  # scale_y_continuous(breaks = seq(-2.5, 0, by = 0.5),
+  #                    limits = c(-2.6,0.45))+ # temp
   # annotation
-  # annotate("text", x = 2017.1, y = rr_base+1.5, label = "Full model estimate",size=8*5/14 * 0.8) +
-  # geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
-  #              arrow = arrow(length = unit(0.15, "cm"))) +
+  annotate("text", x = 2017.1, y = rr_base+1.5, label = "Full model estimate",size=8*5/14 * 0.8) +
+  geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
+               arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
   # temp - uncomment
-  annotate("text", x = 2017.1, y = rr_base+0.7, label = "Full model estimate",size=8*5/14 * 0.8) +
-  geom_segment(aes(x = 2018, y = rr_base+0.6, xend = 2018, yend = rr_base+0.05),
-               arrow = arrow(length = unit(0.15, "cm"))) +
+  # annotate("text", x = 2017.1, y = rr_base+0.7, label = "Full model estimate",size=8*5/14 * 0.8) +
+  # geom_segment(aes(x = 2018, y = rr_base+0.6, xend = 2018, yend = rr_base+0.05),
+  #              arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 0.3, size=14*5/14 * 0.8,label = "A")+
   # labs(x = "",y = lab_rr)+
   labs(x="",y=lab_rr_temp)+
   theme_bw(10)+
   theme(legend.position = "none",
-        axis.title.y = element_text(size = 7,hjust=1),
+        axis.title.y = element_text(size = 8.3,hjust=1),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
+p
+
+# Solution to draw x axis title in two lines
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, y = 0.5, x = 0.035,size = 8.3,angle = 90)+
+  cowplot::draw_label(lab_rr_line2, y = 0.5, x = 0.07,size = 8.3,angle = 90)
+  # cowplot::draw_label(lab_rr_line2_temp, y = 0.5, x = 0.07,size = 8.3,angle=90)
+
 fig_name <- "YearModels"
-fig_name <- "YearModels_Temp"
+# fig_name <- "YearModels_Temp"
 
 ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
        units="cm",dpi=500,

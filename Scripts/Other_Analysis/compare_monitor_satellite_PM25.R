@@ -236,8 +236,8 @@ p_year <- df %>%
   geom_point(alpha=.8)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
-  labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
-       y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
+  labs(x=expression(paste("",PM[2.5]," Monitor [",mu,"g/",m^3,"]"),""), 
+       y=expression(paste("",PM[2.5]," Satellite [",mu,"g/",m^3,"]"),""), 
        color="Year (correlation)")+
   theme_bw(9)+
   # scale_color_manual(values = brewer.pal(7, "Blues"),limits = c(0.3, 1)) +
@@ -315,8 +315,8 @@ p_region <- ggplot(df,aes(value,pm25_satellite,col=region_cor))+
   geom_point(alpha=.6)+
   # geom_smooth()+
   geom_abline(intercept = 0, slope = 1, linetype = "dashed")+
-  labs(x=expression(paste("PM2.5 Monitor [",mu,"g/",m^3,"]"),""), 
-       y=expression(paste("PM2.5 Satellite [",mu,"g/",m^3,"]"),""), 
+  labs(x=expression(paste("",PM[2.5]," Monitor [",mu,"g/",m^3,"]"),""), 
+       y=expression(paste("",PM[2.5]," Satellite [",mu,"g/",m^3,"]"),""), 
        color="Region (correlation)")+
   theme_bw(9)+
   # scale_color_viridis_d(option = "turbo")+
