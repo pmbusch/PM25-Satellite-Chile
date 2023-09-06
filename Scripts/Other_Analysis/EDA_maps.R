@@ -41,17 +41,32 @@ df.map.mortality.na <- df.map.mortality %>% mutate(death_rate_1000 = ifelse(tota
 
 df.map.mortality.na %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill = death_rate_1000), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill = log(death_rate_1000)), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(
-    palette = "Oranges", trans = "reverse", # YlOrBr
-    na.value = "white"
+    palette = "Purples", trans = "reverse", # YlOrBr
+    na.value = "white", breaks = seq(2,5,0.5)
+  ) +
+  guides(fill = guide_legend(title = "75+ mortality per 1,000 log scale"))
+
+ggsave("Scripts/Other_Analysis/Figures-Paulo/death_rate_75_2019_na_log.png", width = 10, height = 10, dpi = 600)
+
+df.map.mortality.na <- df.map.mortality %>% mutate(death_rate_1000 = ifelse(death_rate_1000 >= 90, NA, death_rate_1000))
+
+df.map.mortality.na %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = death_rate_1000), lwd = 0.1) +
+  # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
+  theme_void() +
+  scale_fill_distiller(
+    palette = "Purples", trans = "reverse", # YlOrBr
+    na.value = "white", breaks = seq(0,80,15)
   ) +
   guides(fill = guide_legend(title = "75+ mortality per 1,000"))
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/death_rate_75_2019_na.png", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/death_rate_75_2019_na.png", width = 10, height = 10, dpi = 600)
 
 # df.pm25[df.pm25$NOM_REGION == "REGIÓN METROPOLITANA DE SANTIAGO",]
 
@@ -61,17 +76,17 @@ df.map.mortality.santiago <- df.map.mortality %>% filter(codigo_region == 13)
 
 df.map.mortality.santiago %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill = death_rate_1000), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill = death_rate_1000), lwd = 0.5) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(
-    palette = "Oranges", trans = "reverse", # YlOrBr
+    palette = "Purples", trans = "reverse", # YlOrBr
     na.value = "white"
   ) +
   guides(fill = guide_legend(title = "75+ mortality per 1,000"))
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/death_rate_75_santiago_2019.pdf", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/death_rate_75_santiago_2019.pdf", width = 10, height = 10, dpi = 600)
 
 # pm25exposure_commune.csv
 # pm25 exposure data
@@ -91,31 +106,29 @@ df.map.pm25 <- merge(df.pm25.2019.mean, new.mapa_comunas, by = "codigo_comuna", 
 # plot pm25 exposure by commune (average of 2019)
 df.map.pm25 %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
   guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
 
 
-
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_2019.png", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_2019.png", width = 10, height = 10, dpi = 600)
 
 # pm25 exposure data santiago
 df.map.pm25.santiago <- df.map.pm25 %>% filter(codigo_region == 13)
 
 df.map.pm25.santiago %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
   guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
 
 
-
-ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_santiago_2019.pdf", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_santiago_2019.pdf", width = 10, height = 10, dpi = 600)
 
 # age 75+
 df.map.age <- merge(df.map.pm25, df.map.mortality, by = "codigo_comuna", all.x = T)
@@ -134,14 +147,14 @@ df.map.age %>%
   guides(fill = guide_legend(title = "75+ population %"))
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/pop_75_percentage.png", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/pop_75_percentage.png", width = 10, height = 10, dpi = 600)
 
 # age 75+ santiago
 df.map.age.santiago <- df.map.age %>% filter(codigo_region.x == 13)
 
 df.map.age.santiago %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry.x, fill = pop_75), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry.x, fill = pop_75), lwd = 0.5) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(
@@ -150,7 +163,7 @@ df.map.age.santiago %>%
   ) +
   guides(fill = guide_legend(title = "75+ population %"))
 
-ggsave("Scripts/Other_Analysis/Figures-Paulo/pop_75_percentage_santiago.pdf", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/pop_75_percentage_santiago.pdf", width = 10, height = 10, dpi = 600)
 
 
 # landTemp_commune.csv
@@ -170,7 +183,7 @@ df.map.temp <- merge(df.temp.2019.mean, new.mapa_comunas, by = "codigo_comuna", 
 # plot land temperature by commune (average of 2019)
 df.map.temp %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill = landTemp), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill = landTemp), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Blues",
@@ -178,14 +191,14 @@ df.map.temp %>%
   guides(fill = guide_legend(title = "Mean Temperature [°C]"))
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/landTemp_2019.png", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/landTemp_2019.png", width = 10, height = 10, dpi = 600)
 
 # temperature data santiago
 df.map.temp.santiago <- df.map.temp %>% filter(codigo_region == 13)
 
 df.map.temp.santiago %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill = landTemp), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill = landTemp), lwd = 0.5) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Blues",
@@ -193,7 +206,7 @@ df.map.temp.santiago %>%
   guides(fill = guide_legend(title = "Mean Temperature [°C]"))
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/landTemp_santiago_2019.pdf", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/landTemp_santiago_2019.pdf", width = 10, height = 10, dpi = 600)
 
 # monitor location
 # open file monitor_coordinates.csv
@@ -208,7 +221,7 @@ df.monitor_site <- df.monitor %>%
 # plot monitor coordinates on the map add legend for site
 df.monitor_site %>%
   ggplot() +
-  geom_sf(data = df.map.pm25, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.05) +
+  geom_sf(data = df.map.pm25, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
   guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))+
   geom_point(aes(x = longitude, y = latitude, color="Monitor site"), alpha = 1, size = 1) +
@@ -216,14 +229,14 @@ df.monitor_site %>%
   theme_void() 
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_2019_monitor_site.png", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_2019_monitor_site.png", width = 10, height = 10, dpi = 600)
 
 # monitor location santiago
 df.monitor_site.santiago <- df.monitor_site %>% filter(region == "M")
 
 df.monitor_site.santiago %>%
   ggplot() +
-  geom_sf(data = df.map.pm25.santiago, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.05) +
+  geom_sf(data = df.map.pm25.santiago, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.5) +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
   guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))+
   geom_point(aes(x = longitude, y = latitude, color="Monitor site"), alpha = 1, size = 3) +
@@ -231,7 +244,7 @@ df.monitor_site.santiago %>%
   theme_void() 
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_2019_monitor_site_santiago.pdf", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_2019_monitor_site_santiago.pdf", width = 10, height = 10, dpi = 600)
 
 # map for 16 regions 
 mapa_regiones <- generar_regiones(mapa = new.mapa_comunas)
@@ -241,13 +254,13 @@ set.seed(44)
 
 mapa_regiones %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill=codigo_region), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill=codigo_region), lwd = 0.1) +
   scale_fill_manual(values=sample(my.palette)) +
   # scale_fill_brewer(my.palette) +
   theme_void()
 
 # save plot
-ggsave("Scripts/Other_Analysis/Figures-Paulo/chile_region_map.png", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/chile_region_map.png", width = 10, height = 10, dpi = 600)
 
 
 # Region map with pm25 exposure
@@ -262,11 +275,11 @@ df.map.pm25.region <- merge(df.pm25.2019.region.mean, mapa_regiones,
                             by.x = "REGION", by.y = "codigo_region", all.x = T)
 df.map.pm25.region %>%
   ggplot() +
-  geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.05) +
+  geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Reds", trans = "reverse") +
   guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
 
 
-ggsave("Scripts/Other_Analysis/Figures-Paulo/chile_region_pm25_map.png", width = 10, height = 10, dpi = 300)
+ggsave("Scripts/Other_Analysis/Figures-Paulo/chile_region_pm25_map.png", width = 10, height = 10, dpi = 600)
