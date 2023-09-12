@@ -36,14 +36,33 @@ rr_base <-  getModelInfo(mod_base,"Base") %>%
 # Loop --------
 # year
 regs <- df$region %>% unique()
+# regs <- df$commune %>% unique()
+# regs <- df$PROVINCIA %>% unique()
 all_mods <- data.frame()
 
 # one model for each commune
 for (x in regs){
+  
+  n_com <- filter(df,commune==x) %>% pull(commune) %>% unique() %>% length()
+  
+  if(n_com==1){
+    mod <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+
+                    offset(log(pop75)), na.action=na.omit,
+                  data = filter(df,region==x)) # filter by region
+                  # data = filter(df,commune==x)) # filter by comm
+                  # data = filter(df,PROVINCIA==x)) # by prov
+  } else{
   mod <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+commune+year_quarter+
                   offset(log(pop75)), na.action=na.omit,
                 data = filter(df,region==x)) # filter by region
+                # data = filter(df,commune==x)) # filter by comm
+                # data = filter(df,PROVINCIA==x)) # by prov
+  }
+  
+
   out <- getModelInfo(mod,x,data_df =filter(df,region==x))
+  # out <- getModelInfo(mod,x,data_df =filter(df,commune==x)) # by comm
+  # out <- getModelInfo(mod,x,data_df =filter(df,PROVINCIA==x)) # by prov
   all_mods <- rbind(all_mods,out)
   rm(out)
 }
@@ -193,11 +212,13 @@ df_fig %>%
   mutate(region=paste0("R",region)) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(x = pm25, y = rr)) +
+  geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
+  geom_rect(xmin=0,xmax=35,ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]), 
+            fill = "brown",alpha=0.01)+
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif))+
   ggrepel::geom_text_repel(aes(label=region),size=6*5/14 * 0.8)+
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_hline(yintercept = rr_base, linetype="dashed",col="red",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   # annotation
   annotate("text", x = 8, y = rr_base+7, label = "Full model estimate",size=8*5/14 * 0.8, hjust=0) +
@@ -214,6 +235,65 @@ df_fig %>%
 ggsave("Figures/Model/RegionModelsPM25.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+
+
+## Curve by commune ----
+# NEED TO RUN 327 MODELS, one for each commune
+
+
+df_stats2 <- df %>% 
+  mutate(pm25_pop=pop75*pm25_exposure) %>% 
+  group_by(commune) %>%
+  # group_by(PROVINCIA) %>% 
+  summarise(pm25=sum(pm25_pop),
+            pop75=sum(pop75),
+            death=sum(death_count_all_cause),
+            n=n()) %>% ungroup() %>% 
+  mutate(pm25=pm25/pop75,
+         mr=death/pop75*1000,
+         pop75=pop75/18/12) # pop in total
+
+df_fig %>%
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>% 
+  group_by(signif) %>% 
+  summarise(rr=mean(rr)) #4.8%
+
+df_fig %>%
+  rename(commune=name) %>%
+  # rename(PROVINCIA=name) %>% 
+  left_join(df_stats2) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
+  ggplot(aes(x = pm25, y = rr)) +
+  geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
+  geom_rect(xmin=0,xmax=40,ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]), 
+            fill = "brown",alpha=0.01)+
+  geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
+  geom_point(size=1, aes(col=signif))+
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  # annotation
+  annotate("text", x = 8, y = rr_base+7, label = "Full model estimate",size=8*5/14 * 0.8, hjust=0) +
+  geom_segment(aes(x = 10, y = rr_base+5.2, xend = 10, yend = rr_base+1.2),
+               arrow = arrow(length = unit(0.3, "cm"))) +
+  # stat_smooth(aes(col=signif),method = "lm", formula = y ~ x + I(x^2), 
+  #             linewidth = 0.5)+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), 
+              linewidth = 0.5)+
+  labs(x =lab_pm25,
+       y = lab_rr)+
+  coord_cartesian(ylim=c(-70,100))+
+  # coord_cartesian(ylim=c(-30,30))+
+  theme_bw(10)+
+  theme(legend.position = "none",
+        axis.title.y = element_text(size = 8),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+ggsave("Figures/Model/CommuneModelsPM25.png", ggplot2::last_plot(),
+# ggsave("Figures/Model/ProvinceModelsPM25.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7)
+
 
 # Scatter plot PM2.5 and T ----
 

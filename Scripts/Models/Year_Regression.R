@@ -35,21 +35,31 @@ rr_base <-  getModelInfo(mod_base,"Base") %>%
 # Loop --------
 # year
 yrs <- df$year %>% unique()
+# by groups of 4-5 years
+yrs <- list(c(2002, 2005), c(2006, 2010), c(2011, 2015), c(2016, 2019))
+# yrs <- list(c(2002, 2004), c(2005, 2007), c(2008, 2010), c(2011, 2013),c(2014,2016),c(2017,2019))
+
+
 all_mods <- data.frame()
 
 # one model for each commune
 for (x in yrs){
+  x_name <- if (length(x)==1) x else paste0(x[1],"-",x[2])
+  x <- if (length(x)==1) x else x[1]:x[2]
   mod <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+commune+year_quarter+
                   offset(log(pop75)), na.action=na.omit,
-                data = filter(df,year==x)) # filter by year
+                data = filter(df,year %in% x)) # filter by year
   
-  out <- getModelInfo(mod,x,data_df =filter(df,year==x))
+  out <- getModelInfo(mod,x_name,data_df =filter(df,year %in% x))
   all_mods <- rbind(all_mods,out)
-  rm(out)
+  rm(out,x_name)
 }
 
 write.csv(all_mods,"Data/Models/modelResults_year.csv",row.names = F)
+# write.csv(all_mods,"Data/Models/modelResults_year_group_3.csv",row.names = F) 
 all_mods <- read.csv("Data/Models/modelResults_year.csv")
+# all_mods <- read.csv("Data/Models/modelResults_year_group.csv")
+# all_mods <- read.csv("Data/Models/modelResults_year_group_3.csv")
 
 # Figure ------
 
@@ -67,24 +77,32 @@ rr_ci <- getModelInfo(mod_base,"Base") %>%
 # Figure
 p <- df_fig %>%
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
-  mutate(year=as.numeric(name)) %>% 
+  # mutate(year=as.numeric(name)) %>%
+  mutate(year=name) %>%
   ggplot(aes(x = year, y = rr)) +
   # base RR
   geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
-  geom_rect(xmin=2001,xmax=2020,ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]), 
-            fill = "brown",alpha=0.01)+
+  # geom_rect(xmin=2001,xmax=2020,
+  geom_rect(xmin=0,xmax=7, # for YEAR GROUPS
+            ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]),
+            fill = "brown",alpha=0.05)+ # A=0.05 FOR GROUP or 0.01 for year
   # by year
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif)) +
   # geom_point(size=1,col="red")+ # all T are significant
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
-  scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
+  # scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
   # scale_y_continuous(breaks = seq(-2.5, 0, by = 0.5),
   #                    limits = c(-2.6,0.45))+ # temp
   # annotation
-  annotate("text", x = 2017.1, y = rr_base+1.5, label = "Full model estimate",size=8*5/14 * 0.8) +
-  geom_segment(aes(x = 2018, y = rr_base+1.2, xend = 2019, yend = rr_base+0.2),
+  annotate("text", 
+           # x = 2017.1,
+           x=3.1, # for YEAR GROUPS
+           y = rr_base+1.4, label = "Full model estimate",size=8*5/14 * 0.8) +
+  geom_segment(aes(y = rr_base+1.2, yend = rr_base+0.2),
+               # x = 2018, xend = 2019,
+               x=3.1,xend=3.5,
                arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
   # temp - uncomment
@@ -97,6 +115,7 @@ p <- df_fig %>%
   theme_bw(10)+
   theme(legend.position = "none",
         axis.title.y = element_text(size = 8.3,hjust=1),
+        # axis.text.x = element_text(size = 6.5), # only for YEAR GROUP
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 p
@@ -108,6 +127,7 @@ cowplot::ggdraw(p+labs(y=" \n "))+
   # cowplot::draw_label(lab_rr_line2_temp, y = 0.5, x = 0.07,size = 8.3,angle=90)
 
 fig_name <- "YearModels"
+fig_name <- "YearModelsGroup"
 # fig_name <- "YearModels_Temp"
 
 ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),

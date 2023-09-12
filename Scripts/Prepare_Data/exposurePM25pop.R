@@ -39,6 +39,7 @@ regions <- 1:16
 regions <- paste0("R",ifelse(str_length(regions)==1,"0",""),regions)
 
 url_file_reg <- "D:/CENSO 2017/%s/%s"
+
 first <- T
 
 # Loop to all regions

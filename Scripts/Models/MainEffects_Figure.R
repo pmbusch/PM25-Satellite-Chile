@@ -208,6 +208,7 @@ write.csv(out2,"Data/Main Effects/Above75Model.csv",row.names = F)
 out <- read.csv("Data/Main Effects/fullModel.csv")
 
 ### PM2.5 Figure -----
+df$pm25_exposure %>% range()
 df$pm25_exposure %>% quantile(c(0.01,0.99)) # 99 percentile
 
 # get line with CI
@@ -226,16 +227,22 @@ p1 <- ggplot(response_pm,aes(x))+
                  alpha=0.4,fill="#8B4513",col="white")+
   annotate("text", x = 40, y = 1.2, size=10*5/14 * 0.8,
            label = "PM"[2.5] ~ " exposure distribution", color = "#8B4513")+
+  annotate("text", x = 22, y = 6.2, size=10*5/14 * 0.8,
+           label = "PM"[2.5] ~ " effect on monthly 75+ mortality", color = "#8B4513")+
   # guidelines
   annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=3.6, color = "black", linetype="dashed",linewidth=0.1)+ 
   annotate("text",x=nat+1,y=3,label="Chile annual standard",angle = 90,size=9*5/14 * 0.8)+
   annotate("rect", xmin=who, xmax=who, ymin=0, ymax=3.6, color = "black", linetype="dashed",linewidth=0.1)+ 
   annotate("text",x=who+1,y=3,label="WHO guidelines",angle = 90,size=9*5/14 * 0.8)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=3,col="black",linewidth=0.3)+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
-  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
+  scale_x_continuous(expand = c(0,0),breaks = c(5,seq(10,60,10)),limits = c(0,60))+
   labs(x=lab_pm25,y=lab_mr2)+
   theme_bw(10)+
   theme(panel.grid.major = element_blank(),
+        panel.border = element_blank(),
         panel.grid.minor = element_blank())
 p1
 ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
@@ -270,8 +277,12 @@ ggplot(response_pm,aes(x))+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,9,2)),limits = c(0,9)) +
   scale_x_continuous(expand = c(0,0),breaks = c(seq(0,40,10)),limits = c(0,45))+
   labs(x=lab_temp,y=lab_mr2)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 50,x=1,col="black",linewidth=0.3)+
   theme_bw(10)+
   theme(panel.grid.major = element_blank(),
+        panel.border = element_blank(),
         panel.grid.minor = element_blank())
 
 ggsave(sprintf(fig_name,"EffectTemp"), ggplot2::last_plot(),
@@ -320,13 +331,17 @@ p2 <- ggplot(response_pm,aes(x,group=met))+
   annotate("text", x = 35, y = 3.2, size=fig_fontsize*5/14 * 0.8,
            label = "Metropolitan region", color = "#9b59b6")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
-  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
+  scale_x_continuous(expand = c(0,0),breaks = c(5,seq(10,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#9b59b6", "FALSE" = "#2ecc71"))+
   scale_fill_manual(values = c("TRUE" = "#9b59b680", "FALSE" = "#2ecc7180"))+
   labs(x=lab_pm25,y=lab_mr2)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 61,x=3,col="black",linewidth=0.3)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
         legend.position = "none")
 p2 <- p2+labs(y="75+ all-cause monthly MR [per 1,000]")
 p2
@@ -379,8 +394,12 @@ ggplot(response_pm,aes(x,group=met))+
   scale_color_manual(values = c("TRUE" = "#114477", "FALSE" = "#117744"))+
   scale_fill_manual(values = c("TRUE" = "#77AADD", "FALSE" = "#44AA77"))+
   labs(x=lab_temp,y=lab_mr2)+
+  # add bottom and vertical bar - at the beginning so thery in the back
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.5)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=1,col="black",linewidth=0.5)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
+        panel.border = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
@@ -551,13 +570,17 @@ p3 <- ggplot(response_pm,aes(x,group=comRural))+
   annotate("text", x = 26, y = 3.6, size=fig_fontsize*5/14 * 0.8,
            label = "Rural", color = "#F4A460")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
-  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
+  scale_x_continuous(expand = c(0,0),breaks = c(5,seq(10,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
   scale_fill_manual(values = c("TRUE" = "#F4A46080", "FALSE" = "#33333380"))+
   labs(x=lab_pm25,y=lab_mr2)+
+  # add bottom and vertical bar - at the beginning so thery in the back
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.5)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=3,col="black",linewidth=0.5)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
         legend.position = "none")
 p3 <- p3+labs(y="75+ all-cause monthly MR [per 1,000]")
 p3
@@ -610,9 +633,13 @@ ggplot(response_pm,aes(x,group=comRural))+
   scale_color_manual(values = c("TRUE" = "#F4A460", "FALSE" = "#333333"))+
   scale_fill_manual(values = c("TRUE" = "#F4A46080", "FALSE" = "#33333380"))+
   labs(x=lab_temp,y=lab_mr2)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=1,col="black",linewidth=0.3)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
         legend.position = "none")
 
 ggsave(sprintf(fig_name,"Effect_Urban_temp"), ggplot2::last_plot(),
@@ -673,13 +700,17 @@ p4 <- ggplot(response_pm,aes(x,group=comPM25))+
            label = expression(paste(PM[2.5]," above 20 ",mu,"g/",m^3,"","")),
            color = "#A80000")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
-  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
+  scale_x_continuous(expand = c(0,0),breaks = c(5,seq(10,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#A80000", "FALSE" = "#CC9900"))+
   scale_fill_manual(values = c("TRUE" = "#A80000AA", "FALSE" = "#CC9900AA"))+
   labs(x=lab_pm25,y=lab_mr2)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=3,col="black",linewidth=0.3)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
         legend.position = "none")
 p4 <- p4+labs(y="75+ all-cause monthly MR [per 1,000]")
 p4
@@ -734,9 +765,13 @@ ggplot(response_pm,aes(x,group=comPM25))+
   scale_color_manual(values = c("TRUE" = "#A80000", "FALSE" = "#CC9900"))+
   scale_fill_manual(values = c("TRUE" = "#A80000AA", "FALSE" = "#CC9900AA"))+
   labs(x=lab_temp,y=lab_mr2)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=1,col="black",linewidth=0.3)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
         legend.position = "none")
 
 ggsave(sprintf(fig_name,"Effect_AbovePM25_temp"), ggplot2::last_plot(),
@@ -794,13 +829,17 @@ p5 <- ggplot(response_pm,aes(x,group=com75))+
            label = "75+ pop. share above 4.5%", 
            color = "#FF6B6B")+
   scale_y_continuous(expand = c(0,0),breaks = c(seq(0,8,2)),limits = c(0,8)) +
-  scale_x_continuous(expand = c(0,0),breaks = c(seq(0,60,10)),limits = c(0,60))+
+  scale_x_continuous(expand = c(0,0),breaks = c(5,seq(10,60,10)),limits = c(0,60))+
   scale_color_manual(values = c("TRUE" = "#FF6B6B", "FALSE" = "#004E7A"))+
   scale_fill_manual(values = c("TRUE" = "#FF6B6BAA", "FALSE" = "#004E7AAA"))+
   labs(x=lab_pm25,y=lab_mr2)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=3,col="black",linewidth=0.3)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
         legend.position = "none")
 
 p5 <- p5+labs(y="75+ all-cause monthly MR [per 1,000]")
@@ -855,9 +894,13 @@ ggplot(response_pm,aes(x,group=com75))+
   scale_color_manual(values = c("TRUE" = "#FF6B6B", "FALSE" = "#004E7A"))+
   scale_fill_manual(values = c("TRUE" = "#FF6B6BAA", "FALSE" = "#004E7AAA"))+
   labs(x=lab_temp,y=lab_mr2)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=1,col="black",linewidth=0.3)+
   theme_bw(fig_fontsize)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
         legend.position = "none")
 
 ggsave(sprintf(fig_name,"Effect_AbovePop75_temp"), ggplot2::last_plot(),

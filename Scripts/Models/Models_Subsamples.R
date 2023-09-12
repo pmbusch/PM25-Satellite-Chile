@@ -158,6 +158,32 @@ df %>% dplyr::select(region,NOM_COMUNA,income_group) %>%
   filter(income_group=="Above P95 (more than $6,990)") %>% 
   group_by(region,NOM_COMUNA) %>% tally()
 
+## Mean Age in 75+ group -----
+censo <- read_excel("Data/Data_Original/censo2017_edad.xlsx",sheet="Pasted")
+censo$Casos %>% sum()
+censo <- censo %>% filter(!(Edad %in% paste0("",0:74))) %>% 
+  mutate(age=as.numeric(Edad),
+         age=if_else(is.na(age),100,age))
+
+# get commune code
+censo <- censo %>% 
+  mutate(commune=Code %>% str_remove("AREA # ") %>% 
+           as.numeric() %>% as.character())
+head(censo)
+
+# average age per commune on the 75+ group
+age_commune <- censo %>% 
+  mutate(popAge=age*Casos) %>% 
+  group_by(commune) %>% 
+  reframe(popAge=sum(popAge),pop=sum(Casos)) %>%
+  mutate(age=popAge/pop) %>% arrange(desc(age))
+# median
+median(age_commune$age)
+age_commune <- age_commune %>% filter(age>81.44) %>% pull(commune) # 93 for 50%, 52 for 60%
+df <- df %>% mutate(comAge=(commune %in% age_commune))
+df$comAge %>% table()
+
+rm(censo)
 
 ## OTHERS (not used) -------------
 
@@ -299,7 +325,7 @@ results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75
 results[[12]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
 results[[13]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
 results[[14]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="Lowest income quintile (below $3,182)")
-results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="2nd income quintile ($3,182-3,577$)")
+results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="2nd income quintile ($3,182-$3,577)")
 results[[16]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="3rd income quintile ($3,577-$4,138)")
 results[[17]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="4th income quintile ($4,138-$4,961)")
 results[[18]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="Highest income quintile (above $4,961)")
@@ -313,7 +339,11 @@ results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_c
                                       MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
 results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
+
+
 #Others
+# results[[1]] <- runModel(data=filter(df,comAge==F),name="Mean age below median (83.44 years)")
+# results[[2]] <- runModel(data=filter(df,comAge==T),name="Mean age above median (83.44 years")
 # results[[4]] <- runModel(data=filter(df,pm25_case=="Above Median"),name="PM2.5: Above Median") 
 # results[[5]] <- runModel(data=filter(df,pm25_case=="Below Median"),name="PM2.5: Below Median") 
 # results[[6]] <- runModel(data=filter(df,pm25_level=="PM2.5 below 15"),name="PM2.5 Below 15") 
@@ -402,15 +432,21 @@ heterogen <- c("Heterogeneity",
                "PM2.5 below 20 ug/m3","PM2.5 above 20 ug/m3",
                "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)",
                # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)", #65+ case
-               "Urban Commune","Rural Commune (>30% share poulation)",
-               "Lowest income quintile (below $3,182)","2nd income quintile ($3,182-3,577$)",
-               "3rd income quintile ($3,577-$4,138)","4th income quintile ($4,138-$4,961)",
-               "Highest income quintile (above $4,961)")
+               "Urban Commune","Rural Commune (>30% share poulation)")
+               # "Lowest income quintile (below $3,182)","2nd income quintile ($3,182-$3,577)",
+               # "3rd income quintile ($3,577-$4,138)","4th income quintile ($4,138-$4,961)",
+               # "Highest income quintile (above $4,961)")
 other_causes <- c("Other Mortality Causes",
+                  "All-cause excluding Cardiorespiratory",
                   "Cardiorespiratory cause","Cardiovascular cause",
-                  "Respiratory cause","All-cause excluding Cardiorespiratory",
-                  "External cause")
-
+                  "Respiratory cause")
+                  # "External cause")
+# to add space
+other_causes2 <- other_causes %>% 
+  str_replace("Cardiovascular","   Cardiovascular") %>% 
+  str_replace("Respiratory","   Respiratory")
+  
+  
 # add rows
 y <- rbind(x,c("Robustness",rep(NA,ncol(x)-1)),
            c("Heterogeneity",rep(NA,ncol(x)-1)),
@@ -418,7 +454,10 @@ y <- rbind(x,c("Robustness",rep(NA,ncol(x)-1)),
 
 y <- y %>% 
   filter(var %in% c(robustness,heterogen,other_causes)) %>%
-  mutate(var=factor(var,levels=rev(c(robustness,heterogen,other_causes)))) %>%
+  mutate(var=var %>% 
+           str_replace("Cardiovascular","   Cardiovascular") %>% 
+           str_replace("Respiratory","   Respiratory") %>% 
+           factor(levels=rev(c(robustness,heterogen,other_causes2)))) %>%
   mutate(rr=as.numeric(rr),
          rr_low=as.numeric(rr_low),
          rr_high=as.numeric(rr_high)) %>% 
@@ -439,13 +478,13 @@ temp_adj <- 0
 # temp_adj <- 2 # for temp
 p <- ggplot(y,aes(var,rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
-  geom_point(size=0.6,aes(col=signif))+
-  # geom_point(size=0.6,col="red")+ # all T are significant
+  # geom_point(size=0.6,aes(col=signif))+
+  geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_vline(xintercept = c(6.5,20.5,25.5),
+  geom_vline(xintercept = c(5.5,14.5,19.5),
              col="grey",linewidth=0.3)+
-  geom_vline(xintercept = c(11.5,13.5,15.5,17.5,22.5),
+  geom_vline(xintercept = c(7.5,9.5,11.5,16.5),
              col="grey",linewidth=0.15,linetype="dashed")+
   labs(x="",y=lab_rr)+
   # labs(x="",y=lab_rr_temp)+

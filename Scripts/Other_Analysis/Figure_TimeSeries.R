@@ -20,6 +20,15 @@ df$landTemp %>% quantile(c(0.05,0.95))
 
 # df %>% group_by(commune) %>% reframe(pm25=mean(pm25_exposure)) %>% view()
 
+# by season
+df %>% 
+  mutate(popPM25=pop75*pm25_exposure) %>% 
+  group_by(REGION,quarter) %>% 
+  summarise(popPM25=sum(popPM25),pop75=sum(pop75)) %>% 
+  mutate(pm25=popPM25/pop75) %>% ungroup() %>% mutate(popPM25=NULL,pop75=NULL) %>% 
+  pivot_wider(names_from = quarter, values_from = pm25) %>% 
+# uncomment for ratio between winter-fall to summer-spring
+  mutate(ratio=(`2`+`3`)/(`1`+`4`))
 
 
 # Figure v1: Spagetti ------

@@ -87,6 +87,18 @@ pop %>%
   pivot_wider(names_from = above_75, values_from = pop) %>% 
   mutate(share_75=Above75/(Above75+Below75)) %>% arrange(desc(share_75))
 
+# pop mean age by region
+pop %>% 
+  filter(year==2019) %>% 
+  filter(Edad>74) %>% 
+  group_by(Region,Edad) %>% 
+  summarise(pop=sum(pop)) %>% ungroup() %>% 
+  group_by(Region) %>% 
+  mutate(pop_perc=pop/sum(pop),pop=NULL) %>% ungroup() %>%
+  pivot_wider(names_from = Edad, values_from = pop_perc)
+  # mutate(age=pop*Edad) %>% reframe(age=sum(age),pop=sum(pop)) %>% ungroup() %>% 
+  # mutate(age=age/pop) %>% 
+
 
 # same as before to get sex at the same moment
 # first filter to reduce computational burden
