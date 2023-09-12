@@ -1,9 +1,6 @@
-# PM25-Satelite-Chile
+# PM25-Satellite-Chile
 
-Acute exposure to fine particle pollution (PM2.5) and elderly mortality in Chile
-
-Project developed for the course "STA250 - Data Science for International Development", UC Davis - Winter 2023. Assistant Professor Xiao Hui Tai.
-Pablo Busch, Paulo Rocha and Kyung Jin Lee
+Acute exposure to fine particle pollution (PM2.5) and elderly mortality in Chile.
 
 # Data Sources
 
