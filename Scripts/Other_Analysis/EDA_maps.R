@@ -228,8 +228,8 @@ df.monitor_site <- df.monitor %>%
 df.monitor_site %>%
   ggplot() +
   geom_sf(data = df.map.pm25, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
-  scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))+
+  scale_fill_distiller(palette = "Reds", trans = "reverse", breaks = seq(5,30,5)) +
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))+
   geom_point(aes(x = longitude, y = latitude, color="Monitor site"), alpha = 1, size = 1) +
   scale_color_manual("",values = c("Monitor site" = "black")) +
   theme_void() 
@@ -243,8 +243,8 @@ df.monitor_site.santiago <- df.monitor_site %>% filter(region == "M")
 df.monitor_site.santiago %>%
   ggplot() +
   geom_sf(data = df.map.pm25.santiago, aes(geometry = geometry, fill = pm25_exposure), lwd = 0.5) +
-  scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))+
+  scale_fill_distiller(palette = "Reds", trans = "reverse",breaks = seq(20,30,2)) +
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))+
   geom_point(aes(x = longitude, y = latitude, color="Monitor site"), alpha = 1, size = 3) +
   scale_color_manual("",values = c("Monitor site" = "black")) +
   theme_void() 
