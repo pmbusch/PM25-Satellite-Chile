@@ -61,7 +61,7 @@ df.map.mortality.na %>%
   theme_void() +
   scale_fill_distiller(
     palette = "Purples", trans = "reverse", # YlOrBr
-    na.value = "white", breaks = seq(0,80,15)
+    na.value = "white", breaks = seq(5,80,15)
   ) +
   guides(fill = guide_legend(title = "75+ mortality per 1,000"))
 
@@ -81,7 +81,7 @@ df.map.mortality.santiago %>%
   theme_void() +
   scale_fill_distiller(
     palette = "Purples", trans = "reverse", # YlOrBr
-    na.value = "white"
+    na.value = "white", breaks = seq(50,80,10)
   ) +
   guides(fill = guide_legend(title = "75+ mortality per 1,000"))
 
@@ -109,8 +109,10 @@ df.map.pm25 %>%
   geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
-  scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
+  scale_fill_distiller(palette = "Reds", 
+                       trans = "reverse",
+                       breaks = seq(5,30,5)) +
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))
 
 
 # save plot
@@ -124,8 +126,10 @@ df.map.pm25.santiago %>%
   geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
-  scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
+  scale_fill_distiller(palette = "Reds", 
+                       trans = "reverse",
+                       breaks = seq(20,30,2)) +
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))
 
 
 ggsave("Scripts/Other_Analysis/Figures-Paulo/pm25_exposure_santiago_2019.pdf", width = 10, height = 10, dpi = 600)
@@ -142,7 +146,7 @@ df.map.age %>%
   theme_void() +
   scale_fill_distiller(
     palette = "Greens", trans = "reverse", # YlOrBr
-    na.value = "white"
+    na.value = "white", breaks = seq(2,10,2)
   ) +
   guides(fill = guide_legend(title = "75+ population %"))
 
@@ -159,7 +163,7 @@ df.map.age.santiago %>%
   theme_void() +
   scale_fill_distiller(
     palette = "Greens", trans = "reverse", # YlOrBr
-    na.value = "white"
+    na.value = "white", breaks = seq(3,10,1)
   ) +
   guides(fill = guide_legend(title = "75+ population %"))
 
@@ -187,7 +191,8 @@ df.map.temp %>%
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Blues",
-                       na.value = "white") +
+                       na.value = "white",
+                       breaks = seq(8,40,8)) +
   guides(fill = guide_legend(title = "Mean Temperature [°C]"))
 
 # save plot
@@ -202,7 +207,8 @@ df.map.temp.santiago %>%
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
   scale_fill_distiller(palette = "Blues",
-                       na.value = "white") +
+                       na.value = "white",
+                       breaks = seq(26,32,2)) +
   guides(fill = guide_legend(title = "Mean Temperature [°C]"))
 
 # save plot
@@ -278,8 +284,10 @@ df.map.pm25.region %>%
   geom_sf(aes(geometry = geometry, fill = pm25_exposure), lwd = 0.1) +
   # geom_sf_text(aes(geometry = geometry, label = codigo_region),size=2)+
   theme_void() +
-  scale_fill_distiller(palette = "Reds", trans = "reverse") +
-  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "] exposure"))))
+  scale_fill_distiller(palette = "Reds", 
+                       trans = "reverse",
+                       breaks = seq(12,28,4)) +
+  guides(fill = guide_legend(title = expression(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))
 
 
 ggsave("Scripts/Other_Analysis/Figures-Paulo/chile_region_pm25_map.png", width = 10, height = 10, dpi = 600)
