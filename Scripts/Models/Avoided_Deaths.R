@@ -12,7 +12,7 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 source("Scripts/Functions.R",encoding="UTF-8")
 
 # Load Panel Data ----
-df <- read.delim("Data/panelData.csv",sep=";")
+df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
 
 
 df <- df %>% 

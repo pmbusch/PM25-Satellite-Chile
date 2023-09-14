@@ -204,8 +204,8 @@ ggplot(a,aes(date,MR_all_cause,col=fct_rev(region),group=fct_rev(region)))+
 
 
 ## IDEA: Create table as other sub samples
-
-df_fig %>%
+## Scatter ----
+p <- df_fig %>%
   # dplyr::select(-region) %>% 
   # rename(region=name) %>% 
   left_join(df_stats) %>% 
@@ -217,11 +217,21 @@ df_fig %>%
             fill = "brown",alpha=0.01)+
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif))+
-  ggrepel::geom_text_repel(aes(label=region),size=6*5/14 * 0.8)+
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  # ggrepel::geom_text_repel(aes(label=region),size=6*5/14 * 0.8,max.time=10)+
+  geom_text(aes(label=region),size=6*5/14 * 0.8,
+            nudge_x = c(-0.7,0.7,-0.7,0.75,-0.7,
+                        -0.75,0.8,-0.9,0.8,-0.7,
+                        -0.75,-0.85,-0.7,-0.9,0.8,1),
+            nudge_y = c(0,0,0,0,-0.5,
+                        0,0.5,0,0,0,
+                        1,0,0.5,0.5,-0.5,0)
+            
+            )+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   # annotation
-  annotate("text", x = 8, y = rr_base+7, label = "Full model estimate",size=8*5/14 * 0.8, hjust=0) +
+  scale_y_continuous(breaks = seq(-10, 15, by = 5))+
+  annotate("text", x = 8, y = rr_base+7, label = "Full model \n estimate",size=8*5/14 * 0.8, hjust=0) +
   geom_segment(aes(x = 10, y = rr_base+5.2, xend = 10, yend = rr_base+1.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
   labs(x =lab_pm25,
@@ -231,6 +241,12 @@ df_fig %>%
         axis.title.y = element_text(size = 8),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
+
+# Solution to draw x axis title in two lines
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, y = 0.5, x = 0.035,size = 8.3,angle = 90)+
+  cowplot::draw_label(lab_rr_line2, y = 0.5, x = 0.07,size = 8.3,angle = 90)
+# cowplot::draw_label(lab_rr_line2_temp, y = 0.5, x = 0.07,size = 8.3,angle=90)
 
 ggsave("Figures/Model/RegionModelsPM25.png", ggplot2::last_plot(),
        units="cm",dpi=500,

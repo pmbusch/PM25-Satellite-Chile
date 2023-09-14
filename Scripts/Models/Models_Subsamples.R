@@ -6,6 +6,7 @@ library(tidyverse)
 library(MASS)
 library(lme4)
 library(sandwich)
+library(readxl)
 
 source("Scripts/Functions.R",encoding="UTF-8")
 
@@ -394,7 +395,7 @@ res <- read.csv("Data/Models/modelResults.csv")
 
 fig_name <- "Figures/Model/%s.png"
 fig_name <- sprintf(fig_name,"Models_Subsample")
-# fig_name <- sprintf(fig_name,"Models_Subsample65")
+fig_name <- sprintf(fig_name,"Models_Subsample65")
 # fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 # fig_name <- sprintf(fig_name,"Models_Subsample65_Temp")
 
