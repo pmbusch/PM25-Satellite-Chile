@@ -208,6 +208,13 @@ ggsave(sprintf(fig_name,"highlight_pm"),p,
        width = 14.8, # full width
        height =6.1)
 
+# save as SVG
+ggsave(str_replace(sprintf(fig_name,"highlight_pm"),"png","svg"),p,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height =6.1)
+
+
 ## Same but for MR and temp-----
 
 p_mr <- p+aes(y=MR_all_cause)+labs(y=lab_mr)
@@ -216,6 +223,13 @@ ggsave(sprintf(fig_name,"highlight_mr"),p_mr,
        units="cm",dpi=500,
        width = 14.8, # full width
        height =6.1)
+
+# save as SVG
+ggsave(str_replace(sprintf(fig_name,"highlight_mr"),"png","svg"),p_mr,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height =6.1)
+
 
 # p_mr2 <- p_mr+ylim(0,20)
 # ggsave(sprintf(fig_name,"highlight_mr2"),p_mr2,
@@ -229,7 +243,11 @@ ggsave(sprintf(fig_name,"highlight_temp"),p_temp,
        units="cm",dpi=500,
        width = 14.8, # full width
        height =6.1)
-
+# save as SVG
+ggsave(str_replace(sprintf(fig_name,"highlight_temp"),"png","svg"),p_temp,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height =6.1)
 
 
 

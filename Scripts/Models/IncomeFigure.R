@@ -88,7 +88,7 @@ p <- y %>%
   # annotate("text", x = 16, y = -3, size=14*5/14 * 0.8,label = "B")+
   # labs(x = "Region",y =lab_rr)+
   labs(x="",y=lab_rr_temp)+
-  theme_bw(8.3)+
+  theme_bw(8.1)+
   theme(legend.position = "none",
         # axis.title.y=element_text(angle=0,vjust = -0.05,hjust=1),
         axis.title.y=element_text(angle=0,vjust=1.015,margin=margin(r=-4)),
@@ -105,7 +105,11 @@ cowplot::ggdraw(p+labs(y=" \n "))+
 ggsave(fig_name, ggplot2::last_plot(),
        units="cm",dpi=600,
        width=8.7,height=8.7)
-
+# save as svg
+ggsave(str_replace(fig_name,"png","svg"),ggplot2::last_plot(),
+       units="cm",dpi=600,
+       width = 8.7, # full width
+       height =8.7)
 
 
 # EoF

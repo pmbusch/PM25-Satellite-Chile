@@ -77,32 +77,32 @@ rr_ci <- getModelInfo(mod_base,"Base") %>%
 # Figure
 p <- df_fig %>%
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
-  # mutate(year=as.numeric(name)) %>%
-  mutate(year=name) %>%
+  mutate(year=as.numeric(name)) %>%
+  # mutate(year=name) %>%
   ggplot(aes(x = year, y = rr)) +
   # base RR
   geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
-  # geom_rect(xmin=2001,xmax=2020,
-  geom_rect(xmin=0,xmax=7, # for YEAR GROUPS
+  geom_rect(xmin=2001,xmax=2020,
+  # geom_rect(xmin=0,xmax=7, # for YEAR GROUPS
             ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]),
-            fill = "brown",alpha=0.05)+ # A=0.05 FOR GROUP or 0.01 for year
+            fill = "brown",alpha=0.01)+ # A=0.05 FOR GROUP or 0.01 for year
   # by year
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif)) +
   # geom_point(size=1,col="red")+ # all T are significant
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
-  # scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
+  scale_x_continuous(breaks = c(2002, 2005, 2010, 2015, 2019)) +
   # scale_y_continuous(breaks = seq(-2.5, 0, by = 0.5),
   #                    limits = c(-2.6,0.45))+ # temp
   # annotation
   annotate("text", 
-           # x = 2017.1,
-           x=3.1, # for YEAR GROUPS
+           x = 2017,
+           # x=3.1, # for YEAR GROUPS
            y = rr_base+1.4, label = "Full model estimate",size=8*5/14 * 0.8) +
   geom_segment(aes(y = rr_base+1.2, yend = rr_base+0.2),
-               # x = 2018, xend = 2019,
-               x=3.1,xend=3.5,
+               x = 2018, xend = 2019,
+               # x=3.1,xend=3.5,
                arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
   # temp - uncomment
@@ -127,12 +127,25 @@ cowplot::ggdraw(p+labs(y=" \n "))+
   # cowplot::draw_label(lab_rr_line2_temp, y = 0.5, x = 0.07,size = 8.3,angle=90)
 
 fig_name <- "YearModels"
-fig_name <- "YearModelsGroup"
+# fig_name <- "YearModelsGroup"
 # fig_name <- "YearModels_Temp"
 
 ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+# save as svg
+ggsave(paste0("Figures/Model/",fig_name,".svg"),ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
+pdf(paste0("Figures/Model/",fig_name,".pdf"),
+    width = 8.7/2.54, # full width
+    height =8.7/2.54)
+ggplot2::last_plot()
+dev.off()
+
+
+
 
 # PM2.5 pollution by year (pop weighted average)
 

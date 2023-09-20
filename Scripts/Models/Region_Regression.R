@@ -34,7 +34,6 @@ rr_base <-  getModelInfo(mod_base,"Base") %>%
   filter(param=="pm25Exp_10ug") %>% pull(rr)
 
 # Loop --------
-# year
 regs <- df$region %>% unique()
 # regs <- df$commune %>% unique()
 # regs <- df$PROVINCIA %>% unique()
@@ -144,6 +143,13 @@ ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
+# save as svg
+ggsave(paste0("Figures/Model/",fig_name,".svg"),ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
+
+
 
 # Average effect of sign. regions
 df_fig %>%
@@ -158,14 +164,17 @@ df_stats <- df %>%
   mutate(region=region %>% str_replace("13","M")) %>%
   left_join(reg_codes, by=c("region"="name")) %>% 
   mutate(region=factor(region,levels=rev(region_levels2))) %>% 
-  mutate(pm25_pop=pop75*pm25_exposure) %>% 
+  mutate(pm25_pop=pop75*pm25_exposure,
+         share_pop=pop75*pop75_share) %>% 
   group_by(region.y) %>% 
   summarise(pm25=sum(pm25_pop),
+            share75=sum(share_pop),
             pop75=sum(pop75),
             death=sum(death_count_all_cause),
             n=n()) %>% ungroup() %>% 
   rename(region=region.y) %>% 
   mutate(pm25=pm25/pop75,
+         share75=share75/pop75,
          mr=death/pop75*1000,
          pop75=pop75/18/12) # pop in total
 
@@ -209,7 +218,7 @@ p <- df_fig %>%
   # dplyr::select(-region) %>% 
   # rename(region=name) %>% 
   left_join(df_stats) %>% 
-  mutate(region=paste0("R",region)) %>% 
+  mutate(region=paste0("",region)) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(x = pm25, y = rr)) +
   geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
@@ -220,9 +229,9 @@ p <- df_fig %>%
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   # ggrepel::geom_text_repel(aes(label=region),size=6*5/14 * 0.8,max.time=10)+
   geom_text(aes(label=region),size=6*5/14 * 0.8,
-            nudge_x = c(-0.7,0.7,-0.7,0.75,-0.7,
-                        -0.75,0.8,-0.9,0.8,-0.7,
-                        -0.75,-0.85,-0.7,-0.9,0.8,1),
+            nudge_x = c(-0.5,0.6,-0.6,0.7,-0.55,
+                        -0.65,0.75,-0.8,0.7,-0.5,
+                        -0.65,-0.75,-0.5,-0.85,0.75,0.9),
             nudge_y = c(0,0,0,0,-0.5,
                         0,0.5,0,0,0,
                         1,0,0.5,0.5,-0.5,0)
@@ -234,7 +243,7 @@ p <- df_fig %>%
   annotate("text", x = 8, y = rr_base+7, label = "Full model \n estimate",size=8*5/14 * 0.8, hjust=0) +
   geom_segment(aes(x = 10, y = rr_base+5.2, xend = 10, yend = rr_base+1.2),
                arrow = arrow(length = unit(0.3, "cm"))) +
-  labs(x =lab_pm25,
+  labs(x =expression(paste("Average monthly ",PM[2.5]," [",mu,"g/",m^3,"]","")),
        y = lab_rr)+
   theme_bw(10)+
   theme(legend.position = "none",
@@ -251,6 +260,74 @@ cowplot::ggdraw(p+labs(y=" \n "))+
 ggsave("Figures/Model/RegionModelsPM25.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+# save as svg
+ggsave("Figures/Model/RegionModelsPM25.svg",ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
+pdf("Figures/Model/RegionModelsPM25.pdf",
+       width = 8.7/2.54, # full width
+       height =8.7/2.54)
+ggplot2::last_plot()
+dev.off()
+
+
+## Scatter vs share of pop75+ in region --------
+p <- df_fig %>%
+  left_join(df_stats) %>% 
+  mutate(region=paste0("",region)) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
+  ggplot(aes(x = share75   , y = rr)) +
+  geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
+  geom_rect(xmin=0,xmax=35,ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]), 
+            fill = "brown",alpha=0.01)+
+  geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
+  geom_point(size=1, aes(col=signif))+
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  # ggrepel::geom_text_repel(aes(label=region),size=6*5/14 * 0.8,max.time=10)+
+  geom_text(aes(label=region),size=6*5/14 * 0.8,
+            nudge_x = c(-0.5,0.6,-0.6,-0.7,0.55,
+                        -0.65,-0.5,-0.8,0.7,0.5,
+                        -0.65,-0.75,0.45,0.85,-0.75,-0.9)*0.001,
+            nudge_y = c(0,0,0,0,-0.5,
+                        0,0.6,0,0,0,
+                        1,0,0.5,0.5,-0.5,0)
+  )+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  # annotation
+  scale_x_continuous(labels = scales::percent)+
+  scale_y_continuous(breaks = seq(-10, 15, by = 5))+
+  annotate("text", x = 0.037, y = rr_base+7, label = "Full model \n estimate",size=8*5/14 * 0.8, hjust=0) +
+  geom_segment(aes(x = 0.0385, y = rr_base+5.2, xend = 0.0385, yend = rr_base+1.2),
+               arrow = arrow(length = unit(0.3, "cm"))) +
+  labs(x ="Share of population above 75 years",
+       y = lab_rr)+
+  theme_bw(10)+
+  theme(legend.position = "none",
+        axis.title.y = element_text(size = 8),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+# Solution to draw x axis title in two lines
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, y = 0.5, x = 0.035,size = 8.3,angle = 90)+
+  cowplot::draw_label(lab_rr_line2, y = 0.5, x = 0.07,size = 8.3,angle = 90)
+# cowplot::draw_label(lab_rr_line2_temp, y = 0.5, x = 0.07,size = 8.3,angle=90)
+
+ggsave("Figures/Model/RegionModels_share75.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7,height=8.7)
+# save as svg
+ggsave("Figures/Model/RegionModels_share75.svg",ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
+pdf("Figures/Model/RegionModels_share75.pdf",
+    width = 8.7/2.54, # full width
+    height =8.7/2.54)
+ggplot2::last_plot()
+dev.off()
+
 
 
 ## Curve by commune ----

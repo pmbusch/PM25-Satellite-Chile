@@ -395,7 +395,7 @@ res <- read.csv("Data/Models/modelResults.csv")
 
 fig_name <- "Figures/Model/%s.png"
 fig_name <- sprintf(fig_name,"Models_Subsample")
-fig_name <- sprintf(fig_name,"Models_Subsample65")
+# fig_name <- sprintf(fig_name,"Models_Subsample65")
 # fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 # fig_name <- sprintf(fig_name,"Models_Subsample65_Temp")
 
@@ -546,5 +546,14 @@ cowplot::ggdraw(p+labs(y=" \n "))+
 ggsave(fig_name, ggplot2::last_plot(),
        units="cm",dpi=600,
        width=8.7*2,height=8.7)
+# save as svg
+ggsave(str_replace(fig_name,"png","svg"),ggplot2::last_plot(),
+       units="cm",dpi=600,
+       width = 8.7*2, height =8.7)
+pdf(str_replace(fig_name,"png","pdf"),
+       width = 8.7*2/2.54, height =8.7/2.54)
+ggplot2::last_plot()
+dev.off()
+
 
 # EoF

@@ -339,10 +339,10 @@ ggsave(sprintf(fig_name,"SatelliteAcc_Region.png"),p_region,
 
 library(gridExtra)
 
-p <- grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.8,0.9)),
-             p_region+labs(tag="B")+theme(plot.tag.position = c(0.8,0.9)),
+p <- grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.02,0.95)),
+             p_region+labs(tag="B")+theme(plot.tag.position = c(0.02,0.95)),
              ncol=2)
-
+p
 ggsave(sprintf(fig_name,"SatelliteAcc.png"),p,
        units="cm",dpi=500,
        width = 8.7*2, # full width

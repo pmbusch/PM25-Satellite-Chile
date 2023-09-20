@@ -248,6 +248,17 @@ p1
 ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+# save as SVG
+ggsave(str_replace(sprintf(fig_name,"Effect_se"),"png","svg"),p1,
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
+pdf(str_replace(sprintf(fig_name,"Effect_se"),"png","pdf"),
+    width = 8.7/2.54, # full width
+    height =8.7/2.54)
+p1
+dev.off()
+
 
 p1 <- last_plot()+labs(y="75+ all-cause monthly MR [per 1,000]")
 p1
@@ -348,6 +359,12 @@ p2
 ggsave(sprintf(fig_name,"Effect_Met_se"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+# save as svg
+ggsave(str_replace(sprintf(fig_name,"Effect_Met_se"),"png","svg"),p2,
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
+
 p2+
   annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
   annotate("text",x=nat+1,y=3.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
@@ -587,6 +604,11 @@ p3
 ggsave(sprintf(fig_name,"Effect_Urban"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+# save as svg
+ggsave(str_replace(sprintf(fig_name,"Effect_Urban"),"png","svg"),p3,
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
 
 p3+annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=3.5, color = "black", linetype="dashed",linewidth=0.1)+ 
   annotate("text",x=nat+1,y=1.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
@@ -717,6 +739,11 @@ p4
 ggsave(sprintf(fig_name,"Effect_AbovePM25"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+# save as svg
+ggsave(str_replace(sprintf(fig_name,"Effect_AbovePM25"),"png","svg"),p4,
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
 
 p4+annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
   annotate("text",x=nat+1,y=1.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
@@ -847,6 +874,11 @@ p5
 ggsave(sprintf(fig_name,"Effect_AbovePop75"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+# save as svg
+ggsave(str_replace(sprintf(fig_name,"Effect_AbovePop75"),"png","svg"),p5,
+       units="cm",dpi=500,
+       width = 8.7, # full width
+       height =8.7)
 
 p5+annotate("rect", xmin=nat, xmax=nat, ymin=0, ymax=4, color = "black", linetype="dashed",linewidth=0.1)+ 
   annotate("text",x=nat+1,y=1.5,label="Chile annual standard",angle = 90,size=fig_fontsize*5/14 * 0.8)+
