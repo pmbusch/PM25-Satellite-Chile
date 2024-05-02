@@ -92,7 +92,8 @@ reg_codes <- data.frame(name=region_levels, region=region_levels2)
 df_fig <- df_fig %>%
   mutate(name=name %>% str_replace("13","M")) %>% 
   left_join(reg_codes, by="name") %>% 
-  mutate(region=factor(region,levels=rev(region_levels2)))
+  mutate(region=factor(region,levels=rev(region_levels2))) %>% 
+  mutate(n_commune=N/12/18)
 
 # Figure
 p <- df_fig %>%
@@ -103,6 +104,7 @@ p <- df_fig %>%
   geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
   geom_rect(xmin=0,xmax=17,ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]), 
             fill = "brown",alpha=0.01)+
+  # geom_text(y=-12.5,aes(label=n_commune),size=8.3*5/14 * 0.8)+
   geom_linerange(aes(ymin = rr_low, ymax = rr_high), linewidth = 0.2) +
   geom_point(size=1, aes(col=signif)) +
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+

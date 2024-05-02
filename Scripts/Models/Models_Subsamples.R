@@ -341,6 +341,58 @@ results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_c
 results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
 
+# Others Rural by Cause
+# results <- list()  #lists to save results
+# results[[1]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
+# results[[2]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
+# results[[3]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardioRespiratory,
+#                                       MR_all_cause=MR_cardioRespiratory),name="Urban - Cardiorespiratory cause")
+# results[[4]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardio,
+#                                       MR_all_cause=MR_cardio),name="Urban - Cardiovascular cause")
+# results[[5]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_respiratory,
+#                                       MR_all_cause=MR_respiratory),name="Urban - Respiratory cause")
+# results[[6]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                       MR_all_cause=MR_all_cause_NoCDP),name="Urban - All-cause excluding Cardiorespiratory")
+# results[[7]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_external,
+#                                       MR_all_cause=MR_external),name="Urban - External cause")
+# results[[8]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardioRespiratory,
+#                                      MR_all_cause=MR_cardioRespiratory),name="Rural - Cardiorespiratory cause")
+# results[[9]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardio,
+#                                      MR_all_cause=MR_cardio),name="Rural - Cardiovascular cause")
+# results[[10]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_respiratory,
+#                                      MR_all_cause=MR_respiratory),name="Rural - Respiratory cause")
+# results[[11]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                      MR_all_cause=MR_all_cause_NoCDP),name="Rural - All-cause excluding Cardiorespiratory")
+# results[[12]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_external,
+#                                      MR_all_cause=MR_external),name="Rural - External cause")
+
+# Others Metropolitan vs rest of country by Cause
+# results <- list()  #lists to save results
+# results[[1]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
+# results[[2]] <- runModel(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
+# results[[3]] <- runModel(data=mutate(filter(df,REGION==13),death_count_all_cause=death_count_cardioRespiratory,
+#                                      MR_all_cause=MR_cardioRespiratory),name="Only Met. - Cardiorespiratory cause")
+# results[[4]] <- runModel(data=mutate(filter(df,REGION==13),death_count_all_cause=death_count_cardio,
+#                                      MR_all_cause=MR_cardio),name="Only Met. - Cardiovascular cause")
+# results[[5]] <- runModel(data=mutate(filter(df,REGION==13),death_count_all_cause=death_count_respiratory,
+#                                      MR_all_cause=MR_respiratory),name="Only Met. - Respiratory cause")
+# results[[6]] <- runModel(data=mutate(filter(df,REGION==13),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                      MR_all_cause=MR_all_cause_NoCDP),name="Only Met. - All-cause excluding Cardiorespiratory")
+# results[[7]] <- runModel(data=mutate(filter(df,REGION==13),death_count_all_cause=death_count_external,
+#                                      MR_all_cause=MR_external),name="Only Met. - External cause")
+# results[[8]] <- runModel(data=mutate(filter(df,REGION!=13),death_count_all_cause=death_count_cardioRespiratory,
+#                                      MR_all_cause=MR_cardioRespiratory),name="Excl. Met. - Cardiorespiratory cause")
+# results[[9]] <- runModel(data=mutate(filter(df,REGION!=13),death_count_all_cause=death_count_cardio,
+#                                      MR_all_cause=MR_cardio),name="Excl. Met. - Cardiovascular cause")
+# results[[10]] <- runModel(data=mutate(filter(df,REGION!=13),death_count_all_cause=death_count_respiratory,
+#                                       MR_all_cause=MR_respiratory),name="Excl. Met. - Respiratory cause")
+# results[[11]] <- runModel(data=mutate(filter(df,REGION!=13),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                       MR_all_cause=MR_all_cause_NoCDP),name="Excl. Met. - All-cause excluding Cardiorespiratory")
+# results[[12]] <- runModel(data=mutate(filter(df,REGION!=13),death_count_all_cause=death_count_external,
+#                                       MR_all_cause=MR_external),name="Excl. Met. - External cause")
+# 
+
+
 
 #Others
 # results[[1]] <- runModel(data=filter(df,comAge==F),name="Mean age below median (83.44 years)")
@@ -387,10 +439,13 @@ results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_exter
 res <- do.call("rbind",results)
 
 # save data
-write.csv(res,"Data/Models/modelResults.csv",row.names = F)
+# write.csv(res,"Data/Models/modelResults.csv",row.names = F)
 # write.csv(res,"Data/Models/modelResults_65.csv",row.names = F)
+# write.csv(res,"Data/Models/modelResultsRural.csv",row.names = F)
+write.csv(res,"Data/Models/modelResultsMet.csv",row.names = F)
 
-res <- read.csv("Data/Models/modelResults.csv")
+# 
+# res <- read.csv("Data/Models/modelResults.csv")
 # res <- read.csv("Data/Models/modelResults_65.csv")
 
 fig_name <- "Figures/Model/%s.png"
@@ -430,10 +485,10 @@ robustness <- c( "Full Sample","Robustness",
                  "Excluding regions with low satellite accuracy")
 heterogen <- c("Heterogeneity",
                "Only Metropolitan region","Excluding Metropolitan region",
+               "Urban Commune","Rural Commune (>30% share poulation)",
                "PM2.5 below 20 ug/m3","PM2.5 above 20 ug/m3",
-               "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)",
-               # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)", #65+ case
-               "Urban Commune","Rural Commune (>30% share poulation)")
+               "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)")
+               # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)") #65+ case
                # "Lowest income quintile (below $3,182)","2nd income quintile ($3,182-$3,577)",
                # "3rd income quintile ($3,577-$4,138)","4th income quintile ($4,138-$4,961)",
                # "Highest income quintile (above $4,961)")
@@ -479,8 +534,8 @@ temp_adj <- 0
 # temp_adj <- 2 # for temp
 p <- ggplot(y,aes(var,rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
-  # geom_point(size=0.6,aes(col=signif))+
-  geom_point(size=0.6,col="red")+ # all T are significant
+  geom_point(size=0.6,aes(col=signif))+
+  # geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
   geom_vline(xintercept = c(5.5,14.5,19.5),
@@ -554,6 +609,84 @@ pdf(str_replace(fig_name,"png","pdf"),
        width = 8.7*2/2.54, height =8.7/2.54)
 ggplot2::last_plot()
 dev.off()
+
+## Figure Rural or Metropolitan ----------
+
+order_x <- x$var[rev(c(1,2,3,8,4,9,5,10,6,11,7,12))]
+y <- x %>% 
+  mutate(rr=as.numeric(rr),
+         rr_low=as.numeric(rr_low),
+         rr_high=as.numeric(rr_high),
+         var=factor(var,levels=order_x))
+rows <- y %>% nrow()
+
+font_size <- 7.5
+range(y$rr_low,na.rm=T);range(y$rr_high,na.rm=T)
+max_value <- ceiling(max(y$rr_high,na.rm=T))
+p <- ggplot(y,aes(var,rr))+
+  geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=0.6,aes(col=signif))+
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  geom_vline(xintercept = c(2.5,4.5,6.5,8.5,10.5),
+             col="grey",linewidth=0.15,linetype="dashed")+
+  labs(x="",y=lab_rr)+
+  # add bottom bar
+  geom_segment(x = 0.01, xend = 0.01, yend = max_value,
+               y=-1,
+               col="black",linewidth=0.5)+
+  # adjust range of axis
+  coord_flip(xlim=c(0,rows+2),expand = F)+
+  scale_y_continuous(expand = c(0,0),
+                     breaks = c(seq(0,5,2.5)),
+                     limits = c(-14,14.3)) +
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  theme_bw(font_size)+
+  # add text data
+  geom_text(y=-14,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-14,aes(label=var),
+            hjust = 0,size=font_size*5/14 * 0.8)+
+  # titles in bold
+  geom_text(y=-7,x=rows+1,label="n",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-7,aes(label=N),size=font_size*5/14 * 0.8)+
+  geom_text(y=-5,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-5,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
+  geom_text(y=-2.5,x=rows+1,size=font_size*5/14 * 0.8,fontface = "bold",
+            label=expression(bold(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))+
+  geom_text(y=-2.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=max_value+1,aes(label=ci),size=font_size*5/14 * 0.8)+
+  # Modify theme to look good
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        panel.border=element_blank(),
+        axis.line.y=element_blank(),
+        # axis.line.x = element_line(colour = "black"),
+        axis.text.y=element_blank(),
+        axis.title.x = element_text(hjust = 0.9),
+        axis.ticks.y = element_blank())
+p
+
+# Solution to draw x axis title in two lines
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, x = 0.7, y = 0.07,size = font_size)+
+  cowplot::draw_label(lab_rr_line2, x = 0.7, y = 0.035,size = font_size)
+# cowplot::draw_label(lab_rr_line2_temp, x = 0.7, y = 0.035,size = font_size)
+
+fig_name <- "Figures/Model/%s.png"
+# fig_name <- sprintf(fig_name,"Models_Rural")
+fig_name <- sprintf(fig_name,"Models_Met")
+ggsave(fig_name, ggplot2::last_plot(),
+       units="cm",dpi=600,
+       width=8.7*2,height=8.7)
+# # save as svg
+# ggsave(str_replace(fig_name,"png","svg"),ggplot2::last_plot(),
+#        units="cm",dpi=600,
+#        width = 8.7*2, height =8.7)
+# pdf(str_replace(fig_name,"png","pdf"),
+#     width = 8.7*2/2.54, height =8.7/2.54)
+# ggplot2::last_plot()
+# dev.off()
 
 
 # EoF

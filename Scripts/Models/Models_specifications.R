@@ -30,7 +30,7 @@ df <- df %>%
 
 ## Negative Binomial forms ----
 # year+quarter
-model_nb<- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
+model_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year+quarter+commune+
                      offset(log(pop75)), 
                    data = df,
                    na.action=na.omit)
@@ -102,6 +102,46 @@ library(splines)
 mod_nb11 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+ns(landTemp, df = 3)+year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
 models_nb_res <- rbind(models_nb_res,getModelInfo(mod_nb11,"Spline Temperature+Year-Quarter"))
+df$landTemp %>% range()
+attr(terms(mod_nb11),"predvars") # 16.5 & 27
+lmtest::lrtest(model_nb, mod_nb11) # Spline is better is better
+
+
+# PM25 spline
+mod_nb12 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+summary(mod_nb12)
+getModelInfo(mod_nb12,"Spline PM2.5") %>% head()
+AIC(mod_nb12)
+# Knots
+df$pm25Exp_10ug %>% range()
+attr(terms(mod_nb12),"predvars") # 13.4 & 22.8
+# so knots are 2.9-13.4; 13.4-22.8; 22.8-90.2
+# Compare to base model
+lmtest::lrtest(model_nb, mod_nb12) # Spline is better is better
+
+
+# Better to plot to see the effect
+# https://stats.stackexchange.com/questions/503985/interpretation-of-cubic-spline-coefficients-in-r
+# Create a data frame for prediction: only `Age` will vary.
+#
+N <- 101
+x <- df[which.max(complete.cases(df)), ]
+df_new <- do.call(rbind, lapply(1:N, function(i) x))
+df_new$pm25Exp_10ug <- with(df, seq(min(pm25Exp_10ug, na.rm=TRUE), 
+                                    max(pm25Exp_10ug, na.rm=TRUE), length.out=N))
+# Predict and plot.
+df_new$predDeath <- predict(mod_nb12, newdata=df_new) # The predicted *link,* by default
+with(df_new, plot(pm25Exp_10ug*10, predDeath, type="l", lwd=2, 
+                  xlab="PM2.5",ylab="", main="Relative spline term"))
+mtext("Spline contribution\nto the link function", side=2, line=2)
+
+# Plot numerical derivatives.
+dpm25Exp_10ug <- diff(df_new$pm25Exp_10ug[1:2])
+delta <- diff(df_new$predDeath)/dpm25Exp_10ug
+pm25 <- (df_new$pm25Exp_10ug[-N] + df_new$pm25Exp_10ug[-1]) / 2
+plot(pm25*10, delta, type="l", lwd=2, ylab="Change per PM2.5", xlab="PM2.5",
+     main="Spline Slope (Effective Coefficient)")
 
 
 # save results
@@ -240,7 +280,10 @@ ggsave("Figures//Model/Model_Specifications_MonthEffect.png", ggplot2::last_plot
        # height = 664/3.7795275591)
        width=8.7*2,height=8.7)
 
-# Model with lags -----
+
+# LAGS --------
+
+## Model with lags -----
 df <- df %>% 
   mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% 
   arrange(count_month) %>% arrange(codigo_comuna) %>% 
@@ -255,13 +298,56 @@ df <- df %>%
 
 model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
                           pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
-                          pm25Exp_lead1+pm25Exp_lead6+pm25Exp_lead12+
-                          year+quarter+commune+
+                          # year+quarter+
+                          year_quarter+
+                          commune+
                           offset(log(pop75)), 
                         data = df,
                         na.action=na.omit)
 
 x <- getModelInfo(model_nb_lags,"Lags")
+
+x[c(2,4:7),] %>% 
+  mutate(order_id=case_when(
+    str_detect(param,"lag") ~ 10,
+    str_detect(param,"lead") ~ 1000,
+    T ~ 100)) %>% 
+  mutate(param=param %>% str_remove("pm25Exp_") %>% str_replace("10ug","Same Period")) %>%
+  mutate(row_id = row_number(),
+         row_id=row_id+order_id) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
+  ggplot(aes(reorder(param,row_id,decreasing = T),rr))+
+  geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  # geom_point(size=1,aes(col=signif))+
+  geom_point(size=1,col="red")+
+  # add separating lines
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
+  coord_flip()+
+  # scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  # Modify theme to look good
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
+
+ggsave("Figures/Model/Model_Lags.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7*2,height=8.7)
+
+
+
+## Model with lags and leads -----
+model_nb_lagsLeads <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
+                          pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
+                          pm25Exp_lead1+pm25Exp_lead6+pm25Exp_lead12+
+                          # year+quarter+
+                            year_quarter+
+                            commune+
+                          offset(log(pop75)), 
+                        data = df,
+                        na.action=na.omit)
+
+x <- getModelInfo(model_nb_lagsLeads,"Lags")
 
 x[c(2,4:10),] %>% 
   mutate(order_id=case_when(
@@ -285,12 +371,12 @@ x[c(2,4:10),] %>%
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures/Model/Model_Lags.png", ggplot2::last_plot(),
+ggsave("Figures/Model/Model_LagsLeads.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7*2,height=8.7)
 
 
-# Model with all lags
+# Model with 3 years of lags
 df <- df %>% 
   mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% 
   arrange(count_month) %>% arrange(codigo_comuna) %>% 
@@ -354,15 +440,63 @@ model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
                           pm25Exp_lag11+pm25Exp_lag10+pm25Exp_lag9+pm25Exp_lag8+pm25Exp_lag7+
                           pm25Exp_lag6+pm25Exp_lag5+pm25Exp_lag4+pm25Exp_lag3+pm25Exp_lag2+
                           pm25Exp_lag1+
-                          pm25Exp_lead1+pm25Exp_lead2+pm25Exp_lead3+pm25Exp_lead4+pm25Exp_lead5+
-                          pm25Exp_lead6+pm25Exp_lead7+pm25Exp_lead8+pm25Exp_lead9+pm25Exp_lead10+
-                          pm25Exp_lead11+pm25Exp_lead12+
-                          year+quarter+commune+
+                          year_quarter+commune+
                           offset(log(pop75)), 
                         data = df,
                         na.action=na.omit)
 
 x <- getModelInfo(model_nb_lags,"AllLags")
+
+xx <- x[c(2,4:39),] %>% 
+  mutate(order_id=case_when(
+    str_detect(param,"lag") ~ 10,
+    str_detect(param,"lead") ~ 1000,
+    T ~ 100)) %>% 
+  mutate(param=param %>% str_remove("pm25Exp_") %>% str_replace("10ug","Same Period")) %>%
+  mutate(row_id = row_number(),
+         row_id=row_id+order_id) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) # significant at 5%
+
+xx %>% 
+  ggplot(aes(reorder(param,row_id,decreasing = F),rr))+
+  geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=1,aes(col=signif))+
+  geom_point(size=3,col="black",x="Same Period",y=xx[1,]$rr)+
+  # add separating lines
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
+  geom_vline(xintercept = c(12.5,24.5,36.5,37.5),col="grey")+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  # Modify theme to look good
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 90,hjust = 0.5, vjust = 0.5))
+
+ggsave("Figures/Model/Model_AllLags.png", ggplot2::last_plot(),
+       units="cm",dpi=500,
+       width=8.7*2,height=8.7)
+
+
+model_nb_lagsLeads <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
+                          pm25Exp_lag36+pm25Exp_lag35+pm25Exp_lag34+pm25Exp_lag33+pm25Exp_lag32+
+                          pm25Exp_lag31+pm25Exp_lag30+pm25Exp_lag29+pm25Exp_lag28+pm25Exp_lag27+
+                          pm25Exp_lag26+pm25Exp_lag25+pm25Exp_lag24+pm25Exp_lag23+pm25Exp_lag22+
+                          pm25Exp_lag21+pm25Exp_lag20+pm25Exp_lag19+pm25Exp_lag18+pm25Exp_lag17+
+                          pm25Exp_lag16+pm25Exp_lag15+pm25Exp_lag14+pm25Exp_lag13+pm25Exp_lag12+
+                          pm25Exp_lag11+pm25Exp_lag10+pm25Exp_lag9+pm25Exp_lag8+pm25Exp_lag7+
+                          pm25Exp_lag6+pm25Exp_lag5+pm25Exp_lag4+pm25Exp_lag3+pm25Exp_lag2+
+                          pm25Exp_lag1+
+                          pm25Exp_lead1+pm25Exp_lead2+pm25Exp_lead3+pm25Exp_lead4+pm25Exp_lead5+
+                          pm25Exp_lead6+pm25Exp_lead7+pm25Exp_lead8+pm25Exp_lead9+pm25Exp_lead10+
+                          pm25Exp_lead11+pm25Exp_lead12+
+                          year_quarter+commune+
+                          offset(log(pop75)), 
+                        data = df,
+                        na.action=na.omit)
+
+x <- getModelInfo(model_nb_lagsLeads,"AllLags")
 
 xx <- x[c(2,4:51),] %>% 
   mutate(order_id=case_when(
@@ -390,7 +524,7 @@ xx %>%
         legend.position = "none",
         axis.text.x = element_text(angle = 90,hjust = 0.5, vjust = 0.5))
 
-ggsave("Figures/Model/Model_AllLags.png", ggplot2::last_plot(),
+ggsave("Figures/Model/Model_AllLagsLeads.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7*2,height=8.7)
 
