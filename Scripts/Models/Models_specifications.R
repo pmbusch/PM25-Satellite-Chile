@@ -143,6 +143,82 @@ pm25 <- (df_new$pm25Exp_10ug[-N] + df_new$pm25Exp_10ug[-1]) / 2
 plot(pm25*10, delta, type="l", lwd=2, ylab="Change per PM2.5", xlab="PM2.5",
      main="Spline Slope (Effective Coefficient)")
 
+###### Analysis by Nature paper
+
+# Need to do it with linear models?
+
+model_ols <- lfe::felm(MR_all_cause ~ pm25Exp_10ug+landTemp | year_quarter+commune,
+                       data=df,weights=df$pop75)
+model_12 <- lfe::felm(MR_all_cause ~ ns(pm25Exp_10ug, df = 3)+landTemp | year_quarter+commune,
+                       data=df,weights=df$pop75)
+model_13 <- lfe::felm(MR_all_cause ~ ns(pm25Exp_10ug, knots = 16/10)+landTemp | year_quarter+commune,
+                       data=df,weights=df$pop75)
+model_14 <- lfe::felm(MR_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp | year_quarter+commune,
+                       data=df,weights=df$pop75)
+
+
+# https://github.com/sheftneal/HBBB2018/blob/master/scripts/07_FigureED3.R
+# attr(terms(mod_nb12),"predvars") 
+# mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = 16/10)+landTemp+year_quarter+commune+
+#                      offset(log(pop75)), data = df,na.action=na.omit)
+# attr(terms(mod_nb13),"predvars") 
+# mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp+year_quarter+commune+
+#                      offset(log(pop75)), data = df,na.action=na.omit)
+# attr(terms(mod_nb14),"predvars") 
+# summary(mod_nb13)
+# summary(mod_nb14)
+
+mod_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+nobs(mod_nb)
+
+
+
+# get predictions
+data_used <- df %>% dplyr::select(death_count_all_cause,pm25Exp_10ug,landTemp,year_quarter,
+                                  commune,pop75,MR_all_cause) %>% na.omit()
+pm25_support <- seq(0.1,6,0.1)
+br <- weighted.mean(data_used$MR_all_cause,data_used$pop75)  
+pm <- weighted.mean(data_used$pm25Exp_10ug,data_used$pop75) 
+
+slope <- coefficients(model_ols)[1]
+
+response_a <- tibble::tibble(x =pm25_support,
+                             y = br+(x-pm)*slope)
+plot(response_a$x*10,response_a$y)
+
+# Get from other models
+x <- response_a$x
+ind <- which(x==round(pm,1))
+y12 = as.numeric(t(as.matrix((model_12)$coefficients[2:4]))%*%t(ns(x,3)))
+y13 = as.numeric(t(as.matrix((model_13)$coefficients[2:3]))%*%t(ns(x, knots = 16/10)))
+y14 = as.numeric(t(as.matrix((model_14)$coefficients[2:6]))%*%t(ns(x, knots = c(10,15,25,35)/10)))				
+
+# Re-center
+vertical <- br
+y12 = y12 - y12[ind] + vertical
+y13 = y13 - y13[ind] + vertical
+y14 = y14 - y14[ind] + vertical
+
+# Plot
+response_a %>%
+  rename(Base=y) %>% 
+  mutate(`spline (3 df)`=y12,`spline (1 knot at 16)`=y13,`spline (4 knots)`=y14) %>% 
+  pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
+  mutate(x=x*10) %>% 
+  ggplot(aes(x,value,col=key))+
+  geom_line()+
+  ylim(0,6.5)+
+  labs(x="PM2.5 [ug/m3]",y="75+ MR (per 1,000]",col="")+
+  theme(legend.position = c(0.5,0.3))
+ggsave("Figures/Model/Splines.png")
+
+
+
+
+
+#####
+
 
 # save results
 write.csv(models_nb_res,"Data/Models/modelSpecResults.csv",row.names = F)
