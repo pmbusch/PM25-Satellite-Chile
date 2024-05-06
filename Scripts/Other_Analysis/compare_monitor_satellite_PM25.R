@@ -127,6 +127,17 @@ cor(x= df$value, y= df$pm25_satellite,
     use = "complete.obs",
     method = "spearman")
 
+# RMSE 
+f.RMSE <- function(x,y){
+  sqrt(mean((x-y)^2))
+}
+
+f.RMSE(df$value,df$pm25_satellite) # 12.7
+df %>% group_by(region) %>% 
+  reframe(rmse=f.RMSE(value,pm25_satellite))
+df %>% group_by(year) %>% 
+  reframe(rmse=f.RMSE(value,pm25_satellite))
+
 
 # summary(lm(value~pm25_satellite,data=df))
 # summary(lm(value~pm25_satellite-1,data=df))

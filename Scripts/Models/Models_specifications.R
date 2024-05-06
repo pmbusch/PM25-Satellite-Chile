@@ -143,7 +143,120 @@ pm25 <- (df_new$pm25Exp_10ug[-N] + df_new$pm25Exp_10ug[-1]) / 2
 plot(pm25*10, delta, type="l", lwd=2, ylab="Change per PM2.5", xlab="PM2.5",
      main="Spline Slope (Effective Coefficient)")
 
+
+# get predictions with a function
+data_used <- df %>% dplyr::select(death_count_all_cause,
+                                  pm25_exposure,
+                                  pm25Exp_10ug,landTemp,year_quarter,
+                                  commune,pop75,MR_all_cause) %>% na.omit()
+pm25_support <- seq(0.1,6,0.1)
+br <- weighted.mean(data_used$MR_all_cause,data_used$pop75)  
+pm <- weighted.mean(data_used$pm25Exp_10ug,data_used$pop75) 
+pop <- sum(data_used$pop75)
+deat <- sum(data_used$death_count_all_cause)  
+deat/pop*1000
+
+# Key idea: make predictions with new dataset changing only the PM2.5. base data
+f.getSplinePredictions <- function(new_base,model,se=F){
+  
+  N <- length(new_base)
+  # create base data for prediction, there is no interaction with PM2.5
+  x <- data_used[which.max(complete.cases(data_used)), ]
+  df_new <- do.call(rbind, lapply(1:N, function(i) x))
+  df_new$pm25Exp_10ug <- with(data_used,seq(min(pm25Exp_10ug, na.rm=TRUE), 
+                                      max(pm25Exp_10ug, na.rm=TRUE), length.out=N))
+
+  # predictions  
+  ind <- which(new_base==round(pm,1))
+  if (se){
+    y <- predict(model, newdata=df_new,type = "response",se.fit = T) # death counts
+    y_low = y$fit - y$se.fit*1.96
+    y_high = y$fit + y$se.fit*1.96
+    y = y$fit
+    y = y/x$pop75*1000;y_low = y_low/x$pop75*1000;y_high = y_high/x$pop75*1000;
+    y = y - y[ind] + br;y_low = y_low - y_low[ind] + br;y_high = y_high - y_high[ind] + br;    
+    return(list(y=y,y_low=y_low,y_high=y_high))
+      
+  } else {
+    y <- predict(model, newdata=df_new,type = "response",se.fit = F) # death counts
+    y = y/x$pop75*1000
+    # Re-center
+    y = y - y[ind] + br
+    return(y)
+  }
+}
+
+
+
+mod_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+nobs(mod_nb)
+# attr(terms(mod_nb12),"predvars") 
+mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = 16/10)+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+# attr(terms(mod_nb13),"predvars") 
+mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+# attr(terms(mod_nb14),"predvars") 
+# summary(mod_nb13)
+# summary(mod_nb14)
+mod_nb15 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+mod_nb16 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+ns(landTemp, df = 3)+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+mod_nb17 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+mod_nb18 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+I(pm25Exp_10ug^3)+
+                     landTemp+year_quarter+commune+offset(log(pop75)), data = df,na.action=na.omit)
+
+# get data on models
+
+response_a <- tibble::tibble(x =pm25_support)
+
+
+y=f.getSplinePredictions(pm25_support,mod_nb,se=T)
+y_low=y$y_low
+y_high=y$y_high
+y=y$y
+y12 = f.getSplinePredictions(pm25_support,mod_nb12)
+y13 = f.getSplinePredictions(pm25_support,mod_nb13)
+y14 = f.getSplinePredictions(pm25_support,mod_nb14)
+y15 = f.getSplinePredictions(pm25_support,mod_nb15)
+y16 = f.getSplinePredictions(pm25_support,mod_nb16)
+y17 = f.getSplinePredictions(pm25_support,mod_nb17)
+y18 = f.getSplinePredictions(pm25_support,mod_nb18)
+
+
+ci_plot <- response_a %>% 
+  mutate(x=x*10)
+
+# Plot
+response_a %>%
+  mutate(Base=y,y_low=y_low,y_high=y_high,
+         `spline (3 df)`=y12,`spline (1 knot at 16)`=y13,
+         `spline (4 knots)`=y14,`spline (4 df)`=y15,
+         `spline (3 df)+ Temp (3 df)`=y16,
+         `x+x^2`=y17,`x+x^2+x^3`=y18) %>% 
+  dplyr::select(-y_low,-y_high) %>% 
+  pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
+  mutate(x=x*10) %>% 
+  ggplot(aes(x))+
+  geom_ribbon(data=ci_plot,
+              aes(ymin = y_low,ymax = y_high),fill="grey",alpha = 0.3)+
+  geom_line(aes(y=value,col=key),linewidth=1)+
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
+                 data=data_used,binwidth = 0.5,
+                 linewidth=0.1,center=0,position = position_nudge(y=3),
+                 alpha=0.4,fill="darkred",col="white")+
+  ylim(3,6.5)+
+  # ylim(0,6.5)+
+  xlim(0,60)+
+  # theme(legend.position = c(0.5,0.3))+
+  labs(x="PM2.5 [ug/m3]",y="75+ MR (per 1,000]",col="")
+ggsave("Figures/Model/Splines.png")
+
 ###### Analysis by Nature paper
+# https://github.com/sheftneal/HBBB2018/blob/master/scripts/07_FigureED3.R
 
 # Need to do it with linear models?
 
@@ -155,63 +268,86 @@ model_13 <- lfe::felm(MR_all_cause ~ ns(pm25Exp_10ug, knots = 16/10)+landTemp | 
                        data=df,weights=df$pop75)
 model_14 <- lfe::felm(MR_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp | year_quarter+commune,
                        data=df,weights=df$pop75)
-
-
-# https://github.com/sheftneal/HBBB2018/blob/master/scripts/07_FigureED3.R
-# attr(terms(mod_nb12),"predvars") 
-# mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = 16/10)+landTemp+year_quarter+commune+
-#                      offset(log(pop75)), data = df,na.action=na.omit)
-# attr(terms(mod_nb13),"predvars") 
-# mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp+year_quarter+commune+
-#                      offset(log(pop75)), data = df,na.action=na.omit)
-# attr(terms(mod_nb14),"predvars") 
-# summary(mod_nb13)
-# summary(mod_nb14)
-
-mod_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+commune+
-                     offset(log(pop75)), data = df,na.action=na.omit)
-nobs(mod_nb)
-
+model_15 <- lfe::felm(MR_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp | year_quarter+commune,
+                      data=df,weights=df$pop75)
+model_16 <- lfe::felm(MR_all_cause ~ ns(pm25Exp_10ug, df = 3)+ns(landTemp, df = 3) | year_quarter+commune,
+                      data=df,weights=df$pop75)
+model_17 <- lfe::felm(MR_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+landTemp | year_quarter+commune,
+                      data=df,weights=df$pop75)
+model_18 <- lfe::felm(MR_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+I(pm25Exp_10ug^3)+
+                        landTemp | year_quarter+commune,
+                      data=df,weights=df$pop75)
 
 
 # get predictions
-data_used <- df %>% dplyr::select(death_count_all_cause,pm25Exp_10ug,landTemp,year_quarter,
+data_used <- df %>% dplyr::select(death_count_all_cause,
+                                  pm25_exposure,
+                                  pm25Exp_10ug,landTemp,year_quarter,
                                   commune,pop75,MR_all_cause) %>% na.omit()
 pm25_support <- seq(0.1,6,0.1)
 br <- weighted.mean(data_used$MR_all_cause,data_used$pop75)  
 pm <- weighted.mean(data_used$pm25Exp_10ug,data_used$pop75) 
 
+summary(model_ols)$coefficients
 slope <- coefficients(model_ols)[1]
+se_slope <- summary(model_ols)$coefficients[1,2]
 
-response_a <- tibble::tibble(x =pm25_support,
-                             y = br+(x-pm)*slope)
-plot(response_a$x*10,response_a$y)
+response_a <- tibble::tibble(x =pm25_support)
 
 # Get from other models
 x <- response_a$x
 ind <- which(x==round(pm,1))
-y12 = as.numeric(t(as.matrix((model_12)$coefficients[2:4]))%*%t(ns(x,3)))
-y13 = as.numeric(t(as.matrix((model_13)$coefficients[2:3]))%*%t(ns(x, knots = 16/10)))
-y14 = as.numeric(t(as.matrix((model_14)$coefficients[2:6]))%*%t(ns(x, knots = c(10,15,25,35)/10)))				
+y = slope*x
+y_low = x*(slope-1.96*se_slope)
+y_high = x*(slope+1.96*se_slope)
+y12 = as.numeric(t(as.matrix((model_12)$coefficients[1:3]))%*%t(ns(x,3)))
+y13 = as.numeric(t(as.matrix((model_13)$coefficients[1:2]))%*%t(ns(x, knots = 16/10)))
+y14 = as.numeric(t(as.matrix((model_14)$coefficients[1:5]))%*%t(ns(x, knots = c(10,15,25,35)/10)))				
+y15 = as.numeric(t(as.matrix((model_15)$coefficients[1:4]))%*%t(ns(x,4)))				
+y16 = as.numeric(t(as.matrix((model_16)$coefficients[1:3]))%*%t(ns(x,3)))				
+y17 = x*model_17$coefficients[1]+x^2*model_17$coefficients[2]
+y18 = x*model_18$coefficients[1]+x^2*model_18$coefficients[2]+x^3*model_18$coefficients[3]
 
 # Re-center
-vertical <- br
-y12 = y12 - y12[ind] + vertical
-y13 = y13 - y13[ind] + vertical
-y14 = y14 - y14[ind] + vertical
+y = y - y[ind] + br
+y_low = y_low - y_low[ind] + br
+y_high = y_high - y_high[ind] + br
+y12 = y12 - y12[ind] + br
+y13 = y13 - y13[ind] + br
+y14 = y14 - y14[ind] + br
+y15 = y15 - y15[ind] + br
+y16 = y16 - y16[ind] + br
+y17 = y17 - y17[ind] + br
+y18 = y18 - y18[ind] + br
+
+
+ci_plot <- response_a %>% 
+  mutate(x=x*10)
 
 # Plot
 response_a %>%
-  rename(Base=y) %>% 
-  mutate(`spline (3 df)`=y12,`spline (1 knot at 16)`=y13,`spline (4 knots)`=y14) %>% 
+mutate(Base=y,y_low=y_low,y_high=y_high,
+       `spline (3 df)`=y12,`spline (1 knot at 16)`=y13,
+         `spline (4 knots)`=y14,`spline (4 df)`=y15,
+         `spline (3 df)+ Temp (3 df)`=y16,
+         `x+x^2`=y17,`x+x^2+x^3`=y18) %>% 
+  dplyr::select(-y_low,-y_high) %>% 
   pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
   mutate(x=x*10) %>% 
-  ggplot(aes(x,value,col=key))+
-  geom_line()+
-  ylim(0,6.5)+
-  labs(x="PM2.5 [ug/m3]",y="75+ MR (per 1,000]",col="")+
-  theme(legend.position = c(0.5,0.3))
-ggsave("Figures/Model/Splines.png")
+  ggplot(aes(x))+
+  geom_ribbon(data=ci_plot,
+              aes(ymin = y_low,ymax = y_high),fill="grey",alpha = 0.3)+
+  geom_line(aes(y=value,col=key),linewidth=1)+
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
+                 data=data_used,binwidth = 0.5,
+                 linewidth=0.1,center=0,position = position_nudge(y=3),
+                 alpha=0.4,fill="darkred",col="white")+
+  ylim(3,6.5)+
+  # ylim(0,6.5)+
+  xlim(0,60)+
+  # theme(legend.position = c(0.5,0.3))+
+  labs(x="PM2.5 [ug/m3]",y="75+ MR (per 1,000]",col="")
+ggsave("Figures/Model/SplinesLinear.png")
 
 
 
@@ -366,15 +502,20 @@ df <- df %>%
   group_by(codigo_comuna) %>% 
   mutate(pm25Exp_lag12=lag(pm25Exp_10ug,12,order_by=count_month),
          pm25Exp_lag6=lag(pm25Exp_10ug,6,order_by=count_month),
+         pm25Exp_lag5=lag(pm25Exp_10ug,5,order_by=count_month),
+         pm25Exp_lag4=lag(pm25Exp_10ug,4,order_by=count_month),
          pm25Exp_lag3=lag(pm25Exp_10ug,3,order_by=count_month),
+         pm25Exp_lag2=lag(pm25Exp_10ug,2,order_by=count_month),
          pm25Exp_lag1=lag(pm25Exp_10ug,1,order_by=count_month),
          pm25Exp_lead1=lead(pm25Exp_10ug,1,order_by=count_month),
          pm25Exp_lead6=lead(pm25Exp_10ug,6,order_by=count_month),
          pm25Exp_lead12=lead(pm25Exp_10ug,12,order_by=count_month))
 
 model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
-                          pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
-                          # year+quarter+
+                          pm25Exp_lag1+
+                          pm25Exp_lag2+pm25Exp_lag3+pm25Exp_lag4+
+                          pm25Exp_lag5+pm25Exp_lag6+
+                          # pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
                           year_quarter+
                           commune+
                           offset(log(pop75)), 
@@ -383,23 +524,26 @@ model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
 
 x <- getModelInfo(model_nb_lags,"Lags")
 
-x[c(2,4:7),] %>% 
+x[c(2,4:9),] %>%
+# x[c(2,4),] %>%
+# x[c(2,4:7),] %>% 
   mutate(order_id=case_when(
     str_detect(param,"lag") ~ 10,
     str_detect(param,"lead") ~ 1000,
     T ~ 100)) %>% 
+  arrange(desc(param)) %>% 
   mutate(param=param %>% str_remove("pm25Exp_") %>% str_replace("10ug","Same Period")) %>%
   mutate(row_id = row_number(),
          row_id=row_id+order_id) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
   ggplot(aes(reorder(param,row_id,decreasing = T),rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
-  # geom_point(size=1,aes(col=signif))+
-  geom_point(size=1,col="red")+
+  geom_point(size=1,aes(col=signif))+
+  # geom_point(size=1,col="red")+
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
-  # scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
   # Modify theme to look good
   theme(panel.grid.major = element_blank(),
@@ -414,8 +558,9 @@ ggsave("Figures/Model/Model_Lags.png", ggplot2::last_plot(),
 
 ## Model with lags and leads -----
 model_nb_lagsLeads <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
-                          pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
-                          pm25Exp_lead1+pm25Exp_lead6+pm25Exp_lead12+
+                               pm25Exp_lag1+pm25Exp_lead1+
+                          # pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
+                          # pm25Exp_lead1+pm25Exp_lead6+pm25Exp_lead12+
                           # year+quarter+
                             year_quarter+
                             commune+
@@ -425,7 +570,8 @@ model_nb_lagsLeads <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
 
 x <- getModelInfo(model_nb_lagsLeads,"Lags")
 
-x[c(2,4:10),] %>% 
+x[c(2,4:5),] %>% 
+# x[c(2,4:10),] %>% 
   mutate(order_id=case_when(
     str_detect(param,"lag") ~ 10,
     str_detect(param,"lead") ~ 1000,

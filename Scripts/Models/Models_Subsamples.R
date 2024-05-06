@@ -30,7 +30,7 @@ df <- df %>%
          month=as.factor(month),
          quarter=as.factor(quarter))
 
-# order appropiately 
+# order appropriately 
 df <- df %>% 
   mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% 
   arrange(count_month) %>% arrange(codigo_comuna)
@@ -67,10 +67,14 @@ df <- df %>% mutate(pop500=(commune %in% pop_commune))
 
 ### Bad regions identification ------
 df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12","11"),1,0)) # XI for overprediction
+# Bad in RMSE
+df <- df %>% mutate(bad_region2=if_else(region %in% c("11","9","14","16"),1,0)) 
 
 
 ## HETEROGENEITY -----
 
+# number of communes in metropolitan - 52
+df %>% filter(region==13) %>% pull(codigo_comuna) %>% unique() %>% length()
 
 ### PM2.5 above 20 ----------
 # Average over the whole period
@@ -82,6 +86,11 @@ nrow(filter(com_pm25,pm25>20))/nrow(com_pm25) # 50.46%
 com_pm25 <- com_pm25 %>% filter(pm25>20) %>% pull(commune) # 165
 df <- df %>% mutate(comPM25=(commune %in% com_pm25))
 
+# Met Analysis
+df %>% filter(region==13) %>%
+  group_by(comPM25) %>% 
+  reframe(x=n_distinct(codigo_comuna))
+
 
 ### Pop 75 share above median -------
 # Above and below median Pop 75 - Need to sample communes
@@ -92,6 +101,10 @@ commune_pop <- commune_pop %>% filter(pop75_share>0.045) %>% pull(commune) # 163
 df <- df %>% mutate(pop_case=if_else(commune %in% commune_pop,"Above Median","Below Median"))
 rm(commune_pop)
 
+# Met Analysis
+df %>% filter(region==13) %>%
+  group_by(pop_case) %>% 
+  reframe(x=n_distinct(codigo_comuna))
 
 ### Urban Share -----
 com_rural <- df %>% group_by(commune) %>% 
@@ -109,8 +122,14 @@ nrow(filter(com_rural,rural_share>0.3))/nrow(com_rural) # 51%
 nrow(filter(com_rural,rural_share>0.2))/nrow(com_rural) # 63%
 
 # Communes with more than x% of rural habitants
-com_rural <- com_rural %>% filter(rural_share>0.3) %>% pull(commune) # 93 for 50%, 52 for 60%
+com_rural <- com_rural %>% filter(rural_share>0.5) %>% pull(commune) # 93 for 50%, 52 for 60%
 df <- df %>% mutate(comRural=(commune %in% com_rural))
+
+# Met Analysis
+df %>% filter(region==13) %>%
+  group_by(comRural) %>% 
+  reframe(x=n_distinct(codigo_comuna))
+
 
 ### income -----
 income <-  read.csv("Data/socioeconomic.csv")
@@ -138,6 +157,13 @@ df <- df %>% mutate(income_group=case_when(
   income_mean<income_percentil[3] ~ "Between P65-P95 ($4,320 to $6,990)",
   T ~ "Above P95 (more than $6,990)"))
 # df %>% group_by(commune,income_group) %>% tally() %>% view()
+
+# Met Analysis
+df %>% 
+  mutate(met=region==13) %>%
+  group_by(income_group,met) %>% 
+  reframe(x=n_distinct(codigo_comuna)) %>% 
+  pivot_wider(names_from = met, values_from = x)
 
 
 # share of 75 plus per income group
@@ -313,7 +339,7 @@ results[[2]] <- runModel(data=filter(df_sex,sex=="Hombre"),name="Sex: Male")
 results[[3]] <- runModel(data=filter(df_sex,sex=="Mujer"),name="Sex: Female") 
 results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
 # results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 65+ Above 500") # 65+
-results[[5]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
+results[[5]] <- runModel(data=filter(df,bad_region2==0),name="Excluding regions with low satellite accuracy")
 results[[6]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
 results[[7]] <- runModel(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
 results[[8]] <- runModel(data=filter(df,comPM25==F),name="PM2.5 below 20 ug/m3")
@@ -342,29 +368,29 @@ results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_exter
                                       MR_all_cause=MR_external),name="External cause")
 
 # Others Rural by Cause
-# results <- list()  #lists to save results
-# results[[1]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
-# results[[2]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
-# results[[3]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardioRespiratory,
-#                                       MR_all_cause=MR_cardioRespiratory),name="Urban - Cardiorespiratory cause")
-# results[[4]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardio,
-#                                       MR_all_cause=MR_cardio),name="Urban - Cardiovascular cause")
-# results[[5]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_respiratory,
-#                                       MR_all_cause=MR_respiratory),name="Urban - Respiratory cause")
-# results[[6]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_all_cause_NoCDP,
-#                                       MR_all_cause=MR_all_cause_NoCDP),name="Urban - All-cause excluding Cardiorespiratory")
-# results[[7]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_external,
-#                                       MR_all_cause=MR_external),name="Urban - External cause")
-# results[[8]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardioRespiratory,
-#                                      MR_all_cause=MR_cardioRespiratory),name="Rural - Cardiorespiratory cause")
-# results[[9]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardio,
-#                                      MR_all_cause=MR_cardio),name="Rural - Cardiovascular cause")
-# results[[10]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_respiratory,
-#                                      MR_all_cause=MR_respiratory),name="Rural - Respiratory cause")
-# results[[11]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_all_cause_NoCDP,
-#                                      MR_all_cause=MR_all_cause_NoCDP),name="Rural - All-cause excluding Cardiorespiratory")
-# results[[12]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_external,
-#                                      MR_all_cause=MR_external),name="Rural - External cause")
+results <- list()  #lists to save results
+results[[1]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
+results[[2]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
+results[[3]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardioRespiratory,
+                                      MR_all_cause=MR_cardioRespiratory),name="Urban - Cardiorespiratory cause")
+results[[4]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardio,
+                                      MR_all_cause=MR_cardio),name="Urban - Cardiovascular cause")
+results[[5]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_respiratory,
+                                      MR_all_cause=MR_respiratory),name="Urban - Respiratory cause")
+results[[6]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_all_cause_NoCDP,
+                                      MR_all_cause=MR_all_cause_NoCDP),name="Urban - All-cause excluding Cardiorespiratory")
+results[[7]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_external,
+                                      MR_all_cause=MR_external),name="Urban - External cause")
+results[[8]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardioRespiratory,
+                                     MR_all_cause=MR_cardioRespiratory),name="Rural - Cardiorespiratory cause")
+results[[9]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardio,
+                                     MR_all_cause=MR_cardio),name="Rural - Cardiovascular cause")
+results[[10]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_respiratory,
+                                     MR_all_cause=MR_respiratory),name="Rural - Respiratory cause")
+results[[11]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_all_cause_NoCDP,
+                                     MR_all_cause=MR_all_cause_NoCDP),name="Rural - All-cause excluding Cardiorespiratory")
+results[[12]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_external,
+                                     MR_all_cause=MR_external),name="Rural - External cause")
 
 # Others Metropolitan vs rest of country by Cause
 # results <- list()  #lists to save results
@@ -674,8 +700,8 @@ cowplot::ggdraw(p+labs(y=" \n "))+
 # cowplot::draw_label(lab_rr_line2_temp, x = 0.7, y = 0.035,size = font_size)
 
 fig_name <- "Figures/Model/%s.png"
-# fig_name <- sprintf(fig_name,"Models_Rural")
-fig_name <- sprintf(fig_name,"Models_Met")
+fig_name <- sprintf(fig_name,"Models_Rural2")
+# fig_name <- sprintf(fig_name,"Models_Met")
 ggsave(fig_name, ggplot2::last_plot(),
        units="cm",dpi=600,
        width=8.7*2,height=8.7)
