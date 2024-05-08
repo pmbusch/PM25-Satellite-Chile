@@ -149,7 +149,7 @@ data_used <- df %>% dplyr::select(death_count_all_cause,
                                   pm25_exposure,
                                   pm25Exp_10ug,landTemp,year_quarter,
                                   commune,pop75,MR_all_cause) %>% na.omit()
-pm25_support <- seq(0.1,6,0.1)
+pm25_support <- seq(0.5,6,0.1)
 br <- weighted.mean(data_used$MR_all_cause,data_used$pop75)  
 pm <- weighted.mean(data_used$pm25Exp_10ug,data_used$pop75) 
 pop <- sum(data_used$pop75)
@@ -192,22 +192,24 @@ mod_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+comm
                      offset(log(pop75)), data = df,na.action=na.omit)
 nobs(mod_nb)
 # attr(terms(mod_nb12),"predvars") 
-mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = 16/10)+landTemp+year_quarter+commune+
+mod_nb12 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+landTemp+year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = 20/10)+landTemp+year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
 # attr(terms(mod_nb13),"predvars") 
-mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp+year_quarter+commune+
-                     offset(log(pop75)), data = df,na.action=na.omit)
+# mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp+year_quarter+commune+
+#                      offset(log(pop75)), data = df,na.action=na.omit)
 # attr(terms(mod_nb14),"predvars") 
 # summary(mod_nb13)
 # summary(mod_nb14)
-mod_nb15 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp+year_quarter+commune+
-                     offset(log(pop75)), data = df,na.action=na.omit)
+# mod_nb15 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp+year_quarter+commune+
+#                      offset(log(pop75)), data = df,na.action=na.omit)
 mod_nb16 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+ns(landTemp, df = 3)+year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
 mod_nb17 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+landTemp+year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
-mod_nb18 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+I(pm25Exp_10ug^3)+
-                     landTemp+year_quarter+commune+offset(log(pop75)), data = df,na.action=na.omit)
+# mod_nb18 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+I(pm25Exp_10ug^3)+
+#                      landTemp+year_quarter+commune+offset(log(pop75)), data = df,na.action=na.omit)
 
 # get data on models
 
@@ -220,12 +222,16 @@ y_high=y$y_high
 y=y$y
 y12 = f.getSplinePredictions(pm25_support,mod_nb12)
 y13 = f.getSplinePredictions(pm25_support,mod_nb13)
-y14 = f.getSplinePredictions(pm25_support,mod_nb14)
-y15 = f.getSplinePredictions(pm25_support,mod_nb15)
+# y14 = f.getSplinePredictions(pm25_support,mod_nb14)
+# y15 = f.getSplinePredictions(pm25_support,mod_nb15)
 y16 = f.getSplinePredictions(pm25_support,mod_nb16)
 y17 = f.getSplinePredictions(pm25_support,mod_nb17)
-y18 = f.getSplinePredictions(pm25_support,mod_nb18)
+# y18 = f.getSplinePredictions(pm25_support,mod_nb18)
 
+
+# proportion of observations above 40 ug/m3
+nrow(filter(data_used,pm25_exposure>40))/nrow(data_used) # 10%
+# ggplot(data_used,aes(pm25_exposure))+stat_ecdf()
 
 ci_plot <- response_a %>% 
   mutate(x=x*10)
@@ -233,10 +239,11 @@ ci_plot <- response_a %>%
 # Plot
 response_a %>%
   mutate(Base=y,y_low=y_low,y_high=y_high,
-         `spline (3 df)`=y12,`spline (1 knot at 16)`=y13,
-         `spline (4 knots)`=y14,`spline (4 df)`=y15,
+         `spline (3 df)`=y12,`spline (1 knot at 20)`=y13,
+         # `spline (4 knots)`=y14,`spline (4 df)`=y15,
          `spline (3 df)+ Temp (3 df)`=y16,
-         `x+x^2`=y17,`x+x^2+x^3`=y18) %>% 
+         # `x+x^2+x^3`=y18,
+         `x+x^2`=y17) %>% 
   dplyr::select(-y_low,-y_high) %>% 
   pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
   mutate(x=x*10) %>% 
@@ -244,11 +251,11 @@ response_a %>%
   geom_ribbon(data=ci_plot,
               aes(ymin = y_low,ymax = y_high),fill="grey",alpha = 0.3)+
   geom_line(aes(y=value,col=key),linewidth=1)+
-  geom_histogram(aes(pm25_exposure,y=after_stat(density)*20,weight=pop75),
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*10,weight=pop75),
                  data=data_used,binwidth = 0.5,
-                 linewidth=0.1,center=0,position = position_nudge(y=3),
+                 linewidth=0.1,center=0,position = position_nudge(y=4.5),
                  alpha=0.4,fill="darkred",col="white")+
-  ylim(3,6.5)+
+  ylim(4.5,6.5)+
   # ylim(0,6.5)+
   xlim(0,60)+
   # theme(legend.position = c(0.5,0.3))+
