@@ -155,6 +155,20 @@ exp(coef(model_nb))[2]
 autoplot(model_nb)
 plot(df$MR_all_cause,predict(model_nb,type="response"))
 
+x <- getModelInfo(model_nb,"test")
+x %>% 
+  filter(str_detect(param,"year")) %>% 
+  mutate(param=str_remove(param,"year_quarter")) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>% 
+  ggplot(aes(param,rr))+
+  geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=2,aes(col=signif))+
+  # coord_flip()+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
+  labs(x="",y="",title = "Relative change in MR. Base factor is 2002-1.")+
+  theme(axis.text.x = element_text(angle=90),
+        legend.position = "none")
 
 # CI for interatcion
 mod <- lm(MR_all_cause ~ pm25Exp_10ug+met+landTemp+year+quarter+commune, data=df)
