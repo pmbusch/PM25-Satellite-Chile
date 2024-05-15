@@ -46,11 +46,57 @@ df <- df %>%
          pm25Exp_lead6=lead(pm25Exp_10ug,6,order_by=count_month),
          pm25Exp_lead12=lead(pm25Exp_10ug,12,order_by=count_month))
 
+## 1 lag -----------
+
+model_nb_lag <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
+                          pm25Exp_lag1+
+                          year_quarter+
+                          commune+
+                          offset(log(pop75)), 
+                        data = df,
+                        na.action=na.omit)
+
+x <- getModelInfo(model_nb_lag,"Lags")
+
+p <- x[c(2,4),] %>%
+  mutate(order_id=case_when(
+    str_detect(param,"lag") ~ 10,
+    str_detect(param,"lead") ~ 1000,
+    T ~ 100)) %>% 
+  arrange(desc(param)) %>% 
+  mutate(param=param %>% str_remove("pm25Exp_") %>% 
+           str_replace("lag","Lag ") %>% 
+           str_replace("10ug","Same Period")) %>%
+  mutate(row_id = row_number(),
+         row_id=row_id+order_id) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
+  ggplot(aes(reorder(param,row_id,decreasing = T),rr))+
+  geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  # geom_point(size=1,aes(col=signif))+
+  geom_point(size=1,col="red")+
+  # add separating lines
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
+  coord_flip()+
+  # scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  labs(x="",
+       y="")+
+       # y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  # Modify theme to look good
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, x = 0.7, y = 0.07,size = 8.3)+
+  cowplot::draw_label(lab_rr_line2, x = 0.7, y = 0.035,size = 8.3)
+ggsave("Figures/Model/Model_1Lag.png", ggplot2::last_plot(),
+       units="cm",dpi=600,
+       width=8.7*2,height=8.7)
+
+## Model with 3 lags -----
 model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
                           pm25Exp_lag1+
-                          pm25Exp_lag2+pm25Exp_lag3+pm25Exp_lag4+
-                          pm25Exp_lag5+pm25Exp_lag6+
-                          # pm25Exp_lag12+pm25Exp_lag6+pm25Exp_lag3+pm25Exp_lag1+
+                          pm25Exp_lag2+pm25Exp_lag3+
                           year_quarter+
                           commune+
                           offset(log(pop75)), 
@@ -59,15 +105,15 @@ model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
 
 x <- getModelInfo(model_nb_lags,"Lags")
 
-x[c(2,4:9),] %>%
-  # x[c(2,4),] %>%
-  # x[c(2,4:7),] %>% 
+p <- x[c(2,4:6),] %>%
   mutate(order_id=case_when(
     str_detect(param,"lag") ~ 10,
     str_detect(param,"lead") ~ 1000,
     T ~ 100)) %>% 
   arrange(desc(param)) %>% 
-  mutate(param=param %>% str_remove("pm25Exp_") %>% str_replace("10ug","Same Period")) %>%
+  mutate(param=param %>% str_remove("pm25Exp_") %>% 
+           str_replace("lag","Lag ") %>% 
+           str_replace("10ug","Same Period")) %>%
   mutate(row_id = row_number(),
          row_id=row_id+order_id) %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
@@ -79,14 +125,67 @@ x[c(2,4:9),] %>%
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   coord_flip()+
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
-  labs(x="",y=expression(paste("Percentage increase in Mortality rate by 10 ",mu,"g/",m^3," PM2.5","")))+
+  labs(x="",y="")+
   # Modify theme to look good
+  theme_bw(10)+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "none")
 
-ggsave("Figures/Model/Model_Lags.png", ggplot2::last_plot(),
-       units="cm",dpi=500,
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, x = 0.7, y = 0.07,size = 8.3)+
+  cowplot::draw_label(lab_rr_line2, x = 0.7, y = 0.035,size = 8.3)
+ggsave("Figures/Model/Model_3Lag.png", ggplot2::last_plot(),
+       units="cm",dpi=600,
+       width=8.7*2,height=8.7)
+
+
+
+## Model with 6 lags -----
+model_nb_lags <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+
+                          pm25Exp_lag1+
+                          pm25Exp_lag2+pm25Exp_lag3+
+                          pm25Exp_lag4+pm25Exp_lag5+pm25Exp_lag6+
+                          year_quarter+
+                          commune+
+                          offset(log(pop75)), 
+                        data = df,
+                        na.action=na.omit)
+
+x <- getModelInfo(model_nb_lags,"Lags")
+
+p <- x[c(2,4:9),] %>%
+  mutate(order_id=case_when(
+    str_detect(param,"lag") ~ 10,
+    str_detect(param,"lead") ~ 1000,
+    T ~ 100)) %>% 
+  arrange(desc(param)) %>% 
+  mutate(param=param %>% str_remove("pm25Exp_") %>% 
+           str_replace("lag","Lag ") %>% 
+           str_replace("10ug","Same Period")) %>%
+  mutate(row_id = row_number(),
+         row_id=row_id+order_id) %>% 
+  mutate(signif=sign(rr_low)==sign(rr_high)) %>%  # significant at 5%
+  ggplot(aes(reorder(param,row_id,decreasing = T),rr))+
+  geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
+  geom_point(size=1,aes(col=signif))+
+  # geom_point(size=1,col="red")+
+  # add separating lines
+  geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
+  coord_flip()+
+  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  labs(x="",y="")+
+  # Modify theme to look good
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
+
+cowplot::ggdraw(p+labs(y=" \n "))+
+  cowplot::draw_label(lab_rr_line1, x = 0.7, y = 0.07,size = 8.3)+
+  cowplot::draw_label(lab_rr_line2, x = 0.7, y = 0.035,size = 8.3)
+ggsave("Figures/Model/Model_6Lag.png", ggplot2::last_plot(),
+       units="cm",dpi=600,
        width=8.7*2,height=8.7)
 
 

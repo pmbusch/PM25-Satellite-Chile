@@ -88,39 +88,49 @@ mod_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+comm
                    offset(log(pop75)), data = df,na.action=na.omit)
 nobs(mod_nb)
 
-
+library(splines)
 # Numbers in model names are not meaningful
 
 # 3 knots equally spaced (quantiles)
-mod_nb12 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+landTemp+
-                     year_quarter+commune+
-                     offset(log(pop75)), data = df,na.action=na.omit)
+# mod_nb12 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+landTemp+
+#                      year_quarter+commune+
+#                      offset(log(pop75)), data = df,na.action=na.omit)
 # Knots
 # df$pm25Exp_10ug %>% range()
-# attr(terms(mod_nb12),"predvars") 
+attr(terms(mod_nb15),"predvars")
 # Compare to base model
 lmtest::lrtest(model_nb, mod_nb12) # Spline is better is better
 
 # Knto at 20 ug/m3
-mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = 20/10)+landTemp+
+mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(20)/10)+landTemp+
                      year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
-# mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25,35)/10)+landTemp+year_quarter+commune+
-#                      offset(log(pop75)), data = df,na.action=na.omit)
-# mod_nb15 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp+year_quarter+commune+
-#                      offset(log(pop75)), data = df,na.action=na.omit)
+mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25)/10)+landTemp+
+                     year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+mod_nb15 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp+year_quarter+
+                     commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
 
 # 3 knots equally spaced (quantiles) for PM2.5 and Land Temp.
-mod_nb16 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+ns(landTemp, df = 3)+
-                     year_quarter+commune+
-                     offset(log(pop75)), data = df,na.action=na.omit)
+# mod_nb16 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+ns(landTemp, df = 3)+
+#                      year_quarter+commune+
+#                      offset(log(pop75)), data = df,na.action=na.omit)
 # PM2.5 with quadratic term
 mod_nb17 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+landTemp+
                      year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
 
+
 # mod_nb18 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+I(pm25Exp_10ug^3)+
 #                      landTemp+year_quarter+commune+offset(log(pop75)), data = df,na.action=na.omit)
+
+# 4 knots equally spaced (quantiles) for PM2.5 and Land Temp.
+mod_nb19 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+ns(landTemp, df = 4)+
+                     year_quarter+commune+
+                     offset(log(pop75)), data = df,na.action=na.omit)
+
+
 
 
 # get effect of PM2.5 on MR over the range of PM2.5 values
@@ -130,13 +140,14 @@ y=f.getSplinePredictions(pm25_support,mod_nb,se=T)
 y_low=y$y_low
 y_high=y$y_high
 y=y$y
-y12 = f.getSplinePredictions(pm25_support,mod_nb12)
+# y12 = f.getSplinePredictions(pm25_support,mod_nb12)
 y13 = f.getSplinePredictions(pm25_support,mod_nb13)
-# y14 = f.getSplinePredictions(pm25_support,mod_nb14)
-# y15 = f.getSplinePredictions(pm25_support,mod_nb15)
-y16 = f.getSplinePredictions(pm25_support,mod_nb16)
+y14 = f.getSplinePredictions(pm25_support,mod_nb14)
+y15 = f.getSplinePredictions(pm25_support,mod_nb15)
+# y16 = f.getSplinePredictions(pm25_support,mod_nb16)
 y17 = f.getSplinePredictions(pm25_support,mod_nb17)
 # y18 = f.getSplinePredictions(pm25_support,mod_nb18)
+y19 = f.getSplinePredictions(pm25_support,mod_nb19)
 
 
 # proportion of observations above 40 ug/m3
@@ -148,29 +159,48 @@ ci_plot <- response_a %>%
   mutate(x=x*10)
 
 # Plot response
-response_a %>%
+data_fig <- response_a %>%
   mutate(Base=y,y_low=y_low,y_high=y_high,
-         `spline (3 df)`=y12,`spline (1 knot at 20)`=y13,
-         # `spline (4 knots)`=y14,`spline (4 df)`=y15,
-         `spline (3 df)+ Temp (3 df)`=y16,
+         # `spline (3 df)`=y12,
+         `spline (1 knot at 20)`=y13,
+         `spline (3 knots at 10, 15 & 25)`=y14,
+         `spline (4 df)`=y15,
+         # `spline (3 df)+ Temp (3 df)`=y16,
          # `x+x^2+x^3`=y18,
-         `x+x^2`=y17) %>% 
+         `spline (4 df) + Temp (4 df)`=y19,
+         `quadratic term`=y17) %>% 
   dplyr::select(-y_low,-y_high) %>% 
   pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
-  mutate(x=x*10) %>% 
-  ggplot(aes(x))+
+  mutate(x=x*10)
+
+ggplot(data_fig,aes(x))+
   geom_ribbon(data=ci_plot,
-              aes(ymin = y_low,ymax = y_high),fill="grey",alpha = 0.3)+
-  geom_line(aes(y=value,col=key),linewidth=1)+
+              aes(ymin = y_low,ymax = y_high),fill="#FF474C",alpha = 0.3)+
+  geom_line(aes(y=value,col=key),linewidth=0.5)+
   geom_histogram(aes(pm25_exposure,y=after_stat(density)*10,weight=pop75),
                  data=data_used,binwidth = 0.5,
                  linewidth=0.1,center=0,position = position_nudge(y=4.5),
                  alpha=0.4,fill="darkred",col="white")+
-  coord_cartesian(ylim=c(4.5,6.5),xlim=c(0,60))+
-  # theme(legend.position = c(0.5,0.3))+
-  labs(x=lab_pm25,y=lab_mr2,col="")
-  # labs(x="PM2.5 [ug/m3]",y="75+ MR [per 1,000]",col="")
-ggsave("Figures/Model/Splines.png")
+  coord_cartesian(ylim=c(4.5,6.5),xlim=c(0,75))+
+  geom_text(aes(y=value,label=key,col=key),
+                  data=filter(data_fig,x==60),
+                  nudge_x = 1,hjust=0,nudge_y = c(0,0,0,0,0,-0.05),
+                  size=8*5/14 * 0.8)+
+  labs(x=lab_pm25,y=lab_mr2,col="")+
+  scale_x_continuous(breaks=c(0,20,40,60))+
+  theme_bw(10)+
+  theme(panel.grid.major = element_blank(),
+        # panel.border = element_blank(),
+        legend.position = "none",
+        panel.grid.minor = element_blank())
+
+ggsave("Figures/Model/Splines.png",
+       units="cm",dpi=600,
+       width=8.7*2,height=8.7)
+pdf("Figures/Model/Splines.pdf",
+    width = 8.7*2/2.54, height =8.7/2.54)
+ggplot2::last_plot()
+dev.off()
 
 
 ## Linear models -------
