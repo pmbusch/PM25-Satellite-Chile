@@ -66,9 +66,9 @@ pop_commune <- pop_commune %>% filter(pop75>500) %>% pull(commune) # 246 for 75+
 df <- df %>% mutate(pop500=(commune %in% pop_commune))
 
 ### Bad regions identification ------
-df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12","11"),1,0)) # XI for overprediction
+df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12"),1,0)) # XI for overprediction
 # Bad in RMSE
-df <- df %>% mutate(bad_region2=if_else(region %in% c("11","9","14","16"),1,0)) 
+df <- df %>% mutate(bad_region2=if_else(region %in% c("11","9","14","16","10"),1,0)) 
 
 
 ## HETEROGENEITY -----
@@ -122,7 +122,7 @@ nrow(filter(com_rural,rural_share>0.3))/nrow(com_rural) # 51%
 nrow(filter(com_rural,rural_share>0.2))/nrow(com_rural) # 63%
 
 # Communes with more than x% of rural habitants
-com_rural <- com_rural %>% filter(rural_share>0.5) %>% pull(commune) # 93 for 50%, 52 for 60%
+com_rural <- com_rural %>% filter(rural_share>0.3) %>% pull(commune) # 93 for 50%, 52 for 60%
 df <- df %>% mutate(comRural=(commune %in% com_rural))
 
 # Met Analysis
@@ -339,58 +339,59 @@ results[[2]] <- runModel(data=filter(df_sex,sex=="Hombre"),name="Sex: Male")
 results[[3]] <- runModel(data=filter(df_sex,sex=="Mujer"),name="Sex: Female") 
 results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
 # results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 65+ Above 500") # 65+
-results[[5]] <- runModel(data=filter(df,bad_region2==0),name="Excluding regions with low satellite accuracy")
-results[[6]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
-results[[7]] <- runModel(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
-results[[8]] <- runModel(data=filter(df,comPM25==F),name="PM2.5 below 20 ug/m3")
-results[[9]] <- runModel(data=filter(df,comPM25==T),name="PM2.5 above 20 ug/m3")
-results[[10]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+ share below median (<4.5%)")
-results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+ share above median (>4.5%)")
+results[[5]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy R2")
+results[[6]] <- runModel(data=filter(df,bad_region2==0),name="Excluding regions with low satellite accuracy RMSE")
+results[[7]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
+results[[8]] <- runModel(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
+results[[9]] <- runModel(data=filter(df,comPM25==F),name="PM2.5 below 20 ug/m3")
+results[[10]] <- runModel(data=filter(df,comPM25==T),name="PM2.5 above 20 ug/m3")
+results[[11]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 75+ share below median (<4.5%)")
+results[[12]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 75+ share above median (>4.5%)")
 # 65+ case
 # results[[10]] <- runModel(data=filter(df,pop_case=="Below Median"),name="Pop. 65+ share below median (<10.8%)")
 # results[[11]] <- runModel(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)")
-results[[12]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
-results[[13]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
-results[[14]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="Lowest income quintile (below $3,182)")
-results[[15]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="2nd income quintile ($3,182-$3,577)")
-results[[16]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="3rd income quintile ($3,577-$4,138)")
-results[[17]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="4th income quintile ($4,138-$4,961)")
-results[[18]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="Highest income quintile (above $4,961)")
-results[[19]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
+results[[13]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
+results[[14]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
+# results[[15]] <- runModel(data=filter(df,income_qt=="Income Q I"),name="Lowest income quintile (below $3,182)")
+# results[[16]] <- runModel(data=filter(df,income_qt=="Income Q II"),name="2nd income quintile ($3,182-$3,577)")
+# results[[17]] <- runModel(data=filter(df,income_qt=="Income Q III"),name="3rd income quintile ($3,577-$4,138)")
+# results[[18]] <- runModel(data=filter(df,income_qt=="Income Q IV"),name="4th income quintile ($4,138-$4,961)")
+# results[[19]] <- runModel(data=filter(df,income_qt=="Income Q V"),name="Highest income quintile (above $4,961)")
+results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
                                       MR_all_cause=MR_cardioRespiratory),name="Cardiorespiratory cause")
-results[[20]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
+results[[21]] <- runModel(data=mutate(df,death_count_all_cause=death_count_cardio,
                                       MR_all_cause=MR_cardio),name="Cardiovascular cause")
-results[[21]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
+results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respiratory,
                                       MR_all_cause=MR_respiratory),name="Respiratory cause")
-results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
+results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
                                       MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
-results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
+results[[24]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
 
 # Others Rural by Cause
-results <- list()  #lists to save results
-results[[1]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
-results[[2]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
-results[[3]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardioRespiratory,
-                                      MR_all_cause=MR_cardioRespiratory),name="Urban - Cardiorespiratory cause")
-results[[4]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardio,
-                                      MR_all_cause=MR_cardio),name="Urban - Cardiovascular cause")
-results[[5]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_respiratory,
-                                      MR_all_cause=MR_respiratory),name="Urban - Respiratory cause")
-results[[6]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_all_cause_NoCDP,
-                                      MR_all_cause=MR_all_cause_NoCDP),name="Urban - All-cause excluding Cardiorespiratory")
-results[[7]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_external,
-                                      MR_all_cause=MR_external),name="Urban - External cause")
-results[[8]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardioRespiratory,
-                                     MR_all_cause=MR_cardioRespiratory),name="Rural - Cardiorespiratory cause")
-results[[9]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardio,
-                                     MR_all_cause=MR_cardio),name="Rural - Cardiovascular cause")
-results[[10]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_respiratory,
-                                     MR_all_cause=MR_respiratory),name="Rural - Respiratory cause")
-results[[11]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_all_cause_NoCDP,
-                                     MR_all_cause=MR_all_cause_NoCDP),name="Rural - All-cause excluding Cardiorespiratory")
-results[[12]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_external,
-                                     MR_all_cause=MR_external),name="Rural - External cause")
+# results <- list()  #lists to save results
+# results[[1]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
+# results[[2]] <- runModel(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
+# results[[3]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardioRespiratory,
+#                                       MR_all_cause=MR_cardioRespiratory),name="Urban - Cardiorespiratory cause")
+# results[[4]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardio,
+#                                       MR_all_cause=MR_cardio),name="Urban - Cardiovascular cause")
+# results[[5]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_respiratory,
+#                                       MR_all_cause=MR_respiratory),name="Urban - Respiratory cause")
+# results[[6]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                       MR_all_cause=MR_all_cause_NoCDP),name="Urban - All-cause excluding Cardiorespiratory")
+# results[[7]] <- runModel(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_external,
+#                                       MR_all_cause=MR_external),name="Urban - External cause")
+# results[[8]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardioRespiratory,
+#                                      MR_all_cause=MR_cardioRespiratory),name="Rural - Cardiorespiratory cause")
+# results[[9]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardio,
+#                                      MR_all_cause=MR_cardio),name="Rural - Cardiovascular cause")
+# results[[10]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_respiratory,
+#                                      MR_all_cause=MR_respiratory),name="Rural - Respiratory cause")
+# results[[11]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                      MR_all_cause=MR_all_cause_NoCDP),name="Rural - All-cause excluding Cardiorespiratory")
+# results[[12]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_external,
+#                                      MR_all_cause=MR_external),name="Rural - External cause")
 
 # Others Metropolitan vs rest of country by Cause
 # results <- list()  #lists to save results
@@ -465,10 +466,10 @@ results[[12]] <- runModel(data=mutate(filter(df,comRural==T),death_count_all_cau
 res <- do.call("rbind",results)
 
 # save data
-# write.csv(res,"Data/Models/modelResults.csv",row.names = F)
+write.csv(res,"Data/Models/modelResults.csv",row.names = F)
 # write.csv(res,"Data/Models/modelResults_65.csv",row.names = F)
 # write.csv(res,"Data/Models/modelResultsRural.csv",row.names = F)
-write.csv(res,"Data/Models/modelResultsMet.csv",row.names = F)
+# write.csv(res,"Data/Models/modelResultsMet.csv",row.names = F)
 
 # 
 # res <- read.csv("Data/Models/modelResults.csv")
@@ -508,7 +509,8 @@ robustness <- c( "Full Sample","Robustness",
                  "Sex: Male","Sex: Female",
                  "Pop. 75+ Above 500",
                  # "Pop. 65+ Above 500",
-                 "Excluding regions with low satellite accuracy")
+                 "Excluding regions with low satellite accuracy R2",
+                 "Excluding regions with low satellite accuracy RMSE")
 heterogen <- c("Heterogeneity",
                "Only Metropolitan region","Excluding Metropolitan region",
                "Urban Commune","Rural Commune (>30% share poulation)",
@@ -544,6 +546,7 @@ y <- y %>%
          rr_low=as.numeric(rr_low),
          rr_high=as.numeric(rr_high)) %>% 
   mutate(title=var %in% c("Robustness","Heterogeneity","Other Mortality Causes")) %>% 
+  mutate(r2_var=str_detect(var,"R2")) %>% 
   mutate(pm25_var=str_detect(var,"PM2.5")) # special text for this
 rows <- y %>% nrow()
 
@@ -560,13 +563,13 @@ temp_adj <- 0
 # temp_adj <- 2 # for temp
 p <- ggplot(y,aes(var,rr))+
   geom_linerange(aes(ymin=rr_low,ymax=rr_high))+
-  geom_point(size=0.6,aes(col=signif))+
-  # geom_point(size=0.6,col="red")+ # all T are significant
+  # geom_point(size=0.6,aes(col=signif))+
+  geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_vline(xintercept = c(5.5,14.5,19.5),
+  geom_vline(xintercept = c(5.5,14.5,20.5),
              col="grey",linewidth=0.3)+
-  geom_vline(xintercept = c(7.5,9.5,11.5,16.5),
+  geom_vline(xintercept = c(7.5,9.5,11.5,17.5),
              col="grey",linewidth=0.15,linetype="dashed")+
   labs(x="",y=lab_rr)+
   # labs(x="",y=lab_rr_temp)+
@@ -580,21 +583,24 @@ p <- ggplot(y,aes(var,rr))+
   scale_y_continuous(expand = c(0,0),
                      breaks = c(seq(0,5,2.5)),
                      # breaks = c(seq(-2,0,1)), # temp
-                     limits = c(-14,9.3)) +
+                     limits = c(-15,9.3)) +
                      # limits = c(-16,4)) + # temp
-  scale_color_manual(values = c("black", "red"), labels = c(F, T))+
+  # scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   theme_bw(font_size)+
   # add text data
-  geom_text(y=-14-temp_adj,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(data=filter(y,!title,!pm25_var),y=-14-temp_adj,aes(label=var),
+  geom_text(y=-15-temp_adj,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(data=filter(y,!title,!pm25_var,!r2_var),y=-15-temp_adj,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8)+
   # special rows for pm2.5
-  geom_text(data=filter(y,pm25_var,str_detect(var,"above")),y=-14-temp_adj,hjust = 0,
+  geom_text(data=filter(y,pm25_var,str_detect(var,"above")),y=-15-temp_adj,hjust = 0,
             size=font_size*5/14 * 0.8,label=expression(paste("PM"[2.5], " above 20 ", mu, "g/m"^3, "")))+
-  geom_text(data=filter(y,pm25_var,str_detect(var,"below")),y=-14-temp_adj,hjust = 0,
+  geom_text(data=filter(y,pm25_var,str_detect(var,"below")),y=-15-temp_adj,hjust = 0,
             size=font_size*5/14 * 0.8,label=expression(paste("PM"[2.5], " below 20 ", mu, "g/m"^3, "")))+
+  # special rows for R2
+  geom_text(data=filter(y,r2_var),y=-15-temp_adj,hjust = 0,size=font_size*5/14 * 0.8,
+            label=expression(paste("Excluding regions with low satellite accuracy ", "R"^2, "")))+
   # titles in bold
-  geom_text(data=filter(y,title),y=-14-temp_adj,aes(label=var),
+  geom_text(data=filter(y,title),y=-15-temp_adj,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(y=-7-temp_adj,x=rows+1,label="n",size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(y=-7-temp_adj,aes(label=N),size=font_size*5/14 * 0.8)+

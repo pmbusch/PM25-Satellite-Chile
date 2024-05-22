@@ -67,27 +67,11 @@ f.getSplinePredictions <- function(new_base,data_,model){
   
   # get mean data for continous variable, for rest wathever is fine
   # we adjust intercept to match mean later
-  
   df_new <- tibble(pm25Exp_10ug = new_base) %>% 
     mutate(commune = "13101",
            year_quarter = "2002-1",
            landTemp=mean_temp,
            pop75=mean_pop)
-  
-  
-  
-  # x <- data_[which.max(complete.cases(data_)), ]
-  # x <- data_ %>% 
-  #   reframe(death_count_all_cause=mean(death_count_all_cause),
-  #           pm25Exp_10ug=mean(pm25Exp_10ug),
-  #           landTemp=mean(landTemp),
-  #           pop75=mean(pop75)) %>%
-  #   mutate(year_quarter="2002-1",commune="13101")
-  # 
-  # df_new <- do.call(rbind, lapply(1:N, function(i) x))
-  # df_new$pm25Exp_10ug <- with(data_,seq(min(pm25Exp_10ug, na.rm=TRUE), 
-  #                                           max(pm25Exp_10ug, na.rm=TRUE), length.out=N))
-  
   
   # predictions  
   y <- predict(model, newdata=df_new,type = "response") # death counts
@@ -212,7 +196,7 @@ data_fig <- response_a %>%
          `spline (4 df)`=y15,
          # `spline (3 df)+ Temp (3 df)`=y16,
          # `x+x^2+x^3`=y18,
-         `spline (3 knots at 10, 15 & 25) + Temp (4 df)`=y19,
+         `spline (3 knots at 10, 30 & 50) + Temp (4 df)`=y19,
          `quadratic term`=y17) %>% 
   dplyr::select(-y_low,-y_high) %>%
   pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
