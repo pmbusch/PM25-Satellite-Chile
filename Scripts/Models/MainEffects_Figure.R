@@ -41,6 +41,8 @@ fitmod <- function(data_){
   return(mod)
 }
 
+
+
 # Function to calculate risk slope and line for the plot ----
 getRiskSlope <- function(data_, mod_info,pm_range=0:60,temp=F){
   #calculate weighted mean for base rate
@@ -206,6 +208,7 @@ write.csv(out2,"Data/Main Effects/Above75Model.csv",row.names = F)
 
 # load model
 out <- read.csv("Data/Main Effects/fullModel.csv")
+# need to run model objects
 
 ### PM2.5 Figure -----
 df$pm25_exposure %>% range()
@@ -214,6 +217,8 @@ df$pm25_exposure %>% quantile(c(0.01,0.99)) # 99 percentile
 # get line with CI
 out_pm25 <- out %>% filter(param=="pm25Exp_10ug")
 response_pm <- getRiskSlope(df, out_pm25, pm_range = 0:60)
+
+# response_pm <- f.getPredictions(df,model_nb)
 
 # Figure
 p1 <- ggplot(response_pm,aes(x))+
@@ -272,8 +277,10 @@ ggsave(sprintf(fig_name,"Effect_se2"), ggplot2::last_plot(),
 df$landTemp %>% range()
 df$landTemp %>% quantile(c(0.01,0.99))
 
-response_pm <- getRiskSlope(df, filter(out,param=="landTemp"), 
+response_pm <- getRiskSlope(df, filter(out,param=="landTemp"),
                             pm_range = 0:45,temp = T)
+
+
 ggplot(response_pm,aes(x))+
   geom_ribbon(aes(ymin = y_low,
                   ymax = y_high),

@@ -152,6 +152,10 @@ cor(x= df_filter$value, y= df_filter$pm25_satellite,
       method = "pearson")
 rm(df_filter)
 
+
+df %>% group_by(year) %>% tally()
+df %>% group_by(region) %>% tally()
+
 cor_region <- df %>% group_by(region) %>% 
   summarise(cor=cor(value,pm25_satellite) %>% round(2))
 cor_region$year <- 2100 # total
