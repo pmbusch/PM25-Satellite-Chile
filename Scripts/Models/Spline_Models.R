@@ -44,6 +44,8 @@ data_used <- df %>% dplyr::select(death_count_all_cause,
 pm25_support <- seq(0.5,6,0.1)
 (br <- weighted.mean(data_used$MR_all_cause,data_used$pop75)) 
 (pm <- weighted.mean(data_used$pm25Exp_10ug,data_used$pop75))
+matrixStats::weightedMedian(data_used$pm25Exp_10ug,
+                            data_used$pop75)
 # pop <- sum(data_used$pop75)
 # deat <- sum(data_used$death_count_all_cause)  
 # deat/pop*1000
@@ -196,7 +198,7 @@ data_fig <- response_a %>%
          `spline (4 df)`=y15,
          # `spline (3 df)+ Temp (3 df)`=y16,
          # `x+x^2+x^3`=y18,
-         `spline (3 knots at 10, 30 & 50) + Temp (4 df)`=y19,
+         `spline (3 knots at 10, 30 & 50)\n + Temp (4 df)`=y19,
          `quadratic term`=y17) %>% 
   dplyr::select(-y_low,-y_high) %>%
   pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
@@ -204,28 +206,35 @@ data_fig <- response_a %>%
 
 ggplot(data_fig,aes(x))+
   geom_ribbon(data=ci_plot,
-              aes(ymin = y_low,ymax = y_high),fill="#FF474C",alpha = 0.3)+
-  geom_line(aes(y=value,col=key),linewidth=0.5)+
-  geom_histogram(aes(pm25_exposure,y=after_stat(density)*8,weight=pop75),
+              aes(ymin = y_low,ymax = y_high),fill="#FF474C",
+              alpha = 0.2)+
+  geom_line(aes(y=value,col=key),linewidth=0.5,alpha=.9)+
+  geom_histogram(aes(pm25_exposure,y=after_stat(density)*50,weight=pop75),
                  data=data_used,binwidth = 0.5,
-                 linewidth=0.1,center=0,position = position_nudge(y=5),
+                 linewidth=0.1,center=0,position = position_nudge(y=0),
                  alpha=0.4,fill="darkred",col="white")+
-  coord_cartesian(ylim=c(5,6.5),xlim=c(3,82))+
-  geom_text(aes(y=value,label=key,col=key),
-                  data=filter(data_fig,x==60),
-                  nudge_x = 1,hjust=0,nudge_y = c(1,2,-1,0,-0.5,0)/20,
-                  size=8*5/14 * 0.8)+
-  labs(x=lab_pm25,y=lab_mr2,col="")+
+  coord_cartesian(ylim=c(0,8),xlim=c(0,60),expand=F)+
+  # geom_text(aes(y=value,label=key,col=key),
+  #                 data=filter(data_fig,x==60),
+  #                 nudge_x = 1,hjust=0,nudge_y = c(1,2,-1,0,-0.5,0)/20,
+  #                 size=8*5/14 * 0.8)+
+  labs(x=lab_pm25,y=lab_mr2,
+       col=expression(paste(PM[2.5]," functional form","")))+
   scale_x_continuous(breaks=c(0,20,40,60))+
   theme_bw(10)+
+  # add bottom and vertical bar
+  geom_segment(x = 0.01, xend = 0.01, yend = 8,y=0,col="black",linewidth=0.3)+
+  geom_segment(y = 0.01, yend = 0.01, xend = 60,x=3,col="black",linewidth=0.3)+
   theme(panel.grid.major = element_blank(),
-        # panel.border = element_blank(),
-        legend.position = "none",
+        panel.border = element_blank(),
+        legend.position = c(0.72,0.4),
+        legend.spacing.y = unit(0.01, 'cm'),
+        legend.text = element_text(size=8),
         panel.grid.minor = element_blank())
 
-ggsave("Figures/Model/Splines.png",
+ggsave("Figures/Model/Splines4.png",
        units="cm",dpi=600,
-       width=8.7*2,height=8.7)
+       width=8.7,height=8.7)
 pdf("Figures/Model/Splines.pdf",
     width = 8.7*2/2.54, height =8.7/2.54)
 ggplot2::last_plot()
