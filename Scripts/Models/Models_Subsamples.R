@@ -66,9 +66,9 @@ pop_commune <- pop_commune %>% filter(pop75>500) %>% pull(commune) # 246 for 75+
 df <- df %>% mutate(pop500=(commune %in% pop_commune))
 
 ### Bad regions identification ------
-df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","12"),1,0)) # XI for overprediction
+df <- df %>% mutate(bad_region=if_else(region %in% c("15","3","11","12"),1,0)) # XI for overprediction
 # Bad in RMSE
-df <- df %>% mutate(bad_region2=if_else(region %in% c("11","9","14","16","10"),1,0)) 
+# df <- df %>% mutate(bad_region2=if_else(region %in% c("11","9","14","16","10"),1,0)) 
 
 
 ## HETEROGENEITY -----
@@ -339,8 +339,8 @@ results[[2]] <- runModel(data=filter(df_sex,sex=="Hombre"),name="Sex: Male")
 results[[3]] <- runModel(data=filter(df_sex,sex=="Mujer"),name="Sex: Female") 
 results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
 # results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 65+ Above 500") # 65+
-results[[5]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy R2")
-results[[6]] <- runModel(data=filter(df,bad_region2==0),name="Excluding regions with low satellite accuracy RMSE")
+results[[5]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
+# results[[6]] <- runModel(data=filter(df,bad_region2==0),name="Excluding regions with low satellite accuracy RMSE")
 results[[7]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
 results[[8]] <- runModel(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
 results[[9]] <- runModel(data=filter(df,comPM25==F),name="PM2.5 below 20 ug/m3")
@@ -471,15 +471,81 @@ write.csv(res,"Data/Models/modelResults.csv",row.names = F)
 # write.csv(res,"Data/Models/modelResultsRural.csv",row.names = F)
 # write.csv(res,"Data/Models/modelResultsMet.csv",row.names = F)
 
+## get 75+ population over the time period
+getPop <- function(data_,name){
+  out <- data.frame(var=name,
+                    pop75=sum(data_$pop75)/12/18)
+  return(out)
+  }
+# Run Models ------
+pops <- list()  #lists to save pops
+
+# Final Figure Models
+pops[[1]] <- getPop(data=df,name="Full Sample")  # full sample
+pops[[2]] <- getPop(data=filter(df_sex,sex=="Hombre"),name="Sex: Male")
+pops[[3]] <- getPop(data=filter(df_sex,sex=="Mujer"),name="Sex: Female")
+pops[[4]] <- getPop(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
+# pops[[4]] <- getPop(data=filter(df,pop500==T),name="Pop. 65+ Above 500") # 65+
+pops[[5]] <- getPop(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
+pops[[7]] <- getPop(data=filter(df,REGION ==13),name="Only Metropolitan region")
+pops[[8]] <- getPop(data=filter(df,REGION !=13),name="Excluding Metropolitan region")
+pops[[9]] <- getPop(data=filter(df,comPM25==F),name="PM2.5 below 20 ug/m3")
+pops[[10]] <- getPop(data=filter(df,comPM25==T),name="PM2.5 above 20 ug/m3")
+pops[[11]] <- getPop(data=filter(df,pop_case=="Below Median"),name="Pop. 75+ share below median (<4.5%)")
+pops[[12]] <- getPop(data=filter(df,pop_case=="Above Median"),name="Pop. 75+ share above median (>4.5%)")
+# 65+ case
+# pops[[11]] <- getPop(data=filter(df,pop_case=="Below Median"),name="Pop. 65+ share below median (<10.8%)")
+# pops[[12]] <- getPop(data=filter(df,pop_case=="Above Median"),name="Pop. 65+ share above median (>10.8%)")
+pops[[13]] <- getPop(data=filter(df,comRural==F),name="Urban Commune")
+pops[[14]] <- getPop(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
+pops[[20]] <- getPop(data=mutate(df,death_count_all_cause=death_count_cardioRespiratory,
+                                      MR_all_cause=MR_cardioRespiratory),name="Cardiorespiratory cause")
+pops[[21]] <- getPop(data=mutate(df,death_count_all_cause=death_count_cardio,
+                                      MR_all_cause=MR_cardio),name="Cardiovascular cause")
+pops[[22]] <- getPop(data=mutate(df,death_count_all_cause=death_count_respiratory,
+                                      MR_all_cause=MR_respiratory),name="Respiratory cause")
+pops[[23]] <- getPop(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
+                                      MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
+pops[[24]] <- getPop(data=mutate(df,death_count_all_cause=death_count_external,
+                                      MR_all_cause=MR_external),name="External cause")
+# For rural
+# pops[[1]] <- getPop(data=filter(df,comRural==F),name="Urban Commune")
+# pops[[2]] <- getPop(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
+# pops[[3]] <- getPop(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardioRespiratory,
+#                                       MR_all_cause=MR_cardioRespiratory),name="Urban - Cardiorespiratory cause")
+# pops[[4]] <- getPop(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_cardio,
+#                                       MR_all_cause=MR_cardio),name="Urban - Cardiovascular cause")
+# pops[[5]] <- getPop(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_respiratory,
+#                                       MR_all_cause=MR_respiratory),name="Urban - Respiratory cause")
+# pops[[6]] <- getPop(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                       MR_all_cause=MR_all_cause_NoCDP),name="Urban - All-cause excluding Cardiorespiratory")
+# pops[[7]] <- getPop(data=mutate(filter(df,comRural==F),death_count_all_cause=death_count_external,
+#                                       MR_all_cause=MR_external),name="Urban - External cause")
+# pops[[8]] <- getPop(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardioRespiratory,
+#                                      MR_all_cause=MR_cardioRespiratory),name="Rural - Cardiorespiratory cause")
+# pops[[9]] <- getPop(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_cardio,
+#                                      MR_all_cause=MR_cardio),name="Rural - Cardiovascular cause")
+# pops[[10]] <- getPop(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_respiratory,
+#                                      MR_all_cause=MR_respiratory),name="Rural - Respiratory cause")
+# pops[[11]] <- getPop(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_all_cause_NoCDP,
+#                                      MR_all_cause=MR_all_cause_NoCDP),name="Rural - All-cause excluding Cardiorespiratory")
+# pops[[12]] <- getPop(data=mutate(filter(df,comRural==T),death_count_all_cause=death_count_external,
+#                                      MR_all_cause=MR_external),name="Rural - External cause")
+
+
+pops <- do.call("rbind",pops)
+
 # 
 # res <- read.csv("Data/Models/modelResults.csv")
 # res <- read.csv("Data/Models/modelResults_65.csv")
+res <- read.csv("Data/Models/modelResultsRural.csv")
 
 fig_name <- "Figures/Model/%s.png"
-fig_name <- sprintf(fig_name,"Models_Subsample")
+# fig_name <- sprintf(fig_name,"Models_Subsample")
 # fig_name <- sprintf(fig_name,"Models_Subsample65")
 # fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 # fig_name <- sprintf(fig_name,"Models_Subsample65_Temp")
+
 
 # Calculate RR and C.I. -----
 rows <- res %>% filter(param=="pm25Exp_10ug") %>% nrow()
@@ -500,6 +566,10 @@ x <- res %>%
   mutate(rowname=1:rows) %>% 
   mutate(label=paste0(var," (n=",N,")"))
 
+# add population 75+
+x <- x %>% 
+  left_join(pops) %>%
+  mutate(popVar=formatC(round(pop75,0),0, big.mark=",",format="d"))
 
 # Figure for article ------
 x$var %>% unique()
@@ -507,16 +577,17 @@ x$var %>% unique()
 # select relevant to show
 robustness <- c( "Full Sample","Robustness",
                  "Sex: Male","Sex: Female",
-                 "Pop. 75+ Above 500",
-                 # "Pop. 65+ Above 500",
-                 "Excluding regions with low satellite accuracy R2",
-                 "Excluding regions with low satellite accuracy RMSE")
+                 # "Pop. 75+ Above 500",
+                 "Pop. 65+ Above 500",
+                 "Excluding regions with low satellite accuracy")
+                 # "Excluding regions with low satellite accuracy R2",
+                 # "Excluding regions with low satellite accuracy RMSE")
 heterogen <- c("Heterogeneity",
                "Only Metropolitan region","Excluding Metropolitan region",
                "Urban Commune","Rural Commune (>30% share poulation)",
                "PM2.5 below 20 ug/m3","PM2.5 above 20 ug/m3",
-               "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)")
-               # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)") #65+ case
+               # "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)")
+               "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)") #65+ case
                # "Lowest income quintile (below $3,182)","2nd income quintile ($3,182-$3,577)",
                # "3rd income quintile ($3,577-$4,138)","4th income quintile ($4,138-$4,961)",
                # "Highest income quintile (above $4,961)")
@@ -567,9 +638,9 @@ p <- ggplot(y,aes(var,rr))+
   geom_point(size=0.6,col="red")+ # all T are significant
   # add separating lines
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=0.5)+
-  geom_vline(xintercept = c(5.5,14.5,20.5),
+  geom_vline(xintercept = c(5.5,14.5,19.5),
              col="grey",linewidth=0.3)+
-  geom_vline(xintercept = c(7.5,9.5,11.5,17.5),
+  geom_vline(xintercept = c(7.5,9.5,11.5,16.5),
              col="grey",linewidth=0.15,linetype="dashed")+
   labs(x="",y=lab_rr)+
   # labs(x="",y=lab_rr_temp)+
@@ -597,18 +668,21 @@ p <- ggplot(y,aes(var,rr))+
   geom_text(data=filter(y,pm25_var,str_detect(var,"below")),y=-15-temp_adj,hjust = 0,
             size=font_size*5/14 * 0.8,label=expression(paste("PM"[2.5], " below 20 ", mu, "g/m"^3, "")))+
   # special rows for R2
-  geom_text(data=filter(y,r2_var),y=-15-temp_adj,hjust = 0,size=font_size*5/14 * 0.8,
-            label=expression(paste("Excluding regions with low satellite accuracy ", "R"^2, "")))+
+  # geom_text(data=filter(y,r2_var),y=-14-temp_adj,hjust = 0,size=font_size*5/14 * 0.8,
+  #           label=expression(paste("Excluding regions with low satellite accuracy ", "R"^2, "")))+
   # titles in bold
   geom_text(data=filter(y,title),y=-15-temp_adj,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(y=-7-temp_adj,x=rows+1,label="n",size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(y=-7-temp_adj,aes(label=N),size=font_size*5/14 * 0.8)+
-  geom_text(y=-5-temp_adj,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(y=-5-temp_adj,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
-  geom_text(y=-2.5,x=rows+1,size=font_size*5/14 * 0.8,fontface = "bold",
-  label=expression(bold(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))+
-  geom_text(y=-2.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  geom_text(y=-8-temp_adj,x=rows+1,label="n",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-8-temp_adj,aes(label=N),size=font_size*5/14 * 0.8)+
+  geom_text(y=-6-temp_adj,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-6-temp_adj,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
+  geom_text(y=-4-temp_adj,x=rows+1,label="Pop. 75+",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-4-temp_adj,aes(label=popVar),size=font_size*5/14 * 0.8)+
+  geom_text(y=-2,x=rows+1,size=font_size*5/14 * 0.8,fontface = "bold",
+  # label=expression(bold(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))+
+  label=expression(bold(paste("Mean PM"[2.5], ""))))+
+  geom_text(y=-2,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
   # geom_text(y=-4.5,x=rows+1,label="Mean T [°C]",size=font_size*5/14 * 0.8,fontface = "bold")+
   # geom_text(y=-4.5,aes(label=mean_temp),size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8,fontface = "bold")+
@@ -653,6 +727,7 @@ y <- x %>%
 rows <- y %>% nrow()
 
 font_size <- 7.5
+temp_adj <- 0
 range(y$rr_low,na.rm=T);range(y$rr_high,na.rm=T)
 max_value <- ceiling(max(y$rr_high,na.rm=T))
 p <- ggplot(y,aes(var,rr))+
@@ -670,21 +745,23 @@ p <- ggplot(y,aes(var,rr))+
   coord_flip(xlim=c(0,rows+2),expand = F)+
   scale_y_continuous(expand = c(0,0),
                      breaks = c(seq(0,5,2.5)),
-                     limits = c(-14,14.3)) +
+                     limits = c(-16.5,10.3)) +
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   theme_bw(font_size)+
   # add text data
-  geom_text(y=-14,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(y=-14,aes(label=var),
+  geom_text(y=-16.5,x=rows+1,label="Sample",hjust = 0,size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-16.5,aes(label=var),
             hjust = 0,size=font_size*5/14 * 0.8)+
   # titles in bold
-  geom_text(y=-7,x=rows+1,label="n",size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(y=-7,aes(label=N),size=font_size*5/14 * 0.8)+
-  geom_text(y=-5,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8,fontface = "bold")+
-  geom_text(y=-5,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
-  geom_text(y=-2.5,x=rows+1,size=font_size*5/14 * 0.8,fontface = "bold",
-            label=expression(bold(paste("Mean PM"[2.5], " [", mu, "g/m"^3, "]"))))+
-  geom_text(y=-2.5,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
+  geom_text(y=-8,x=rows+1,label="n",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-8,aes(label=N),size=font_size*5/14 * 0.8)+
+  geom_text(y=-6,x=rows+1,label="Monthly MR",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-6,aes(label=mean_MR),size=font_size*5/14 * 0.8)+
+  geom_text(y=-4,x=rows+1,label="Pop. 75+",size=font_size*5/14 * 0.8,fontface = "bold")+
+  geom_text(y=-4,aes(label=popVar),size=font_size*5/14 * 0.8)+
+  geom_text(y=-2,x=rows+1,size=font_size*5/14 * 0.8,fontface = "bold",
+            label=expression(bold(paste("Mean PM"[2.5], ""))))+
+  geom_text(y=-2,aes(label=mean_pm25),size=font_size*5/14 * 0.8)+
   geom_text(y=max_value+1,x=rows+1,label="Effect C.I. 95%",size=font_size*5/14 * 0.8,fontface = "bold")+
   geom_text(y=max_value+1,aes(label=ci),size=font_size*5/14 * 0.8)+
   # Modify theme to look good
@@ -706,7 +783,7 @@ cowplot::ggdraw(p+labs(y=" \n "))+
 # cowplot::draw_label(lab_rr_line2_temp, x = 0.7, y = 0.035,size = font_size)
 
 fig_name <- "Figures/Model/%s.png"
-fig_name <- sprintf(fig_name,"Models_Rural2")
+fig_name <- sprintf(fig_name,"Models_Rural")
 # fig_name <- sprintf(fig_name,"Models_Met")
 ggsave(fig_name, ggplot2::last_plot(),
        units="cm",dpi=600,
