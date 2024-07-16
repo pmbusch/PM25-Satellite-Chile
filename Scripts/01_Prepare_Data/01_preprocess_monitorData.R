@@ -1,4 +1,7 @@
 ## Script to pre-process monitor data for PM2.5
+# Load historical monitor data from SINCA Chile
+# https://sinca.mma.gob.cl/
+# It proceess the data into a monthly data
 ## PBH
 ## February 2023
 
@@ -58,6 +61,7 @@ ggplot(df_month,aes(completeness))+stat_ecdf()
 # origianl 4019, then 3858, 161 lost
 df_month <- df_month %>% filter(completeness>=75)
 
+# save intermediate monthly data
 write.table(df_month,"Data/pm25_month.csv",sep=";",row.names = F)
 
 # EoF

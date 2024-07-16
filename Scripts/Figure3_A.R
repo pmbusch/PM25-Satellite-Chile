@@ -1,4 +1,7 @@
 ## Regressions at Region regression Level
+# Figure 3, panel A
+# Figure S4
+# Figure S6
 ## PBH
 ## June 2023
 
@@ -33,7 +36,7 @@ mod_base <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+commune+year_qu
 rr_base <-  getModelInfo(mod_base,"Base") %>% 
   filter(param=="pm25Exp_10ug") %>% pull(rr)
 
-# Loop --------
+# Loop for region models --------
 regs <- df$region %>% unique()
 # regs <- df$commune %>% unique()
 # regs <- df$PROVINCIA %>% unique()
@@ -67,12 +70,15 @@ for (x in regs){
 }
 
 write.csv(all_mods,"Data/Models/modelResults_region.csv",row.names = F)
+
+# read all models
 all_mods <- read.csv("Data/Models/modelResults_region.csv")
 
 
-# Figure ------
+# Figure 3A ------
 
 param_int <- "pm25Exp_10ug"
+# UNCOMMENT FOR LAND TEMPERATURE ANALYSIS
 # param_int <- "landTemp"  # temp
 
 df_fig <- all_mods %>% 
@@ -215,6 +221,8 @@ ggplot(a,aes(date,MR_all_cause,col=fct_rev(region),group=fct_rev(region)))+
 
 
 ## IDEA: Create table as other sub samples
+# Figure S4 -----------
+
 ## Scatter ----
 p <- df_fig %>%
   # dplyr::select(-region) %>% 
@@ -259,6 +267,7 @@ cowplot::ggdraw(p+labs(y=" \n "))+
   cowplot::draw_label(lab_rr_line2, y = 0.5, x = 0.07,size = 8.3,angle = 90)
 # cowplot::draw_label(lab_rr_line2_temp, y = 0.5, x = 0.07,size = 8.3,angle=90)
 
+# Save Figure S4
 ggsave("Figures/Model/RegionModelsPM25.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
@@ -274,6 +283,7 @@ ggplot2::last_plot()
 dev.off()
 
 
+# Figure S6 -------------
 ## Scatter vs share of pop75+ in region --------
 p <- df_fig %>%
   left_join(df_stats) %>% 

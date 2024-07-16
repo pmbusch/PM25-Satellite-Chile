@@ -1,5 +1,6 @@
 # Main Effects figure
-#
+# Figure 2: Main Effects 
+# Figure 3 Main effects subplots: B, C, D, E
 # PBH June 2023
 
 library(tidyverse)
@@ -250,15 +251,15 @@ p1 <- ggplot(response_pm,aes(x))+
         panel.border = element_blank(),
         panel.grid.minor = element_blank())
 p1
-ggsave(sprintf(fig_name,"Effect_se"), ggplot2::last_plot(),
+ggsave(sprintf(fig_name,"Figure2"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 # save as SVG
-ggsave(str_replace(sprintf(fig_name,"Effect_se"),"png","svg"),p1,
-       units="cm",dpi=500,
-       width = 8.7, # full width
-       height =8.7)
-pdf(str_replace(sprintf(fig_name,"Effect_se"),"png","pdf"),
+# ggsave(str_replace(sprintf(fig_name,"Effect_se"),"png","svg"),p1,
+#        units="cm",dpi=500,
+#        width = 8.7, # full width
+#        height =8.7)
+pdf(str_replace(sprintf(fig_name,"Figure2"),"png","pdf"),
     width = 8.7/2.54, # full width
     height =8.7/2.54)
 p1
@@ -312,6 +313,7 @@ ggsave(sprintf(fig_name,"EffectTemp"), ggplot2::last_plot(),
 ####
 
 ## Metropolitan region and rest of country ----
+# Figure 3B
 
 # load model
 out1 <- read.csv("Data/Main Effects/MetModel.csv")
@@ -544,6 +546,7 @@ ggsave(sprintf(fig_name,"Effect_Temp_Season_se"), ggplot2::last_plot(),
        width=8.7,height=8.7)
 
 ## Urban and Rural -----
+# Figure 3C
 
 # Urban Share
 com_rural <- df %>% group_by(commune) %>% 
@@ -676,6 +679,7 @@ ggsave(sprintf(fig_name,"Effect_Urban_temp"), ggplot2::last_plot(),
        width=8.7,height=8.7)
 
 ## PM2.5 Levels --------
+# Figure 3D
 
 # Average over the whole period
 com_pm25 <- df %>% group_by(commune) %>% 
@@ -813,6 +817,7 @@ ggsave(sprintf(fig_name,"Effect_AbovePM25_temp"), ggplot2::last_plot(),
        width=8.7,height=8.7)
 
 ## Above and below 75+ population share --------
+# Figure 3E
 
 # Average over the whole period
 com_75 <- df %>% group_by(REGION,commune) %>% 
@@ -946,27 +951,5 @@ ggsave(sprintf(fig_name,"Effect_AbovePop75_temp"), ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
 
-
-
-# COMBINE PANEL FIGURES -----------
-
-# Need to Run Figure_Demeaning script to get p_dem
-# need to run figures code to get those figures
-
-library(gridExtra)
-# 
-# # Combine them and label them
-# p <- grid.arrange(arrangeGrob(p_dem+ # left side
-#                                 annotate("text", x = 1, y = 41, size=14*5/14 * 0.8,label = "A"),nrow = 1), 
-#              arrangeGrob(p1 + annotate("text", x = 4, y = 7, size=14*5/14 * 0.8,label = "B"), # right side top
-#                          arrangeGrob(p2+annotate("text", x = 4, y = 7, size=14*5/14 * 0.8,label = "C"),
-#                                      p3+annotate("text", x = 4, y = 7, size=14*5/14 * 0.8,label = "D"),
-#                                      ncol = 2), # right side bottom
-#                          nrow = 2),
-#              ncol = 2)
-# p
-# ggsave(sprintf(fig_name,"AllEffect"), p,
-#        units="cm",dpi=500,
-#        width=8.7*2,height=8.7)
 
 # EoF

@@ -1,5 +1,6 @@
 ## Spline with PM2.5 Models
 ## PBH
+## Figure S12
 ## March 2023
 
 library(tidyverse)
@@ -28,7 +29,6 @@ df <- df %>%
          commune=relevel(commune,ref="13101")) # Santiago
 
 # PM25 spline ----------
-
 
 ## Prediction function to see effect ----
 # Better to plot to see the effect
@@ -97,66 +97,29 @@ mod_nb <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+landTemp+year_quarter+comm
 nobs(mod_nb)
 
 library(splines)
-# Numbers in model names are not meaningful
 
-# 3 knots equally spaced (quantiles)
-# mod_nb12 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+landTemp+
-#                      year_quarter+commune+
-#                      offset(log(pop75)), data = df,na.action=na.omit)
-# Knots
-# df$pm25Exp_10ug %>% range()
-# attr(terms(mod_nb15),"predvars")
-# Compare to base model
-# lmtest::lrtest(model_nb, mod_nb12) # Spline is better is better
-
-# Knto at 20 ug/m3
-mod_nb13 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(20)/10)+landTemp+
+# Knot at 20 ug/m3
+mod_knot20 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(20)/10)+landTemp+
                      year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
-mod_nb14 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25)/10)+landTemp+
+# Knot at 10, 15 and 25
+mod_knots3 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, knots = c(10,15,25)/10)+landTemp+
                      year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
-mod_nb15 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp+year_quarter+
+# DF 4 
+mod_df4 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+landTemp+year_quarter+
                      commune+offset(log(pop75)), data = df,na.action=na.omit)
-
-# 3 knots equally spaced (quantiles) for PM2.5 and Land Temp.
-# mod_nb16 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 3)+ns(landTemp, df = 3)+
-#                      year_quarter+commune+
-#                      offset(log(pop75)), data = df,na.action=na.omit)
 # PM2.5 with quadratic term
-mod_nb17 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+landTemp+
+mod_quadratic <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+landTemp+
                      year_quarter+commune+
                      offset(log(pop75)), data = df,na.action=na.omit)
-
-
-# mod_nb18 <- glm.nb(death_count_all_cause ~ pm25Exp_10ug+I(pm25Exp_10ug^2)+I(pm25Exp_10ug^3)+
-#                      landTemp+year_quarter+commune+offset(log(pop75)), data = df,na.action=na.omit)
-
-# 4 df equally spaced (quantiles) for PM2.5 and Land Temp.
-quantile(data_used$pm25Exp_10ug,c(0.1,0.75,0.9),weights=data_used$pop75)
-quantile(data_used$landTemp,c(0.1,0.75,0.9),weights=data_used$pop75)
-
-# with quantiles
-mod_nb19 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, 
-                                              knots = c(10,15,25)/10)+
-                                              # knots = unname(quantile(data_used$pm25Exp_10ug,c(0.1,0.75,0.9),weights=data_used$pop75)))+
-                     ns(landTemp, df = 4)+
-                        # knots = unname(quantile(data_used$landTemp,c(0.1,0.75,0.9),weights=data_used$pop75)))+
-                     year_quarter+commune+
-                     offset(log(pop75)), data = df,na.action=na.omit)
-attr(terms(mod_nb19),"predvars")
-
-
-
-# just df
-# mod_nb19 <- glm.nb(death_count_all_cause ~ ns(pm25Exp_10ug, df = 4)+ns(landTemp, df = 4)+
-#                      year_quarter+commune+
-#                      offset(log(pop75)), data = df,na.action=na.omit)
 
 
 # get effect of PM2.5 on MR over the range of PM2.5 values
 response_a <- tibble::tibble(x =pm25_support)
-# linear response we need the SE, use function from MainEffects_Figure.R
+# NOTE: linear response we need the SE, use function "getRiskSlope" 
+# created in Figure2_and_3.R
+
 # get line with CI
 out_pm25 <- getModelInfo(mod_nb,"Base",data_df = data_used) %>% 
   filter(param=="pm25Exp_10ug")
@@ -166,22 +129,16 @@ y_low=response_pm$y_low
 y_high=response_pm$y_high
 y=response_pm$y
 
-# y12 = f.getSplinePredictions(pm25_support,data_used,mod_nb12)
-y13 = f.getSplinePredictions(pm25_support,data_used,mod_nb13)
-y14 = f.getSplinePredictions(pm25_support,data_used,mod_nb14)
-y15 = f.getSplinePredictions(pm25_support,data_used,mod_nb15)
-# y16 = f.getSplinePredictions(pm25_support,data_used,mod_nb16)
-y17 = f.getSplinePredictions(pm25_support,data_used,mod_nb17)
-# y18 = f.getSplinePredictions(pm25_support,data_used,mod_nb18)
-y19 = f.getSplinePredictions(pm25_support,data_used,mod_nb19)
-
+yknot20 = f.getSplinePredictions(pm25_support,data_used,mod_knot20)
+yknot3 = f.getSplinePredictions(pm25_support,data_used,mod_knots3)
+ydf4 = f.getSplinePredictions(pm25_support,data_used,mod_df4)
+y_quadratic = f.getSplinePredictions(pm25_support,data_used,mod_quadratic)
 
 # proportion of observations above 40 ug/m3
 nrow(filter(data_used,pm25_exposure>40))/nrow(data_used) # 10%
 nrow(filter(data_used,pm25_exposure<10))/nrow(data_used) # 16%
 nrow(filter(data_used,pm25_exposure<5))/nrow(data_used) # 0.2%
 nrow(filter(data_used,pm25_exposure<15))/nrow(data_used) # 41%
-
 # ggplot(data_used,aes(pm25_exposure))+stat_ecdf()
 
 # Pm2.5 to ug/m3
@@ -192,14 +149,10 @@ ci_plot <- response_a %>%
 data_fig <- response_a %>%
   mutate(Base=y,
          y_low=y_low,y_high=y_high,
-         # `spline (3 df)`=y12,
-         `spline (1 knot at 20)`=y13,
-         `spline (3 knots at 10, 15 & 25)`=y14,
-         `spline (4 df)`=y15,
-         # `spline (3 df)+ Temp (3 df)`=y16,
-         # `x+x^2+x^3`=y18,
-         `spline (3 knots at 10, 30 & 50)\n + Temp (4 df)`=y19,
-         `quadratic term`=y17) %>% 
+         `spline (1 knot at 20)`=yknot20,
+         `spline (3 knots at 10, 15 & 25)`=yknot3,
+         `spline (4 df)`=ydf4,
+         `quadratic term`=y_quadratic) %>% 
   dplyr::select(-y_low,-y_high) %>%
   pivot_longer(c(-x), names_to = "key", values_to = "value") %>% 
   mutate(x=x*10)
@@ -232,11 +185,11 @@ ggplot(data_fig,aes(x))+
         legend.text = element_text(size=8),
         panel.grid.minor = element_blank())
 
-ggsave("Figures/Model/Splines4.png",
+ggsave("Figures/Model/FigureS12.png",
        units="cm",dpi=600,
        width=8.7,height=8.7)
-pdf("Figures/Model/Splines.pdf",
-    width = 8.7*2/2.54, height =8.7/2.54)
+pdf("Figures/Model/FigureS12.pdf",
+    width = 8.7/2.54, height =8.7/2.54)
 ggplot2::last_plot()
 dev.off()
 
@@ -244,6 +197,8 @@ dev.off()
 # Key idea: make predictions with new dataset changing only the PM2.5. base data
 # We calcualte all the levels (commune and quarter) and then average based on pop
 # Idea is to get an "average" of categorical variables
+# note: Effect of PM2.5 does not have an interaction with categorical variables
+# so it does not matter, this results in the same figure
 f.getSplinePredictionsAvg <- function(new_base,data_,model,se=F){
   
   # Calculate mean values for the continuous predictors
@@ -355,6 +310,8 @@ x = f.getSplinePredictions(pm25_support,data_used,mod_nb,se = F)
 
 
 ## Linear models -------
+# OUR MODEL IS NOT OLS, so it not valid
+
 ## Analysis by Nature paper
 # https://github.com/sheftneal/HBBB2018/blob/master/scripts/07_FigureED3.R
 

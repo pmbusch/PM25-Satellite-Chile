@@ -1,5 +1,6 @@
 ## Get satellite estimations at monitor coordinates
 ## Source: https://sites.wustl.edu/acag/datasets/surface-pm2-5/#V5.GL.03
+## Compares monitor against satellite data
 ## PBH
 ## February 2023
 
@@ -43,6 +44,8 @@ for (y in 2015:2021){
 monitor_year <- monitor_year %>% pivot_longer(c(-site,-latitude,-longitude), 
                                               names_to = "year", values_to = "pm25_satellite")
 # monitor_year$year %>% unique()
+
+# save intermediate data
 write.table(monitor_year,"Data/pm25Satellite_year.csv",sep=";",row.names = F)
 
 
@@ -72,6 +75,7 @@ monitor_month$period <- NULL
 # monitor_month$year %>% unique()
 # monitor_month$month %>% unique()
 
+# save intermediate data
 write.table(monitor_month,"Data/pm25Satellite_month.csv",sep=";",row.names = F)
 
 # EoF

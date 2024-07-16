@@ -1,5 +1,6 @@
 ## Fixed effects Model
 ## PBH
+# Estimates the avoided deaths for the discussion
 ## February 2023
 
 library(tidyverse)
@@ -87,3 +88,4 @@ df_avoided %>% ungroup() %>%
 
 sum(df$death_count_all_cause)
 
+# EoF

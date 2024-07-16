@@ -1,4 +1,5 @@
 ## Functions to be used commonly in scripts
+# It also generates common labels for figures
 ## PBH
 ## March 2023
 

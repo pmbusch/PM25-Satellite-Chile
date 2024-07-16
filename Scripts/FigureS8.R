@@ -1,4 +1,5 @@
 # Age of Death time Series Analysis
+# Figure S8
 # PBH September 2023
 
 
@@ -31,6 +32,12 @@ age_death %>% group_by(Year,Gender) %>%
 ggsave("Figures/AgeDeath_national.png", ggplot2::last_plot(),
        units="cm",dpi=600,
        width=8.7,height=8.7)
+
+pdf("Figures/FigureS8.pdf", 
+       width=8.7/2.54,height=8.7/2.54)
+ggplot2::last_plot()
+dev.off()
+
 
 
 # Year variations -----

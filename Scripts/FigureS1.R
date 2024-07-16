@@ -1,4 +1,6 @@
 ## Compare monitor with satellite PM25 estimations
+## Figure S1
+## Table S1 data
 ## PBH
 ## February 2023
 
@@ -10,13 +12,10 @@ theme_set(theme_bw(10)+ theme(panel.grid.major = element_blank(),
 
 fig_name <- "Figures/Satellite_Monitor/%s"
 
-
 # load data ----
-
 monitor <- read.delim("Data/pm25_month.csv",sep = ";")
 satellite <- read.delim("Data/pm25Satellite_month.csv",sep=";")
 # skim(satellite);skim(monitor);
-
 
 ## join ----
 df <- monitor %>% left_join(satellite) %>% na.omit() # by site, year, month
@@ -24,13 +23,11 @@ df <- monitor %>% left_join(satellite) %>% na.omit() # by site, year, month
 # save
 write.table(df,"Data/satellite_monitor.csv",sep = ";",row.names = F)
 
-
 # monitor site data -----
 sites <- df %>% group_by(region,province,commune,site,longitude, latitude) %>% 
   tally() %>% ungroup() %>% dplyr::select(-n)
 head(sites)
 write.table(df,"Data/monitor_coordinates.csv",sep = ";",row.names = F)
-
 
 ## ranges
 df$value %>% range()
@@ -43,83 +40,8 @@ df <- df %>%  mutate(quarter=ceiling(month/3) %>% as.integer()) %>% # quarters b
     quarter==1 ~ "Summer", quarter==2 ~ "Fall", quarter==3 ~ "Winter", T ~ "Spring") %>% 
       factor(levels = c("Summer","Fall","Winter","Spring")))
 
-# Ratios -----
-mean(df$pm25_satellite)/mean(df$value) # 0.97
-df <- df %>% mutate(ratio=pm25_satellite/value) # on average scale is the same
-summary(df$ratio) # up to 6 times more, and 6 times less
-quantile(summary(df$ratio),c(0.025,0.975))
-
-df %>% group_by(year) %>% summarise(mean(value)/mean(pm25_satellite))
-df %>% group_by(quarter) %>% summarise(mean(value)/mean(pm25_satellite))
-df %>% group_by(month) %>% summarise(mean(value)/mean(pm25_satellite))
-df %>% group_by(region) %>% summarise(mean(value)/mean(pm25_satellite))
-
-
-# Valdivia 2 is wrong
-# df <- df %>% filter(site!="Valdivia 2") # cor goes from .7817 to .7943
-
-p_ratios <- ggplot(df,aes(ratio))+
-  geom_histogram(bins=50)+
-  scale_x_log10(breaks = c(0.2, 0.25,1/3,0.5, 1, 2, 3, 4, 5),
-                labels = c("1/5", "1/4","1/3","1/2", "1", "2", "3", "4", "5"))+
-  geom_vline(xintercept = 1,linetype="dashed",col="black")+
-  labs(y="Freq.",x="Ratio Satellite/Monitor PM2.5", caption="Log Scale")+
-  theme(panel.grid.minor = element_blank())
-p_ratios
-
-ggsave(sprintf(fig_name,"Ratio_Satellite.png"),
-       units="cm",dpi=500,
-       width = 8.7, #  1 column width
-       height = 8.7)
-# by quarter
-p_ratios+facet_wrap(~quarter_string)
-ggsave(sprintf(fig_name,"Ratio_Satellite_Quarter.png"),
-       units="cm",dpi=500,
-       width = 8.7*2, #  1 column width
-       height = 8.7*2)
-# by month
-p_ratios+facet_wrap(~month)
-# by region
-p_ratios+facet_wrap(~region)
-ggsave(sprintf(fig_name,"Ratio_Satellite_Region.png"),
-       units="cm",dpi=500,
-       width = 8.7*2, #  1 column width
-       height = 8.7*2)
-
-# Comparison of Variations within each monitor ------
-names(df)
-df %>% group_by(site) %>% 
-  summarise(monitor=mean(value),
-            satellite=mean(pm25_satellite)) %>% ungroup() %>% 
-  mutate(diff=monitor-satellite, abs_diff=abs(diff)) %>% 
-  arrange(desc(abs_diff)) %>% head(20)
-
-
-df %>% group_by(site) %>% 
-  summarise(monitor=sd(value),
-            satellite=sd(pm25_satellite)) %>% ungroup() %>% 
-  mutate(diff=monitor-satellite, abs_diff=abs(diff)) %>% 
-  arrange(desc(abs_diff)) %>% head(20)
-
-# histograms
-df %>% 
-  rename(Monitor=value,Satellite=pm25_satellite) %>% 
-  pivot_longer(c(Monitor,Satellite), names_to = "key", values_to = "value") %>% 
-  ggplot(aes(value,fill=key))+
-  geom_histogram(alpha=.5, bins=100, position = "identity")+
-  # geom_density(alpha=.5)+
-  labs(x=expression(paste("PM2.5 [",mu,"g/",m^3,"]"),""),
-       y="Freq.",fill="")+
-  coord_cartesian(expand = F)+
-  theme(legend.position = c(0.8,0.8))
-ggsave(sprintf(fig_name,"Histogram.png"),
-       units="cm",dpi=500,
-       width = 8.7, #  1 column width
-       height = 8.7)
-
-
-
-# Correlations ------
+# TABLE S1 Data---------
+## Correlations ------
 cor(x= df$value, y= df$pm25_satellite,
     use = "complete.obs",
     method = "pearson")
@@ -133,11 +55,11 @@ f.RMSE <- function(x,y){
 }
 
 f.RMSE(df$value,df$pm25_satellite) # 12.7
+
 df %>% group_by(region) %>% 
   reframe(rmse=f.RMSE(value,pm25_satellite))
 df %>% group_by(year) %>% 
   reframe(rmse=f.RMSE(value,pm25_satellite))
-
 
 # summary(lm(value~pm25_satellite,data=df))
 # summary(lm(value~pm25_satellite-1,data=df))
@@ -264,6 +186,7 @@ p_year <- df %>%
         legend.box.background = element_rect(colour = "black"))
 p_year
 
+# Figure S1A
 ggsave(sprintf(fig_name,"SatelliteAcc_Year.png"),p_year,
        units="cm",dpi=500,
        width = 8.7, #  1 column width
@@ -339,7 +262,7 @@ p_region <- ggplot(df,aes(value,pm25_satellite,col=region_cor))+
   scale_color_manual(values=as.vector(pals::glasbey(16)))+
   xlim(0,205)+ylim(0,205)+
   guides(col=guide_legend(ncol=2))+
-  theme(legend.position = c(0.3,0.8),
+  theme(legend.position = c(0.32,0.8),
         panel.grid.major = element_blank(),
         legend.key.height = unit(0.1, "cm"),
         legend.spacing.x = unit(0.001,"cm"),
@@ -347,21 +270,31 @@ p_region <- ggplot(df,aes(value,pm25_satellite,col=region_cor))+
         legend.box.background = element_rect(colour = "black"))
 p_region
 
+# Figure S1B
 ggsave(sprintf(fig_name,"SatelliteAcc_Region.png"),p_region,
        units="cm",dpi=500,
        width = 8.7, #  1 column width
        height = 8.7)
 
+# FIGURE S1 ----------
 library(gridExtra)
 
 p <- grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.02,0.95)),
              p_region+labs(tag="B")+theme(plot.tag.position = c(0.02,0.95)),
              ncol=2)
 p
-ggsave(sprintf(fig_name,"SatelliteAcc.png"),p,
+
+ggsave(sprintf(fig_name,"FigureS1.png"),p,
        units="cm",dpi=500,
        width = 8.7*2, # full width
        height = 8.7)
+# PDF
+pdf(sprintf(fig_name,"FigureS1.pdf"),
+       width = 8.7*2/2.54, height = 8.7/2.54)
+grid.arrange(p_year+labs(tag="A")+theme(plot.tag.position = c(0.02,0.95)),
+             p_region+labs(tag="B")+theme(plot.tag.position = c(0.02,0.95)),
+             ncol=2)
+dev.off()
 
 
 ### By Quarter -----
@@ -447,7 +380,81 @@ ggsave(sprintf(fig_name,"SatelliteAcc_Month.png"),p_month,
        height = 8.7)
 
 
+# OTHER ANALYSES ---------
 
+# Ratios -----
+mean(df$pm25_satellite)/mean(df$value) # 0.97
+df <- df %>% mutate(ratio=pm25_satellite/value) # on average scale is the same
+summary(df$ratio) # up to 6 times more, and 6 times less
+quantile(summary(df$ratio),c(0.025,0.975))
+
+df %>% group_by(year) %>% summarise(mean(value)/mean(pm25_satellite))
+df %>% group_by(quarter) %>% summarise(mean(value)/mean(pm25_satellite))
+df %>% group_by(month) %>% summarise(mean(value)/mean(pm25_satellite))
+df %>% group_by(region) %>% summarise(mean(value)/mean(pm25_satellite))
+
+
+# Valdivia 2 is wrong
+# df <- df %>% filter(site!="Valdivia 2") # cor goes from .7817 to .7943
+
+p_ratios <- ggplot(df,aes(ratio))+
+  geom_histogram(bins=50)+
+  scale_x_log10(breaks = c(0.2, 0.25,1/3,0.5, 1, 2, 3, 4, 5),
+                labels = c("1/5", "1/4","1/3","1/2", "1", "2", "3", "4", "5"))+
+  geom_vline(xintercept = 1,linetype="dashed",col="black")+
+  labs(y="Freq.",x="Ratio Satellite/Monitor PM2.5", caption="Log Scale")+
+  theme(panel.grid.minor = element_blank())
+p_ratios
+
+ggsave(sprintf(fig_name,"Ratio_Satellite.png"),
+       units="cm",dpi=500,
+       width = 8.7, #  1 column width
+       height = 8.7)
+# by quarter
+p_ratios+facet_wrap(~quarter_string)
+ggsave(sprintf(fig_name,"Ratio_Satellite_Quarter.png"),
+       units="cm",dpi=500,
+       width = 8.7*2, #  1 column width
+       height = 8.7*2)
+# by month
+p_ratios+facet_wrap(~month)
+# by region
+p_ratios+facet_wrap(~region)
+ggsave(sprintf(fig_name,"Ratio_Satellite_Region.png"),
+       units="cm",dpi=500,
+       width = 8.7*2, #  1 column width
+       height = 8.7*2)
+
+# Comparison of Variations within each monitor ------
+names(df)
+df %>% group_by(site) %>% 
+  summarise(monitor=mean(value),
+            satellite=mean(pm25_satellite)) %>% ungroup() %>% 
+  mutate(diff=monitor-satellite, abs_diff=abs(diff)) %>% 
+  arrange(desc(abs_diff)) %>% head(20)
+
+
+df %>% group_by(site) %>% 
+  summarise(monitor=sd(value),
+            satellite=sd(pm25_satellite)) %>% ungroup() %>% 
+  mutate(diff=monitor-satellite, abs_diff=abs(diff)) %>% 
+  arrange(desc(abs_diff)) %>% head(20)
+
+# histograms
+df %>% 
+  rename(Monitor=value,Satellite=pm25_satellite) %>% 
+  pivot_longer(c(Monitor,Satellite), names_to = "key", values_to = "value") %>% 
+  ggplot(aes(value,fill=key))+
+  geom_histogram(alpha=.5, bins=100, position = "identity")+
+  # geom_density(alpha=.5)+
+  labs(x=expression(paste("PM2.5 [",mu,"g/",m^3,"]"),""),
+       y="Freq.",fill="")+
+  coord_cartesian(expand = F)+
+  theme(legend.position = c(0.8,0.8))
+ggsave(sprintf(fig_name,"Histogram.png"),
+       units="cm",dpi=500,
+       width = 8.7, #  1 column width
+       height = 8.7)
 
 ## Temporal correlation --------
 

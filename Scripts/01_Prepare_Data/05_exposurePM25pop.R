@@ -1,9 +1,11 @@
 ## Estimate PM25 Population exposure
-## Note: Same code use to calculate Land Surface Temperature from https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A1#bands
+# Estimates PM25 satellite exposure combining raster pm2.5 satellite data with
+# polygon census population data in Chile
 ## PBH
 ## February 2023
-## New Census data: April 2023
 
+## Note: Same code use to calculate Land Surface Temperature from https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A1#bands
+## Need to uncomment certain parts for the land temperature analysis
 
 library(tidyverse)
 library(scales)
@@ -24,6 +26,7 @@ file_exp <- "pm25exposure"
 file_exp_commune <- "pm25exposure_commune"
 folder <- "Exposure"
 
+# UNCOMMENT FOR LAND TEMPERATURE ANALYSIS
 # Land Temp Parameters
 # Uncomment them for TEMPERATURE 
 # fig_name <- "Figures/LandTemp/%s"
@@ -38,6 +41,8 @@ folder <- "Exposure"
 regions <- 1:16
 regions <- paste0("R",ifelse(str_length(regions)==1,"0",""),regions)
 
+# file folder for census 2017 data
+# http://www.censo2017.cl/
 url_file_reg <- "D:/CENSO 2017/%s/%s"
 
 first <- T
@@ -103,7 +108,6 @@ ggplot(pop_com,aes(perc))+geom_histogram(bins=50)+theme_bw(20)+labs(y="Count of 
 ggsave(sprintf(fig_name,"pop_capture_commune.png"))
 
 
-
 # Percentage of rural population
 df %>% group_by(type) %>% summarise(pop=sum(TOTAL_PERS)) %>% 
   ungroup() %>% mutate(perc=pop/sum(pop)) # 12.3% Rural
@@ -145,6 +149,7 @@ x <- expand.grid(months,1998:2019)
 # x <- expand.grid(months,2000:2021) # TEMPERATURE
 x <- paste0(x$Var2,"",x$Var1) # "" for PM25, _ for temp
 # remove ends for land_temp
+# UNCOMMENT FOR LAND TEMPERATURE ANALYSIS
 # x <- x[-1:-2] # TEMPERATURE
 # x <- x[-254:-262] # TEMPERATURE
 
@@ -220,6 +225,7 @@ for (r in regions){
     pivot_longer(c(-1:-17),
                  names_to = "period", values_to = "value")
 
+  # UNCOMMENT FOR LAND TEMPERATURE ANALYSIS
   # only for Temp data, correct for scale and Kelvin
   # zones <- zones %>% mutate(value=value*0.02-273.15) %>%
   #   filter(value>-100) # some NAs pass as zero
@@ -361,34 +367,5 @@ names(pm25_exp_commune) <- names(pm25_exp_commune) %>%
 # save
 write.table(pm25_exp_commune,paste0("Data/",file_exp_commune,".csv"),
             sep=";",row.names = F)
-
-
-# Playground Example OLD-----
-# valdivia
-# codigos_territoriales %>% 
-#   filter(nombre_comuna=="Valdivia")
-# mapa_valdivia <- mapa_zonas %>% filter(codigo_comuna=="14101")
-# mapa_valdivia <- st_as_sf(mapa_valdivia) # convert to geospatial object
-# mapa_valdivia <- mapa_valdivia %>% 
-#   left_join(zones) # add pop
-# mapa_valdivia$area <- st_area(mapa_valdivia)
-# 
-# # plot(mapa_valdivia)
-# # mapview(mapa_valdivia)
-# 
-# file <- sprintf(file_url,"Monthly",sprintf(file_nc_monthly,"201908","201908"))
-# sat <- raster(file,varname = "GWRPM25",band = 1)
-# sat <- crop(sat, extent(-73.3,-73.1, -39.9, -39.7))
-# sat <- crop(sat, extent(-76,-65, -56, -17.5)) # chile area
-# crs(sat) <- crs(mapa_valdivia) # just to map, does not have effect on extraction
-# 
-# # plot(sat)
-# mapview(sqrt(sat),maxpixels =  4125000)+mapview(mapa_valdivia)
-# 
-# ### extract PM25 for each population polygon based on area cross ---
-# # for each polygon it gets the weighted average by the area
-# # with this method I can calculate PM2.5 for each polygon of population
-# d <- extract(sat,mapa_valdivia,weights=T,fun=mean,na.rm=TRUE) 
-# d
 
 # EoF

@@ -1,4 +1,6 @@
-## Time series figures of data
+## Time series figures of data: PM2.5 and mortality rate.
+# Figure 1B from main body and figure S3 in the SI.
+
 ## PBH
 ## May 2023
 
@@ -18,7 +20,6 @@ df %>% dplyr::select(pm25_exposure,landTemp) %>% skimr::skim()
 df$pm25_exposure %>% quantile(c(0.05,0.95))
 df$landTemp %>% quantile(c(0.05,0.95))
 
-# df %>% group_by(commune) %>% reframe(pm25=mean(pm25_exposure)) %>% view()
 
 # by season
 df %>% 
@@ -29,83 +30,6 @@ df %>%
   pivot_wider(names_from = quarter, values_from = pm25) %>% 
 # uncomment for ratio between winter-fall to summer-spring
   mutate(ratio=(`2`+`3`)/(`1`+`4`))
-
-
-# Figure v1: Spagetti ------
-names(df)
-# create 3 plots
-library(RColorBrewer)
-brewer.pal(n=3,"Reds") # color same as map
-p2 <- df %>% 
-  # filter(year>2015) %>%
-  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
-  mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% # order by month
-  arrange(count_month) %>% arrange(codigo_comuna) %>% 
-  ggplot(aes(date,pm25_exposure,group=commune))+
-  geom_line(alpha=.2,linewidth=.1,col="#DE2D26")+
-  # geom_boxplot(aes(group=date),alpha=.3,col="#DE2D26")+
-  coord_cartesian(expand = F)+
-  labs(x="",y=lab_pm25)+
-  scale_x_date(date_breaks = "2 year",date_labels = "%Y")+
-  # scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
-  theme_bw(12)+
-  theme(panel.grid.major = element_blank())
-p2
-brewer.pal(n=3,"Blues") 
-p3 <- p2+aes(y=landTemp)+labs(y=lab_temp)+
-  geom_line(alpha=.2,linewidth=.1,col="#3182BD")
-# p3
-brewer.pal(n=3,"Oranges") 
-p1 <- p2+aes(y=MR_all_cause)+labs(y=lab_mr)+
-  geom_line(alpha=.2,linewidth=.1,col="#E6550D")
-# p1
-
-# Arrange in row format
-library(gridExtra)
-
-# Add titles
-p1 <- p1 +   ggtitle("A: 75+ All-Cause Mortality Rate") +
-  theme(plot.title = element_text(size = 12, hjust = 0.5))
-p2 <- p2 +   ggtitle(expression("B: PM"[2.5]~"Exposure")) +
-  theme(plot.title = element_text(size = 12, hjust = 0.5))
-p3 <- p3 +   ggtitle("C: Land Temperature") +
-  theme(plot.title = element_text(size = 12, hjust = 0.5))
-
-
-p <- grid.arrange(arrangeGrob(p1),
-                  arrangeGrob(p2),
-                  arrangeGrob(p3),
-                  ncol=1)
-p
-# 
-ggsave(sprintf(fig_name,"Timeseries"),p,
-       units="cm",dpi=500,
-       width = 14.8, # full width
-       height = 12.2)
-
-df$codigo_comuna %>% unique() %>% length() # 327
-
-
-# Just PM2.5 and MR
-p2 <- p2 +   ggtitle(expression("PM"[2.5]~" exposure"))
-p1 <- p1 +   ggtitle("75+ all-cause monthly mortality rate")
-
-p <- grid.arrange(arrangeGrob(p2),
-                  arrangeGrob(p1),
-                  ncol=1)
-p
-# 
-ggsave(sprintf(fig_name,"Timeseries2"),p,
-       units="cm",dpi=500,
-       width = 14.8, # full width
-       height = 12.2)
-
-p3 <- p3 +   ggtitle("Land temperature") +
-  theme(plot.title = element_text(size = 12, hjust = 0.5))
-ggsave(sprintf(fig_name,"Timeseries3"),p3,
-       units="cm",dpi=500,
-       width = 14.8, # full width
-       height = 8.7)
 
 
 # Figure v2: Highlighting ------------
@@ -203,7 +127,7 @@ p <- df_fig %>%
     override.aes = list(alpha=1, linewidth=c(0.8,rep(0.35,7),0.25))) # linewidth for legend
   )
 p
-ggsave(sprintf(fig_name,"highlight_pm"),p,
+ggsave(sprintf(fig_name,"Figure1B_pm"),p,
        units="cm",dpi=500,
        width = 14.8, # full width
        height =6.1)
@@ -219,7 +143,7 @@ ggsave(str_replace(sprintf(fig_name,"highlight_pm"),"png","svg"),p,
 
 p_mr <- p+aes(y=MR_all_cause)+labs(y=lab_mr)
 p_mr
-ggsave(sprintf(fig_name,"highlight_mr"),p_mr,
+ggsave(sprintf(fig_name,"Figure1B_mr"),p_mr,
        units="cm",dpi=500,
        width = 14.8, # full width
        height =6.1)
@@ -239,15 +163,101 @@ ggsave(str_replace(sprintf(fig_name,"highlight_mr"),"png","svg"),p_mr,
 
 p_temp <- p+aes(y=landTemp)+labs(y=lab_temp)
 p_temp
-ggsave(sprintf(fig_name,"highlight_temp"),p_temp,
+ggsave(sprintf(fig_name,"FigureS3"),p_temp,
        units="cm",dpi=500,
        width = 14.8, # full width
-       height =6.1)
+       height =6.8)
+# pdf
+pdf(str_replace(sprintf(fig_name,"FigureS3"),"png","pdf"),
+    width = 14.8/2.54,height =6.8/2.54)
+p_temp
+dev.off()
+
 # save as SVG
 ggsave(str_replace(sprintf(fig_name,"highlight_temp"),"png","svg"),p_temp,
        units="cm",dpi=500,
        width = 14.8, # full width
        height =6.1)
+
+
+
+
+
+# extra, not shown : Figure v1: Spagetti ------
+names(df)
+# create 3 plots
+library(RColorBrewer)
+brewer.pal(n=3,"Reds") # color same as map
+p2 <- df %>% 
+  # filter(year>2015) %>%
+  mutate(date=as.Date(paste(year,month,"01",sep="-"),"%Y-%m-%d")) %>% 
+  mutate(count_month=as.numeric(year)*12+as.numeric(month)) %>% # order by month
+  arrange(count_month) %>% arrange(codigo_comuna) %>% 
+  ggplot(aes(date,pm25_exposure,group=commune))+
+  geom_line(alpha=.2,linewidth=.1,col="#DE2D26")+
+  # geom_boxplot(aes(group=date),alpha=.3,col="#DE2D26")+
+  coord_cartesian(expand = F)+
+  labs(x="",y=lab_pm25)+
+  scale_x_date(date_breaks = "2 year",date_labels = "%Y")+
+  # scale_x_date(date_breaks = "6 month",date_labels = "%Y-%b")+
+  theme_bw(12)+
+  theme(panel.grid.major = element_blank())
+p2
+brewer.pal(n=3,"Blues") 
+p3 <- p2+aes(y=landTemp)+labs(y=lab_temp)+
+  geom_line(alpha=.2,linewidth=.1,col="#3182BD")
+# p3
+brewer.pal(n=3,"Oranges") 
+p1 <- p2+aes(y=MR_all_cause)+labs(y=lab_mr)+
+  geom_line(alpha=.2,linewidth=.1,col="#E6550D")
+# p1
+
+# Arrange in row format
+library(gridExtra)
+
+# Add titles
+p1 <- p1 +   ggtitle("A: 75+ All-Cause Mortality Rate") +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+p2 <- p2 +   ggtitle(expression("B: PM"[2.5]~"Exposure")) +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+p3 <- p3 +   ggtitle("C: Land Temperature") +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+
+
+p <- grid.arrange(arrangeGrob(p1),
+                  arrangeGrob(p2),
+                  arrangeGrob(p3),
+                  ncol=1)
+p
+# 
+ggsave(sprintf(fig_name,"Timeseries"),p,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height = 12.2)
+
+df$codigo_comuna %>% unique() %>% length() # 327
+
+
+# Just PM2.5 and MR
+p2 <- p2 +   ggtitle(expression("PM"[2.5]~" exposure"))
+p1 <- p1 +   ggtitle("75+ all-cause monthly mortality rate")
+
+p <- grid.arrange(arrangeGrob(p2),
+                  arrangeGrob(p1),
+                  ncol=1)
+p
+# 
+ggsave(sprintf(fig_name,"Timeseries2"),p,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height = 12.2)
+
+p3 <- p3 +   ggtitle("Land temperature") +
+  theme(plot.title = element_text(size = 12, hjust = 0.5))
+ggsave(sprintf(fig_name,"Timeseries3"),p3,
+       units="cm",dpi=500,
+       width = 14.8, # full width
+       height = 8.7)
 
 
 

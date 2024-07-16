@@ -1,5 +1,6 @@
 # Income Figure for Sub sample models
 #  Uses results generated in Model_Subsamples.R script
+# Figure 4B
 # PBH September 2023
 
 library(tidyverse)

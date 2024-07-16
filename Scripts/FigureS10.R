@@ -1,5 +1,6 @@
 ## Different Models comparisons by Model specification
 ## PBH
+# Figure S10
 ## March 2023
 
 library(tidyverse)
@@ -136,34 +137,7 @@ order_models <- tibble(name=c(
 order_models$order_n <- 1:nrow(order_models)
 
 
-# put title top
-# https://stackoverflow.com/questions/70369558/two-column-facet-grid-with-strip-labels-on-top
-library(gtable)
-library(grid)
-library(gridExtra)
-f.TitleTop <- function(ggObject){
-  
-  gt <- ggplotGrob(ggObject)
-  panels <-c(subset(gt$layout, grepl("panel", gt$layout$name), se=t:r))
-  for(i in rev(panels$t-1)) {
-    gt = gtable_add_rows(gt, unit(1.2, "lines"), i)
-  }
-  panels <-c(subset(gt$layout, grepl("panel", gt$layout$name), se=t:r))
-  strips <- c(subset(gt$layout, grepl("strip-r", gt$layout$name), se=t:r))
-  stripText = gtable_filter(gt, "strip-r")
-  for(i in 1:length(strips$t)) {
-    gt = gtable_add_grob(gt, stripText$grobs[[i]]$grobs[[1]], t=panels$t[i]-1, l=5)
-  }
-  gt = gt[,-6]
-  # for(i in panels$t) { # remove for the all figure for the article, for some reason it interfer with the sec. axis
-  #   gt$heights[i-1] = unit(1.2, "lines")
-  #   gt$heights[i-2] = unit(0.2, "lines")
-  # }
-  return(gt)
-}
-
-
-# Figure 
+# Figure S10 -----------
 p <- models_nb_res %>% 
   mutate(signif=sign(rr_low)==sign(rr_high)) %>% 
   left_join(order_models) %>% 
@@ -185,8 +159,10 @@ ggplot(aes(reorder(name,order_n,decreasing=T),rr))+
   geom_hline(yintercept = 0, linetype="dashed",col="grey",linewidth=1)+
   # geom_vline(xintercept = c(3.5,7.5), linetype="dashed",col="grey",linewidth=0.3)+
   coord_flip()+
-  # facet_wrap(~category,ncol=1,scales = "free_y")+
-  facet_grid(category~.,scales = "free_y",space = "free")+
+  # title on top
+  ggforce::facet_col(facets = vars(category), 
+                     scales = "free_y", 
+                     space = "free") +
   scale_color_manual(values = c("black", "red"), labels = c(F, T))+
   labs(title=expression(paste("Base Model: MR ~ ",PM[2.5],"+T°+Commune+...","")),
        x="Additional term",
@@ -202,17 +178,17 @@ ggplot(aes(reorder(name,order_n,decreasing=T),rr))+
         strip.text.y = element_text(angle = 0),
         legend.position = "none")
 
+p
 
-
-gt <- f.TitleTop(p)
-grid.newpage();grid.draw(gt)
-
-ggsave("Figures/Model/Model_Specifications.png",gt,
-# ggsave("Figures/Model/Model_Specifications_Temp.png",gt,
+ggsave("Figures/Model/Model_Specifications.png",p,
+# ggsave("Figures/Model/Model_Specifications_Temp.png",p,
        units="cm",dpi=500,
-       # width = 1068/3.7795275591, # pixel to mm under dpi=300
-       # height = 664/3.7795275591)
        width=8.7*2,height=8.7)
+
+ggsave("Figures/Model/FigureS10.pdf",
+       width=8.7*2/2.54,height=8.7/2.54)
+p
+dev.off()
 
 
 # Month coefficients
@@ -243,6 +219,7 @@ ggsave("Figures//Model/Model_Specifications_MonthEffect.png", ggplot2::last_plot
        # height = 664/3.7795275591)
        width=8.7*2,height=8.7)
 
+# OTHER ANALYSES NOT INCLUDED ---------
 
 # # LM ----
 model_lm <- glm(mortality ~ pm25Exp_10ug+year+region*quarter, 

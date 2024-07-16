@@ -1,5 +1,6 @@
 # Load Socioeconomic data from CASEN 2017 Survey
 # http://observatorio.ministeriodesarrollosocial.gob.cl/encuesta-casen-2017
+# Code is simply used to load socioeconomic data for further analysis
 # PBH June 2023
 
 library(tidyverse)
@@ -142,9 +143,7 @@ df_casen <- left_join(df_income,
   dplyr::select(-nombre_comuna,-codigo_provincia,-nombre_provincia,
          -codigo_region,-nombre_region)
 
-# Save data -----
+# Save intermediate data -----
 write.csv(df_casen,"Data/socioeconomic.csv",row.names = F)
-
-
 
 # EoF

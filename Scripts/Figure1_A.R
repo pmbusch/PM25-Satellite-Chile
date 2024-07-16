@@ -1,3 +1,6 @@
+# Maps for Figure1A and Figure S2
+# May 2024
+
 library(dplyr)
 library(chilemapas)
 library(leaflet)

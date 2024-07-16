@@ -1,5 +1,8 @@
 ## Pre Process Satellite data to Chile
+## All global sattelite datasets are required
 ## Source: https://sites.wustl.edu/acag/datasets/surface-pm2-5/#V5.GL.03
+## Load global sattelite data and compress it into a smaller format just for Chile area
+## Satellite is used to compare against monitor data in Chile
 ## PBH
 ## February 2023
 
@@ -12,6 +15,7 @@ library(RColorBrewer)
 
 
 # Load data -----
+# Change path to folder where data is located
 file_url <- "D:/PM25 Satellite Data/%s/%s"
 file_nc_anual <- "V5GL03.HybridPM25.Global.%s01-%s12.nc"
 file_nc_monthly <- "V5GL03.HybridPM25.Global.%s-%s.nc"

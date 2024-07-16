@@ -1,4 +1,6 @@
 ## Regressions at Year regression Level
+# Figure 4A main body
+# Figure S7
 ## PBH
 ## June 2023
 
@@ -57,8 +59,13 @@ for (x in yrs){
 
 write.csv(all_mods,"Data/Models/modelResults_year.csv",row.names = F)
 # write.csv(all_mods,"Data/Models/modelResults_year_group_3.csv",row.names = F) 
-all_mods <- read.csv("Data/Models/modelResults_year.csv")
-# all_mods <- read.csv("Data/Models/modelResults_year_group.csv")
+
+# Comment/uncomment for Fig4 or Fig S7
+
+# Fig S7
+# all_mods <- read.csv("Data/Models/modelResults_year.csv")
+# Fig 4
+all_mods <- read.csv("Data/Models/modelResults_year_group.csv")
 # all_mods <- read.csv("Data/Models/modelResults_year_group_3.csv")
 
 # Figure ------
@@ -82,8 +89,8 @@ p <- df_fig %>%
   ggplot(aes(x = year, y = rr)) +
   # base RR
   geom_hline(yintercept = rr_base, linetype="dashed",col="brown",linewidth=0.5)+
-  geom_rect(xmin=2001,xmax=2020,
-  # geom_rect(xmin=0,xmax=7, # for YEAR GROUPS
+  # geom_rect(xmin=2001,xmax=2020,
+  geom_rect(xmin=0,xmax=7, # for YEAR GROUPS
             ymin = as.numeric(rr_ci[1]), ymax = as.numeric(rr_ci[2]),
             fill = "brown",alpha=0.01)+ # A=0.05 FOR GROUP or 0.01 for year
   # by year
@@ -97,12 +104,12 @@ p <- df_fig %>%
   #                    limits = c(-2.6,0.45))+ # temp
   # annotation
   annotate("text", 
-           x = 2017,
-           # x=3.1, # for YEAR GROUPS
+           # x = 2017,
+           x=3.1, # for YEAR GROUPS
            y = rr_base+1.4, label = "Full model estimate",size=8*5/14 * 0.8) +
   geom_segment(aes(y = rr_base+1.2, yend = rr_base+0.2),
-               x = 2018, xend = 2019,
-               # x=3.1,xend=3.5,
+               # x = 2018, xend = 2019,
+               x=3.1,xend=3.5,
                arrow = arrow(length = unit(0.15, "cm"))) +
   # annotate("text", x = 2002, y = 8, size=14*5/14 * 0.8,label = "A")+
   # temp - uncomment
@@ -115,7 +122,7 @@ p <- df_fig %>%
   theme_bw(10)+
   theme(legend.position = "none",
         axis.title.y = element_text(size = 8.3,hjust=1),
-        # axis.text.x = element_text(size = 6.5), # only for YEAR GROUP
+        axis.text.x = element_text(size = 6.5), # only for YEAR GROUP
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 p
@@ -126,8 +133,8 @@ cowplot::ggdraw(p+labs(y=" \n "))+
   cowplot::draw_label(lab_rr_line2, y = 0.5, x = 0.07,size = 8.3,angle = 90)
   # cowplot::draw_label(lab_rr_line2_temp, y = 0.5, x = 0.07,size = 8.3,angle=90)
 
-fig_name <- "YearModels"
-# fig_name <- "YearModelsGroup"
+# fig_name <- "YearModels" # for Fig S7
+fig_name <- "YearModelsGroup" # for Fig 4A
 # fig_name <- "YearModels_Temp"
 
 ggsave(paste0("Figures/Model/",fig_name,".png"), ggplot2::last_plot(),
@@ -174,6 +181,8 @@ all_mods %>%
   dplyr::select(name,qt,est) %>% 
   # pivot_wider(names_from = qt, values_from = est)
   ggplot(aes(name,est,col=qt))+geom_point()
+
+# OTHER ANALYSES - not included in main body
 
 # Year 2017 Analysis in detail -------
 

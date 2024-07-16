@@ -1,6 +1,12 @@
 ## Different Models comparisons by Sub-samples
 ## PBH
+# Multiple Figures of the Article
+# Figure 5
+# Figure S5
+# Figure S11
 ## March 2023
+
+#IMPORTANT: need to comment/uncomment lines of code to generate the different figures
 
 library(tidyverse)
 library(MASS)
@@ -16,6 +22,8 @@ theme_set(theme_bw(16)+ theme(panel.grid.major = element_blank()))
 
 ## Panel data -----
 df <- read.delim("Data/Panel Data/panelData.csv",sep=";")
+
+## UNCOMMENT FOR 65+ (Fig S11)
 # df <- read.delim("Data/Panel Data/panelData_65.csv",sep=";") # 65+ deaths
 # df <- df %>% rename(pop75_share=pop65_share)
 
@@ -39,6 +47,8 @@ df <- df %>%
 
 ### Sex data -------------
 df_sex <- read.delim("Data/Panel Data/panelData_sex.csv",sep=";")
+
+## UNCOMMENT FOR 65+ (Fig S11)
 # df_sex <- read.delim("Data/Panel Data/panelData_sex_65.csv",sep=";") # 65+
 # df_sex <- df_sex %>% rename(pop75_share=pop65_share)
 
@@ -97,6 +107,7 @@ df %>% filter(region==13) %>%
 commune_pop <- df %>% group_by(commune) %>% summarise(pop75_share=mean(pop75_share))
 median_pop <-  median(commune_pop$pop75_share) # 0.04496193
 commune_pop <- commune_pop %>% filter(pop75_share>0.045) %>% pull(commune) # 163
+## UNCOMMENT FOR 65+ (Fig S11)
 # commune_pop <- commune_pop %>% filter(pop75_share>0.108) %>% pull(commune) # for 65+
 df <- df %>% mutate(pop_case=if_else(commune %in% commune_pop,"Above Median","Below Median"))
 rm(commune_pop)
@@ -338,7 +349,9 @@ results[[1]] <- runModel(data=df,name="Full Sample")  # full sample
 results[[2]] <- runModel(data=filter(df_sex,sex=="Hombre"),name="Sex: Male") 
 results[[3]] <- runModel(data=filter(df_sex,sex=="Mujer"),name="Sex: Female") 
 results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
+## UNCOMMENT FOR 65+ (Fig S11)
 # results[[4]] <- runModel(data=filter(df,pop500==T),name="Pop. 65+ Above 500") # 65+
+
 results[[5]] <- runModel(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
 # results[[6]] <- runModel(data=filter(df,bad_region2==0),name="Excluding regions with low satellite accuracy RMSE")
 results[[7]] <- runModel(data=filter(df,REGION ==13),name="Only Metropolitan region")
@@ -365,9 +378,11 @@ results[[22]] <- runModel(data=mutate(df,death_count_all_cause=death_count_respi
                                       MR_all_cause=MR_respiratory),name="Respiratory cause")
 results[[23]] <- runModel(data=mutate(df,death_count_all_cause=death_count_all_cause_NoCDP,
                                       MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
-results[[24]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
-                                      MR_all_cause=MR_external),name="External cause")
+# results[[24]] <- runModel(data=mutate(df,death_count_all_cause=death_count_external,
+#                                       MR_all_cause=MR_external),name="External cause")
 
+
+# UNCOMMENT FOR FIG S5
 # Others Rural by Cause
 # results <- list()  #lists to save results
 # results[[1]] <- runModel(data=filter(df,comRural==F),name="Urban Commune")
@@ -467,7 +482,9 @@ res <- do.call("rbind",results)
 
 # save data
 write.csv(res,"Data/Models/modelResults.csv",row.names = F)
+## UNCOMMENT FOR 65+ (Fig S11)
 # write.csv(res,"Data/Models/modelResults_65.csv",row.names = F)
+## UNCOMMENT FOR FIG S5
 # write.csv(res,"Data/Models/modelResultsRural.csv",row.names = F)
 # write.csv(res,"Data/Models/modelResultsMet.csv",row.names = F)
 
@@ -485,6 +502,7 @@ pops[[1]] <- getPop(data=df,name="Full Sample")  # full sample
 pops[[2]] <- getPop(data=filter(df_sex,sex=="Hombre"),name="Sex: Male")
 pops[[3]] <- getPop(data=filter(df_sex,sex=="Mujer"),name="Sex: Female")
 pops[[4]] <- getPop(data=filter(df,pop500==T),name="Pop. 75+ Above 500")
+## UNCOMMENT FOR 65+ (Fig S11)
 # pops[[4]] <- getPop(data=filter(df,pop500==T),name="Pop. 65+ Above 500") # 65+
 pops[[5]] <- getPop(data=filter(df,bad_region==0),name="Excluding regions with low satellite accuracy")
 pops[[7]] <- getPop(data=filter(df,REGION ==13),name="Only Metropolitan region")
@@ -508,6 +526,8 @@ pops[[23]] <- getPop(data=mutate(df,death_count_all_cause=death_count_all_cause_
                                       MR_all_cause=MR_all_cause_NoCDP),name="All-cause excluding Cardiorespiratory")
 pops[[24]] <- getPop(data=mutate(df,death_count_all_cause=death_count_external,
                                       MR_all_cause=MR_external),name="External cause")
+
+## UNCOMMENT FOR FIG S5
 # For rural
 # pops[[1]] <- getPop(data=filter(df,comRural==F),name="Urban Commune")
 # pops[[2]] <- getPop(data=filter(df,comRural==T),name="Rural Commune (>30% share poulation)")
@@ -536,12 +556,18 @@ pops[[24]] <- getPop(data=mutate(df,death_count_all_cause=death_count_external,
 pops <- do.call("rbind",pops)
 
 # 
-# res <- read.csv("Data/Models/modelResults.csv")
+res <- read.csv("Data/Models/modelResults.csv")
+## UNCOMMENT FOR 65+ (Fig S11)
 # res <- read.csv("Data/Models/modelResults_65.csv")
-res <- read.csv("Data/Models/modelResultsRural.csv")
+## UNCOMMENT FOR FIG S5
+# res <- read.csv("Data/Models/modelResultsRural.csv")
+
+res <- res %>% mutate(var=str_replace(var,
+                                      "Excluding regions with low satellite accuracy R2",
+                                      "Excluding regions with low satellite accuracy"))
 
 fig_name <- "Figures/Model/%s.png"
-# fig_name <- sprintf(fig_name,"Models_Subsample")
+fig_name <- sprintf(fig_name,"Models_Subsample")
 # fig_name <- sprintf(fig_name,"Models_Subsample65")
 # fig_name <- sprintf(fig_name,"Models_Subsample_Temp")
 # fig_name <- sprintf(fig_name,"Models_Subsample65_Temp")
@@ -577,17 +603,15 @@ x$var %>% unique()
 # select relevant to show
 robustness <- c( "Full Sample","Robustness",
                  "Sex: Male","Sex: Female",
-                 # "Pop. 75+ Above 500",
-                 "Pop. 65+ Above 500",
+                 "Pop. 75+ Above 500",
+                 # "Pop. 65+ Above 500",
                  "Excluding regions with low satellite accuracy")
-                 # "Excluding regions with low satellite accuracy R2",
-                 # "Excluding regions with low satellite accuracy RMSE")
 heterogen <- c("Heterogeneity",
                "Only Metropolitan region","Excluding Metropolitan region",
                "Urban Commune","Rural Commune (>30% share poulation)",
                "PM2.5 below 20 ug/m3","PM2.5 above 20 ug/m3",
-               # "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)")
-               "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)") #65+ case
+               "Pop. 75+ share below median (<4.5%)","Pop. 75+ share above median (>4.5%)")
+               # "Pop. 65+ share below median (<10.8%)","Pop. 65+ share above median (>10.8%)") #65+ case
                # "Lowest income quintile (below $3,182)","2nd income quintile ($3,182-$3,577)",
                # "3rd income quintile ($3,577-$4,138)","4th income quintile ($4,138-$4,961)",
                # "Highest income quintile (above $4,961)")
@@ -792,10 +816,10 @@ ggsave(fig_name, ggplot2::last_plot(),
 # ggsave(str_replace(fig_name,"png","svg"),ggplot2::last_plot(),
 #        units="cm",dpi=600,
 #        width = 8.7*2, height =8.7)
-# pdf(str_replace(fig_name,"png","pdf"),
-#     width = 8.7*2/2.54, height =8.7/2.54)
-# ggplot2::last_plot()
-# dev.off()
+pdf(str_replace(fig_name,"png","pdf"),
+    width = 8.7*2/2.54, height =8.7/2.54)
+ggplot2::last_plot()
+dev.off()
 
 
 # EoF

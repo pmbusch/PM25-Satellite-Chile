@@ -1,5 +1,6 @@
 ## Different model specifications: NB, OLS, Poisson
 ## PBH
+# Figure S9
 ## June 2023
 
 library(tidyverse)
@@ -81,8 +82,9 @@ models_nb_res <- rbind(models_nb_res,getModelInfo(model_ols,"OLS",ols=T,baseRate
 
 
 # save results
-write.csv(models_nb_res,"Data/modelMethodsResults.csv",row.names = F)
-# models_nb_res <- read.csv("Data/modelMethodsResults.csv")
+write.csv(models_nb_res,"Data/Models/modelMethodsResults.csv",row.names = F)
+
+models_nb_res <- read.csv("Data/Models/modelMethodsResults.csv")
 
 # Figure 
 models_nb_res %>% 
@@ -112,5 +114,12 @@ ggsave("Figures/Model/Model_Method.png", ggplot2::last_plot(),
        # ggsave("Figures/Model/Model_Specifications_Temp.png", ggplot2::last_plot(),
        units="cm",dpi=500,
        width=8.7,height=8.7)
+
+
+pdf("Figures/Model/FigureS9.pdf", 
+       width=8.7/2.54,height=8.7/2.54)
+ggplot2::last_plot()
+dev.off()
+
 
 # EoF

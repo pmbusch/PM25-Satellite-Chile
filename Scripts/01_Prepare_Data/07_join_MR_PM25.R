@@ -1,22 +1,23 @@
 ## Join the PM25 exposure data to the mortality rates data
+# Need to run previous code to generate PM2.5 exposure and MR data
+# It generates data file for other sensitivity, robustness analyses
 ## PBH
 ## April 2023
+
+# NOTE: need to uncomment to generate the data for 65+ MR rates
+
 
 library(tidyverse)
 library(readxl)
 
 # Load required data -----
-# rate is per 1000 birhts
-# mortality <- read.delim("Data/mortality_data.csv")
-# mortality <- mortality %>% rename(year=Year,quarter=Quarter)
-
 # 75+ or 65+ years death data----
 # make sure to save the data with names
 # all causes
 
 death_75 <- read.delim(paste0("Data/chile_elderly_",
                               "75+",
-                              # "65+",
+                              # "65+", # UNCOMMENT FOR 65+
                               "_all_cause_external_cardio_respiratory_mortality_count_commune_level_year_1990_2019_quarter_month.csv"),
                        sep=",")
 death_75$Age <- NULL
@@ -114,7 +115,7 @@ table(pop$sex)
 
 pop_75 <- pop %>% 
   filter(Edad>74) %>%
-  # filter(Edad>64) %>%
+  # filter(Edad>64) %>% # UNCOMMENT FOR 65+
   group_by(Comuna,sex,year) %>% summarise(pop75=sum(pop,na.rm=T)) %>% ungroup() %>% 
   rename(codigo_comuna=Comuna)
 # rm(pop)
@@ -129,12 +130,8 @@ pop_total %>% filter(year==2017,sex=="TOTAL") %>% pull(pop) %>% sum()
 # 75+ share
 pop_75 <- pop_75 %>% left_join(pop_total) %>% 
   mutate(pop75_share=pop75/pop)
-  # mutate(pop65_share=pop75/pop)
+  # mutate(pop65_share=pop75/pop) # UNCOMMENT FOR 65+
 
-
-# library(ggforce)
-# ggplot(pop_75,aes(pop75))+geom_histogram(bins=100)+
-#   facet_zoom(xlim(0,500))
 
 # join death and pop
 death_75 <- death_75 %>% left_join(pop_75)
@@ -225,12 +222,14 @@ df_all <- df %>% filter(sex=="TOTAL")
 df_all$sex <- NULL
 
 write.table(df_all,"Data/Panel Data/panelData.csv",sep = ";",row.names = F)
+# UNCOMMENT FOR 65+
 # write.table(df_all,"Data/Panel Data/panelData_65.csv",sep = ";",row.names = F)
 
 df_sex <- df %>% filter(sex!="TOTAL")
 df_sex$sex %>% table()
 
 write.table(df_sex,"Data/Panel Data/panelData_Sex.csv",sep = ";",row.names = F)
+# UNCOMMENT FOR 65+
 # write.table(df_sex,"Data/Panel Data/panelData_Sex_65.csv",sep = ";",row.names = F)
 
 
