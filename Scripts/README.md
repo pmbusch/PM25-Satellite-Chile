@@ -4,7 +4,7 @@
 
 * **Figure 1**: Monthly population-weighted PM2.5 exposures and 75+ mortality rates. See Figure1_A.R and Figure1_B.R
 * **Figure 2**: Short-term effect of PM2.5 on monthly 75+ all-cause mortality. See Figure2_and_3.R
-* **Figure 3**: Heterogeneous effects of PM2.5 on 75+ mortality rate. See Figure3_A.R and Figure2_and_3.R.
+* **Figure 3**: Heterogeneous effects of PM2.5 on 75+ mortality rate. See Figure3_A.R and Figure2_and_3.R
 * **Figure 4**: Changes over time and for different income levels. See Figure4_A.R and Figure4_B.R
 * **Figure 5**: Effect of PM2.5 for the full sample and for various subgroups. See Figure5.R 
 
