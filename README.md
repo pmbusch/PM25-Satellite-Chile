@@ -1,6 +1,6 @@
 # Short-term exposure to fine particulate pollution and elderly mortality in Chile
 
-Replication materials for Busch, Rocha, Jin Lee, Cifuentes & Tai (2024).
+Replication materials for [Busch, Rocha, Jin Lee, Cifuentes & Tai (2024)](https://www.nature.com/articles/s43247-024-01634-x).
 
 The following code and data allows for the reproduction of all the tables, figures and calculations made in the article, both in the main body and supplementary information.
 
