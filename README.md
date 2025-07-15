@@ -4,7 +4,7 @@ Replication materials for [Busch, Rocha, Jin Lee, Cifuentes & Tai (2024)](https:
 
 The following code and data allows for the reproduction of all the tables, figures and calculations made in the article, both in the main body and supplementary information.
 
-If you identify any error in the source code or have any further suggestions please contact Pablo Busch at pmbusch@ucdavis.edu.
+If you identify any error in the source code or have any further suggestions please contact Pablo Busch at pmbuschh@gmail.com.
 
 # Organization
 
